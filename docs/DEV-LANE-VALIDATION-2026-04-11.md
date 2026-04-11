@@ -4,6 +4,9 @@
 
 This note records the implementation-specific runtime change and validation proof for the NeoUO Dev shard client data lane.
 
+Related project-level milestone note:
+- `neo-uo/01_logs/DEV-LANE-VALIDATION-2026-04-11.md`
+
 ## Runtime target
 
 - Shard root: `C:\UO\Server\Neo Ultima Online\NeoUO-Dev`
@@ -24,6 +27,11 @@ New value:
 
 Backup created before patch:
 - `C:\UO\Server\Neo Ultima Online\Backups\_agent-temp\DataPath.cfg.20260411-040529.bak`
+
+Related commit references:
+- Runtime repo local commit: `81406dc` — `config: route dev shard to UOFiles-Test and record validation`
+- Project repo note commit: `2a7bb19` — `docs: log dev lane validation milestone`
+- Technical repo initial note commit: `7fec5ae` — `docs: record dev lane validation proof`
 
 ## Why this works
 
