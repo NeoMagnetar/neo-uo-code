@@ -1,0 +1,15 @@
+# Reference
+
+Status: scaffolded during repo revamp pass one.
+
+## Purpose
+
+Glossary, comparison notes, and stable reference materials.
+
+## What Belongs Here
+
+Status: scaffolded during repo revamp pass one.
+
+## Current Status
+
+Status: scaffolded during repo revamp pass one.
