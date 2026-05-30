@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Server.Custom.AIGM;
 using Server.Mobiles;
 using Server.Network;
@@ -7,7 +8,7 @@ namespace Server.Gumps
 {
     public class AIGMResponseGump : Gump
     {
-        private const int ActionButtonBase = 100;
+        private const int ActionButtonBase = 1000;
 
         private readonly Mobile m_From;
         private readonly AIGMCounselor m_Npc;
@@ -50,13 +51,18 @@ namespace Server.Gumps
             if (m_Response == null || m_Response.ProposedActions == null || m_Response.ProposedActions.Count == 0)
                 return;
 
+            if (AIGMSettings.EnableDebugLogging)
+                Log("RESPONSE_RENDER_ACTIONS count=" + m_Response.ProposedActions.Count);
             int count = Math.Min(3, m_Response.ProposedActions.Count);
             int y = 415;
 
             for (int i = 0; i < count; i++)
             {
                 AIGMActionProposal action = m_Response.ProposedActions[i];
-                AddButton(20 + (i * 195), y, 4005, 4007, ActionButtonBase + i, GumpButtonType.Reply, 0);
+                int buttonId = ActionButtonBase + i;
+                if (AIGMSettings.EnableDebugLogging)
+                    Log("RESPONSE_RENDER_ACTION index=" + i + " kind=" + (action != null ? action.ActionKind : "null") + " title=" + (action != null ? action.Title : "null") + " buttonId=" + buttonId);
+                AddButton(20 + (i * 195), y, 4005, 4007, buttonId, GumpButtonType.Reply, 0);
                 AddHtml(55 + (i * 195), y, 170, 20,
                     String.Format("<BASEFONT COLOR=#FFFFFF>{0}</BASEFONT>", Utility.FixHtml(GetActionLabel(action, i))), false, false);
             }
@@ -83,6 +89,7 @@ namespace Server.Gumps
             switch (category.Trim().ToLowerInvariant())
             {
                 case "move": return "[M]";
+                case "navigate": return "[N]";
                 case "mutate": return "[!]";
                 default: return "[R]";
             }
@@ -90,6 +97,9 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
+            if (AIGMSettings.EnableDebugLogging)
+                Log("RESPONSE_CLICK buttonId=" + info.ButtonID + " proposedCount=" + (m_Response != null && m_Response.ProposedActions != null ? m_Response.ProposedActions.Count.ToString() : "null"));
+
             if (m_From == null || m_From.Deleted)
                 return;
 
@@ -118,13 +128,18 @@ namespace Server.Gumps
         {
             if (m_Response == null || m_Response.ProposedActions == null || index < 0 || index >= m_Response.ProposedActions.Count)
             {
+                Log("ExecuteAction invalid index=" + index);
                 m_From.SendMessage("No executable AI GM action is available in that slot.");
                 return;
             }
 
             AIGMActionProposal action = m_Response.ProposedActions[index];
-            if (action != null && !String.IsNullOrWhiteSpace(action.Category) && action.Category.Equals("mutate", StringComparison.OrdinalIgnoreCase))
+            if (AIGMSettings.EnableDebugLogging)
+                Log("RESPONSE_SELECTED_ACTION index=" + index + " kind=" + (action != null ? action.ActionKind : "null") + " category=" + (action != null ? action.Category : "null") + " desc=" + (action != null ? action.Description : "null"));
+            if (action != null && (action.RequiresConfirmation || (!String.IsNullOrWhiteSpace(action.Category) && action.Category.Equals("mutate", StringComparison.OrdinalIgnoreCase))))
             {
+                if (AIGMSettings.EnableDebugLogging)
+                    Log("RESPONSE_OPEN_CONFIRM kind=" + (action != null ? action.ActionKind : "null"));
                 m_From.SendGump(new AIGMConfirmActionGump(m_From, action));
                 return;
             }
@@ -132,6 +147,8 @@ namespace Server.Gumps
             string result;
             if (AIGMActionExecutor.Execute(m_From, action, out result))
             {
+                if (AIGMSettings.EnableDebugLogging)
+                    Log("ExecuteAction immediate success result=" + (result ?? String.Empty));
                 string targetSummary = AIGMActionPreview.BuildTargetSummary(action);
                 AIGMActionHistory.Record(m_From, action, result, targetSummary);
 
@@ -144,7 +161,24 @@ namespace Server.Gumps
             }
             else if (!String.IsNullOrWhiteSpace(result))
             {
+                if (AIGMSettings.EnableDebugLogging)
+                    Log("ExecuteAction immediate failure result=" + result);
                 m_From.SendMessage(result);
+            }
+        }
+
+        private static void Log(string message)
+        {
+            if (!AIGMSettings.EnableDebugLogging)
+                return;
+
+            try
+            {
+                string path = Path.Combine(Core.BaseDirectory, "Logs", "AIGMResponseGump.log");
+                File.AppendAllText(path, DateTime.UtcNow.ToString("o") + " " + (message ?? String.Empty) + Environment.NewLine);
+            }
+            catch
+            {
             }
         }
     }

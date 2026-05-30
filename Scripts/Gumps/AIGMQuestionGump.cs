@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using Server.Custom.AIGM;
 using Server.Items;
 using Server.Mobiles;
@@ -39,7 +40,7 @@ namespace Server.Gumps
             AddImageTiled(10, 145, 500, 165, 2624);
             AddAlphaRegion(10, 145, 500, 165);
             AddHtml(15, 150, 490, 20, "<BASEFONT COLOR=#99CCFF>Question</BASEFONT>", false, false);
-            AddTextEntry(15, 175, 490, 125, 0xF3, 0, m_State.LastQuestion ?? String.Empty);
+            AddTextEntry(15, 175, 490, 125, 1153, 0, String.Empty);
 
             AddButton(15, 325, 4005, 4007, 1, GumpButtonType.Reply, 0);
             AddHtml(50, 325, 90, 20, "<BASEFONT COLOR=#FFFFFF>Ask</BASEFONT>", false, false);
@@ -80,51 +81,67 @@ namespace Server.Gumps
             {
                 case 1:
                     {
-                        TextRelay entry = info.GetTextEntry(0);
-                        string question = entry == null ? String.Empty : (entry.Text ?? String.Empty).Trim();
-
-                        if (question.Length == 0)
+                        try
                         {
-                            m_From.SendMessage("Enter a question first.");
+                            TextRelay entry = info.GetTextEntry(0);
+                            string question = entry == null ? String.Empty : (entry.Text ?? String.Empty).Trim();
+
+                            if (question.Length == 0)
+                            {
+                                m_From.SendMessage("Enter a question first.");
+                                m_From.SendGump(new AIGMQuestionGump(m_From, m_Npc));
+                                return;
+                            }
+
+                            if (question.Length > AIGMSettings.MaxQuestionLength)
+                                question = question.Substring(0, AIGMSettings.MaxQuestionLength);
+
+                            if (DateTime.UtcNow - m_State.LastRequestUtc < AIGMSettings.Cooldown)
+                            {
+                                m_From.SendMessage("Give the archives a moment before asking again.");
+                                m_From.SendGump(new AIGMQuestionGump(m_From, m_Npc));
+                                return;
+                            }
+
+                            if (AIGMSettings.EnableDebugLogging)
+                                Log("Ask start. Question='" + question + "' RequestIdPreview=AIGM-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Utility.RandomMinMax(1000, 9999));
+                            m_State.LastQuestion = question;
+                            m_State.ActiveTaskSummary = question;
+                            m_State.LastRequestUtc = DateTime.UtcNow;
+                            m_State.AddTurn("user", question);
+                            m_State.LastResponse = AIGMBridgeClient.Ask(m_From, question, m_State.CurrentTarget);
+                            int before = m_State.LastResponse != null && m_State.LastResponse.ProposedActions != null ? m_State.LastResponse.ProposedActions.Count : 0;
+                            m_State.LastResponse = AIGMProposalAugmenter.EnsureCoreActionProposals(m_From, question, m_State.CurrentTarget, m_State.LastResponse);
+                            int after = m_State.LastResponse != null && m_State.LastResponse.ProposedActions != null ? m_State.LastResponse.ProposedActions.Count : 0;
+                            bool addedNativeAdd = m_State.LastResponse != null && m_State.LastResponse.ProposedActions != null && m_State.LastResponse.ProposedActions.Exists(a => a != null && a.ActionKind == "gm_add_world_item");
+                            AIGMExecutionLog.Write("QUESTION_AUGMENT question=\"{0}\" before={1} after={2} addedNativeAdd={3}", question, before, after, addedNativeAdd);
+                            if (AIGMSettings.EnableDebugLogging)
+                                Log("Bridge returned. Ok=" + (m_State.LastResponse != null ? m_State.LastResponse.Ok.ToString() : "null") + " ProposedActions=" + (m_State.LastResponse != null && m_State.LastResponse.ProposedActions != null ? m_State.LastResponse.ProposedActions.Count.ToString() : "null"));
+
+                            if (m_State.LastResponse != null)
+                            {
+                                AIGMInvestigationSnapshot snapshot = new AIGMInvestigationSnapshot();
+                                snapshot.LastQuestion = question;
+                                snapshot.LastTargetSummary = m_State.CurrentTarget != null ? m_State.CurrentTarget.ToSummaryString() : "No target selected.";
+                                snapshot.InvestigationKind = m_State.LastResponse.InvestigationKind;
+                                if (m_State.LastResponse.LikelyFiles != null)
+                                    snapshot.LikelyFiles.AddRange(m_State.LastResponse.LikelyFiles);
+                                m_State.Investigation = snapshot;
+                                AIGMInvestigationState.Set(m_From, snapshot);
+                                m_State.AddTurn("assistant", m_State.LastResponse.ReplyText);
+                                m_State.LastWorldSummary = m_State.LastResponse.ReplyText;
+                            }
+
+                            m_From.SendGump(new AIGMResponseGump(m_From, m_Npc, m_State.LastResponse));
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log("Ask exception: " + ex);
+                            m_From.SendMessage("AI GM question handling failed: {0}", ex.Message);
                             m_From.SendGump(new AIGMQuestionGump(m_From, m_Npc));
-                            return;
+                            break;
                         }
-
-                        if (question.Length > AIGMSettings.MaxQuestionLength)
-                            question = question.Substring(0, AIGMSettings.MaxQuestionLength);
-
-                        if (DateTime.UtcNow - m_State.LastRequestUtc < AIGMSettings.Cooldown)
-                        {
-                            m_From.SendMessage("Give the archives a moment before asking again.");
-                            m_From.SendGump(new AIGMQuestionGump(m_From, m_Npc));
-                            return;
-                        }
-
-                        m_State.LastQuestion = question;
-                        m_State.LastRequestUtc = DateTime.UtcNow;
-                        m_State.LastResponse = AIGMBridgeClient.Ask(m_From, question, m_State.CurrentTarget);
-
-                        if (m_State.LastResponse != null)
-                        {
-                            AIGMInvestigationSnapshot snapshot = new AIGMInvestigationSnapshot();
-                            snapshot.LastQuestion = question;
-                            snapshot.LastTargetSummary = m_State.CurrentTarget != null ? m_State.CurrentTarget.ToSummaryString() : "No target selected.";
-                            snapshot.InvestigationKind = m_State.LastResponse.InvestigationKind;
-                            if (m_State.LastResponse.LikelyFiles != null)
-                                snapshot.LikelyFiles.AddRange(m_State.LastResponse.LikelyFiles);
-                            m_State.Investigation = snapshot;
-                            AIGMInvestigationState.Set(m_From, snapshot);
-                        }
-
-                        if (m_State.LastResponse != null && !m_State.LastResponse.Ok)
-                        {
-                            AIGMResponse fallback = AIGMStubResponder.Ask(m_From, question, m_State.CurrentTarget);
-                            fallback.Warnings.Add(m_State.LastResponse.ErrorMessage ?? "Live bridge failed.");
-                            m_State.LastResponse = fallback;
-                        }
-
-                        m_From.SendGump(new AIGMResponseGump(m_From, m_Npc, m_State.LastResponse));
-                        break;
                     }
                 case 2:
                     {
@@ -167,6 +184,21 @@ namespace Server.Gumps
             }
         }
 
+        private static void Log(string message)
+        {
+            if (!AIGMSettings.EnableDebugLogging)
+                return;
+
+            try
+            {
+                string path = Path.Combine(Core.BaseDirectory, "Logs", "AIGMQuestionGump.log");
+                File.AppendAllText(path, DateTime.UtcNow.ToString("o") + " " + (message ?? String.Empty) + Environment.NewLine);
+            }
+            catch
+            {
+            }
+        }
+
         private class AIGMInternalTarget : Target
         {
             private readonly Mobile m_From;
@@ -202,44 +234,73 @@ namespace Server.Gumps
                 m_From.SendGump(new AIGMQuestionGump(m_From, m_Npc));
             }
 
-            private static AIGMTargetInfo BuildTargetInfo(object targeted)
+            private AIGMTargetInfo BuildTargetInfo(object targeted)
             {
                 Item item = targeted as Item;
                 if (item != null)
                 {
-                    return new AIGMTargetInfo
-                    {
-                        Kind = "Item",
-                        Serial = item.Serial.Value,
-                        Name = item.Name,
-                        TypeName = item.GetType().Name,
-                        MapName = item.Map != null ? item.Map.Name : null,
-                        RegionName = item.Map != null ? Region.Find(item.Location, item.Map).Name : null,
-                        X = item.Location.X,
-                        Y = item.Location.Y,
-                        Z = item.Location.Z
-                    };
+                    AIGMTargetInfo info = new AIGMTargetInfo();
+                    info.Kind = "Item";
+                    info.Serial = item.Serial.Value;
+                    info.Name = item.Name;
+                    info.TypeName = item.GetType().Name;
+                    info.MapName = item.Map != null ? item.Map.Name : null;
+                    info.RegionName = item.Map != null ? Region.Find(item.Location, item.Map).Name : null;
+                    info.X = item.Location.X;
+                    info.Y = item.Location.Y;
+                    info.Z = item.Location.Z;
+                    info.Distance = m_From != null ? (int)Math.Round(m_From.GetDistanceToSqrt(item.GetWorldLocation())) : 0;
+                    info.IsContainer = item is Container;
+                    info.IsDoor = item is BaseDoor;
+                    info.IsStatic = item is Static;
+                    info.IsMovable = item.Movable;
+                    info.IsAlive = false;
+                    info.ParentTypeName = item.Parent != null ? item.Parent.GetType().Name : null;
+                    AddTag(info, info.IsContainer, "container");
+                    AddTag(info, info.IsDoor, "door");
+                    AddTag(info, info.IsStatic, "static");
+                    AddTag(info, !info.IsMovable, "immovable");
+                    AddTag(info, info.ParentTypeName != null, "contained");
+                    return info;
                 }
 
                 Mobile mob = targeted as Mobile;
                 if (mob != null)
                 {
-                    return new AIGMTargetInfo
-                    {
-                        Kind = "Mobile",
-                        Serial = mob.Serial.Value,
-                        Name = mob.Name,
-                        TypeName = mob.GetType().Name,
-                        MapName = mob.Map != null ? mob.Map.Name : null,
-                        RegionName = mob.Region != null ? mob.Region.Name : null,
-                        X = mob.Location.X,
-                        Y = mob.Location.Y,
-                        Z = mob.Location.Z
-                    };
+                    AIGMTargetInfo info = new AIGMTargetInfo();
+                    info.Kind = "Mobile";
+                    info.Serial = mob.Serial.Value;
+                    info.Name = mob.Name;
+                    info.TypeName = mob.GetType().Name;
+                    info.MapName = mob.Map != null ? mob.Map.Name : null;
+                    info.RegionName = mob.Region != null ? mob.Region.Name : null;
+                    info.X = mob.Location.X;
+                    info.Y = mob.Location.Y;
+                    info.Z = mob.Location.Z;
+                    info.Distance = m_From != null ? (int)Math.Round(m_From.GetDistanceToSqrt(mob.Location)) : 0;
+                    info.IsPlayer = mob.Player;
+                    info.IsNpc = !mob.Player;
+                    info.IsVendor = mob is BaseVendor;
+                    info.IsAlive = mob.Alive;
+                    AddTag(info, info.IsPlayer, "player");
+                    AddTag(info, info.IsNpc, "npc");
+                    AddTag(info, info.IsVendor, "vendor");
+                    AddTag(info, !info.IsAlive, "dead");
+                    return info;
                 }
 
                 return null;
             }
+
+            private static void AddTag(AIGMTargetInfo info, bool condition, string tag)
+            {
+                if (info == null || !condition || String.IsNullOrWhiteSpace(tag))
+                    return;
+
+                if (!info.Tags.Contains(tag))
+                    info.Tags.Add(tag);
+            }
         }
     }
 }
+
