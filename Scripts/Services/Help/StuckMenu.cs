@@ -162,7 +162,7 @@ namespace Server.Menus.Questions
 
             AddHtmlLocalized(50, 20, 250, 35, 1011027, false, false); // Chose a town:
 
-            StuckMenuEntry[] entries = IsTerMur(beheld) ? m_TerMurEntries : IsInSecondAgeArea(beheld) ? m_T2AEntries : m_Entries;
+            StuckMenuEntry[] entries = m_Entries;
 
             for (int i = 0; i < entries.Length; i++)
             {
@@ -210,31 +210,13 @@ namespace Server.Menus.Questions
             else
             {
                 int index = info.ButtonID - 1;
-                StuckMenuEntry[] entries = IsTerMur(m_Mobile) ? m_TerMurEntries : IsInSecondAgeArea(m_Mobile) ? m_T2AEntries : m_Entries;
+                StuckMenuEntry[] entries = m_Entries;
 
                 if (index >= 0 && index < entries.Length)
                     Teleport(entries[index]);
             }
         }
 
-        private static bool IsInSecondAgeArea(Mobile m)
-        {
-            if (m.Map != Map.Trammel && m.Map != Map.Felucca)
-                return false;
-
-            if (m.X >= 5120 && m.Y >= 2304)
-                return true;
-
-            if (m.Region.IsPartOf("Terathan Keep"))
-                return true;
-
-            return false;
-        }
-
-        private static bool IsTerMur(Mobile m)
-        {
-            return m.Map == Map.TerMur && !SpellHelper.IsEodon(m.Map, m.Location);
-        }
 
         private void Teleport(StuckMenuEntry entry)
         {
@@ -326,18 +308,9 @@ namespace Server.Menus.Questions
                     Point3D dest = m_Destination.Locations[idx];
 
                     Map destMap;
-                    if (m_Mobile.Map == Map.Trammel || SpellHelper.IsEodon(m_Mobile.Map, m_Mobile.Location))
-                        destMap = Map.Trammel;
-                    else if (m_Mobile.Map == Map.Felucca)
-                        destMap = Map.Felucca;
-                    else if (m_Mobile.Map == Map.TerMur && !SpellHelper.IsEodon(m_Mobile.Map, m_Mobile.Location))
+                    if (m_Mobile.Map == Map.TerMur && !SpellHelper.IsEodon(m_Mobile.Map, m_Mobile.Location))
                         destMap = Map.TerMur;
-                    else if (m_Mobile.Map == Map.Internal)
-                        destMap = m_Mobile.LogoutMap == Map.Felucca ? Map.Felucca : Map.Trammel;
                     else
-                        destMap = m_Mobile.Murderer ? Map.Felucca : Map.Trammel;
-
-                    if (destMap == Map.Trammel && Siege.SiegeShard)
                         destMap = Map.Felucca;
 
                     if (m_Mobile.Map != Map.Internal)

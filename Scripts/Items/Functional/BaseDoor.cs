@@ -188,6 +188,7 @@ namespace Server.Items
         public static void Initialize()
         {
             EventSink.OpenDoorMacroUsed += new OpenDoorMacroEventHandler(EventSink_OpenDoorMacroUsed);
+            EventSink.Movement += new MovementEventHandler(EventSink_Movement);
 
             CommandSystem.Register("Link", AccessLevel.GameMaster, new CommandEventHandler(Link_OnCommand));
             CommandSystem.Register("ChainLink", AccessLevel.GameMaster, new CommandEventHandler(ChainLink_OnCommand));
@@ -480,60 +481,135 @@ namespace Server.Items
 
         private static void EventSink_OpenDoorMacroUsed(OpenDoorMacroEventArgs args)
         {
-            Mobile m = args.Mobile;
+            if (args == null || args.Mobile == null)
+                return;
 
-            if (m.Map != null)
+            TryAutoOpenDoor(args.Mobile, true);
+        }
+
+        private static void EventSink_Movement(MovementEventArgs e)
+        {
+            Mobile m = e.Mobile;
+
+            if (m == null || !m.Player || m.Map == null)
+                return;
+
+            if ((m.Direction & Direction.Mask) != (e.Direction & Direction.Mask))
+                return;
+
+            TryAutoOpenDoor(m, false);
+        }
+
+        private static IEnumerable<Point2D> GetAutoOpenDoorPoints(Mobile m)
+        {
+            int x = m.X;
+            int y = m.Y;
+
+            yield return new Point2D(x, y);
+
+            switch (m.Direction & Direction.Mask)
             {
-                int x = m.X, y = m.Y;
+                case Direction.North:
+                    yield return new Point2D(x, y - 1);
+                    break;
+                case Direction.Right:
+                    yield return new Point2D(x + 1, y - 1);
+                    yield return new Point2D(x + 1, y);
+                    yield return new Point2D(x, y - 1);
+                    break;
+                case Direction.East:
+                    yield return new Point2D(x + 1, y);
+                    break;
+                case Direction.Down:
+                    yield return new Point2D(x + 1, y + 1);
+                    yield return new Point2D(x + 1, y);
+                    yield return new Point2D(x, y + 1);
+                    break;
+                case Direction.South:
+                    yield return new Point2D(x, y + 1);
+                    break;
+                case Direction.Left:
+                    yield return new Point2D(x - 1, y + 1);
+                    yield return new Point2D(x - 1, y);
+                    yield return new Point2D(x, y + 1);
+                    break;
+                case Direction.West:
+                    yield return new Point2D(x - 1, y);
+                    break;
+                case Direction.Up:
+                    yield return new Point2D(x - 1, y - 1);
+                    yield return new Point2D(x - 1, y);
+                    yield return new Point2D(x, y - 1);
+                    break;
+            }
+        }
 
-                switch ( m.Direction & Direction.Mask )
+        private static bool IsAutoOpenCandidate(Mobile m, BaseDoor door)
+        {
+            if (door == null || door.Deleted || door.Map != m.Map || door.Open)
+                return false;
+
+            if (!m.InRange(door.GetWorldLocation(), 2))
+                return false;
+
+            if ((door.Z + door.ItemData.Height) <= m.Z || (m.Z + 16) <= door.Z)
+                return false;
+
+            if (!m.CanSee(door) || !m.InLOS(door))
+                return false;
+
+            return true;
+        }
+
+        private static BaseDoor FindAutoOpenDoor(Mobile m)
+        {
+            IPooledEnumerable eable = m.Map.GetItemsInRange(m.Location, 2);
+            BaseDoor best = null;
+            int bestScore = int.MaxValue;
+
+            foreach (Item item in eable)
+            {
+                BaseDoor door = item as BaseDoor;
+
+                if (!IsAutoOpenCandidate(m, door))
+                    continue;
+
+                int score = Math.Abs(door.X - m.X) + Math.Abs(door.Y - m.Y);
+
+                foreach (Point2D p in GetAutoOpenDoorPoints(m))
                 {
-                    case Direction.North:
-                        --y;
-                        break;
-                    case Direction.Right:
-                        ++x;
-                        --y;
-                        break;
-                    case Direction.East:
-                        ++x;
-                        break;
-                    case Direction.Down:
-                        ++x;
-                        ++y;
-                        break;
-                    case Direction.South:
-                        ++y;
-                        break;
-                    case Direction.Left:
-                        --x;
-                        ++y;
-                        break;
-                    case Direction.West:
-                        --x;
-                        break;
-                    case Direction.Up:
-                        --x;
-                        --y;
-                        break;
+                    int candidateScore = Math.Abs(door.X - p.X) + Math.Abs(door.Y - p.Y);
+
+                    if (candidateScore < score)
+                        score = candidateScore;
                 }
 
-                Sector sector = m.Map.GetSector(x, y);
-
-                foreach (Item item in sector.Items)
+                if (score < bestScore)
                 {
-                    if (item.Location.X == x && item.Location.Y == y && (item.Z + item.ItemData.Height) > m.Z && (m.Z + 16) > item.Z && item is BaseDoor && m.CanSee(item) && m.InLOS(item))
-                    {
-                        if (m.CheckAlive())
-                        {
-                            m.SendLocalizedMessage(500024); // Opening door...
-                            item.OnDoubleClick(m);
-                        }
-
-                        break;
-                    }
+                    best = door;
+                    bestScore = score;
                 }
             }
+
+            eable.Free();
+            return best;
+        }
+
+        public static bool TryAutoOpenDoor(Mobile m, bool sendMessage)
+        {
+            if (m == null || m.Map == null || !m.CheckAlive())
+                return false;
+
+            BaseDoor door = FindAutoOpenDoor(m);
+
+            if (door == null)
+                return false;
+
+            if (sendMessage)
+                m.SendLocalizedMessage(500024); // Opening door...
+
+            door.Use(m);
+            return true;
         }
 
         private bool CheckFit(Map map, Point3D p, int height)

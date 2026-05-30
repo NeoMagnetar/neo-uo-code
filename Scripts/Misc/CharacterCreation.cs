@@ -276,8 +276,8 @@ namespace Server.Misc
 				newChar.BankBox.DropItem(ticket);
 			}
 
-			var city = args.City;
-			var map = Siege.SiegeShard && city.Map == Map.Trammel ? Map.Felucca : city.Map;
+			var city = m_SiegeInfo;
+			var map = Map.Felucca;
 
 			newChar.MoveToWorld(city.Location, map);
 
@@ -286,7 +286,7 @@ namespace Server.Misc
 			Utility.PopColor();
 			Utility.PushColor(ConsoleColor.DarkGreen);
 			Console.WriteLine(" - Character: {0} (serial={1})", newChar.Name, newChar.Serial);
-			Console.WriteLine(" - Started: {0} {1} in {2}", city.City, city.Location, city.Map);
+			Console.WriteLine(" - Started: {0} {1} in {2}", city.City, city.Location, map);
 			Utility.PopColor();
 
 			new WelcomeTimer(newChar).Start();

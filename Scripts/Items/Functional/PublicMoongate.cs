@@ -37,16 +37,7 @@ namespace Server.Items
 
 			var count = 0;
 
-			if (!Siege.SiegeShard)
-			{
-				count += MoonGen(PMList.Trammel);
-			}
-
 			count += MoonGen(PMList.Felucca);
-			count += MoonGen(PMList.Ilshenar);
-			count += MoonGen(PMList.Malas);
-			count += MoonGen(PMList.Tokuno);
-			count += MoonGen(PMList.TerMur);
 
 			World.Broadcast(0x35, true, "{0} moongates generated.", count);
 		}
@@ -380,16 +371,16 @@ namespace Server.Items
 				// Holy City
 			});
 
-		public static readonly PMList[] UORLists = {Trammel, Felucca};
-		public static readonly PMList[] UORListsYoung = {Trammel};
-		public static readonly PMList[] LBRLists = {Trammel, Felucca, Ilshenar};
-		public static readonly PMList[] LBRListsYoung = {Trammel, Ilshenar};
-		public static readonly PMList[] AOSLists = {Trammel, Felucca, Ilshenar, Malas};
-		public static readonly PMList[] AOSListsYoung = {Trammel, Ilshenar, Malas};
-		public static readonly PMList[] SELists = {Trammel, Felucca, Ilshenar, Malas, Tokuno};
-		public static readonly PMList[] SEListsYoung = {Trammel, Ilshenar, Malas, Tokuno};
-		public static readonly PMList[] SALists = {Trammel, Felucca, Ilshenar, Malas, Tokuno, TerMur};
-		public static readonly PMList[] SAListsYoung = {Trammel, Ilshenar, Malas, Tokuno, TerMur};
+		public static readonly PMList[] UORLists = {Felucca};
+		public static readonly PMList[] UORListsYoung = {Felucca};
+		public static readonly PMList[] LBRLists = {Felucca};
+		public static readonly PMList[] LBRListsYoung = {Felucca};
+		public static readonly PMList[] AOSLists = {Felucca};
+		public static readonly PMList[] AOSListsYoung = {Felucca};
+		public static readonly PMList[] SELists = {Felucca};
+		public static readonly PMList[] SEListsYoung = {Felucca};
+		public static readonly PMList[] SALists = {Felucca};
+		public static readonly PMList[] SAListsYoung = {Felucca};
 		public static readonly PMList[] RedLists = {Felucca};
 		public static readonly PMList[] SigilLists = {Felucca};
 

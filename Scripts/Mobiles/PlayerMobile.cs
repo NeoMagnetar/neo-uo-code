@@ -2108,6 +2108,9 @@ namespace Server.Mobiles
 			{
                 bool check = base.CheckMovement(d, out newZ);
 
+                if (!check && Server.Items.BaseDoor.TryAutoOpenDoor(this, false))
+                    check = base.CheckMovement(d, out newZ);
+
                 if (check && Sigil.ExistsOn(this, true) && !Server.Engines.VvV.VvVSigil.CheckMovement(this, d))
                 {
                     SendLocalizedMessage(1155414); // You may not remove the sigil from the battle region!
