@@ -44,7 +44,7 @@ namespace Server.Custom.AIGM
                     response = "I will guard you.";
                     return true;
                 case AIGMCompanionIntentKind.StopCombat:
-                    IssueFullStopOrder(companion, speaker);
+                    IssueStopCombatOrder(companion);
                     response = "I am disengaging.";
                     return true;
                 case AIGMCompanionIntentKind.AttackTarget:
@@ -389,6 +389,21 @@ namespace Server.Custom.AIGM
 
         private static void IssueStopCombatOrder(BaseHire companion)
         {
+            if (companion == null)
+                return;
+
+            AIGMCompanionTrackingObjective tracking = AIGMCompanionStateAccess.GetTrackingObjective(companion);
+            if (tracking != null)
+            {
+                tracking.ActiveTargetSerial = 0;
+                tracking.LastAnnouncedTargetSerial = 0;
+                tracking.LastSweepEngagedTarget = false;
+                tracking.LastStatus = "combat disengaged";
+                tracking.NextSweepUtc = DateTime.UtcNow + TimeSpan.FromSeconds(2.0);
+                tracking.HoldPositionRequested = false;
+                AIGMCompanionStateAccess.SetTrackingObjective(companion, tracking);
+            }
+
             companion.Combatant = null;
             companion.ControlTarget = null;
             companion.ControlOrder = OrderType.Stay;
