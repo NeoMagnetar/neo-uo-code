@@ -31,7 +31,7 @@ namespace Server.Custom.AIGM
                     response = "I am with you.";
                     return true;
                 case AIGMCompanionIntentKind.Stay:
-                    IssueStayOrder(companion);
+                    IssueFullStopOrder(companion, speaker);
                     response = "I will hold here.";
                     return true;
                 case AIGMCompanionIntentKind.Come:
@@ -44,7 +44,7 @@ namespace Server.Custom.AIGM
                     response = "I will guard you.";
                     return true;
                 case AIGMCompanionIntentKind.StopCombat:
-                    IssueStopCombatOrder(companion);
+                    IssueFullStopOrder(companion, speaker);
                     response = "I am disengaging.";
                     return true;
                 case AIGMCompanionIntentKind.AttackTarget:
@@ -332,6 +332,7 @@ namespace Server.Custom.AIGM
 
         private static void IssueFollowOrder(BaseHire companion, Mobile target)
         {
+            companion.CantWalk = false;
             companion.Combatant = null;
             companion.ControlTarget = target;
             companion.ControlOrder = OrderType.Follow;
@@ -339,6 +340,7 @@ namespace Server.Custom.AIGM
 
         private static void IssueComeOrder(BaseHire companion, Mobile target)
         {
+            companion.CantWalk = false;
             companion.Combatant = null;
             companion.ControlTarget = target;
             companion.ControlOrder = OrderType.Come;
@@ -351,8 +353,27 @@ namespace Server.Custom.AIGM
             companion.ControlOrder = OrderType.Stay;
         }
 
+        private static void IssueFullStopOrder(BaseHire companion, Mobile speaker)
+        {
+            if (companion == null)
+                return;
+
+            AIGMCompanionTrackingController.NotifyHoldPosition(companion);
+
+            string ignored;
+            Mobile owner = speaker ?? companion.GetOwner();
+            if (owner != null)
+                AIGMCompanionTravelController.StopTravel(companion, "I am holding here.", out ignored);
+
+            IssueStayOrder(companion);
+            companion.CantWalk = true;
+            companion.Home = companion.Location;
+            companion.RangeHome = 0;
+        }
+
         private static void IssueGuardOrder(BaseHire companion, Mobile target)
         {
+            companion.CantWalk = false;
             companion.Combatant = null;
             companion.ControlTarget = target;
             companion.ControlOrder = OrderType.Guard;
@@ -360,6 +381,7 @@ namespace Server.Custom.AIGM
 
         public static void IssueAttackOrder(BaseHire companion, Mobile target)
         {
+            companion.CantWalk = false;
             companion.ControlTarget = target;
             companion.Combatant = target;
             companion.ControlOrder = OrderType.Attack;

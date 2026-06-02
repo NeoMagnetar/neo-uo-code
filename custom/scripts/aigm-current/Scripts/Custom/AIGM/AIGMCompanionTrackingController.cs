@@ -19,9 +19,13 @@ namespace Server.Custom.AIGM
         public DateTime NextSweepUtc;
         public DateTime LastSweepUtc;
         public int ActiveTargetSerial;
+        public int LastAnnouncedTargetSerial;
         public AIGMTrackingLoopStage CurrentStage;
         public string LastStatus;
         public bool ResumeTravelBetweenSweeps;
+        public bool HoldPositionRequested;
+        public bool LastSweepFoundAnyEntries;
+        public bool LastSweepEngagedTarget;
 
         public AIGMCompanionTrackingObjective()
         {
@@ -53,8 +57,12 @@ namespace Server.Custom.AIGM
             objective.LastSweepUtc = DateTime.MinValue;
             objective.NextSweepUtc = DateTime.UtcNow;
             objective.ActiveTargetSerial = 0;
+            objective.LastAnnouncedTargetSerial = 0;
             objective.CurrentStage = AIGMTrackingLoopStage.Monsters;
             objective.ResumeTravelBetweenSweeps = AIGMCompanionStateAccess.GetTravelObjective(companion) != null;
+            objective.HoldPositionRequested = false;
+            objective.LastSweepFoundAnyEntries = false;
+            objective.LastSweepEngagedTarget = false;
             objective.LastStatus = objective.ResumeTravelBetweenSweeps ? "tracking between travel pulses" : "tracking patrol active";
             AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
 
@@ -79,6 +87,9 @@ namespace Server.Custom.AIGM
 
             objective.Enabled = false;
             objective.ActiveTargetSerial = 0;
+            objective.LastAnnouncedTargetSerial = 0;
+            objective.LastSweepFoundAnyEntries = false;
+            objective.LastSweepEngagedTarget = false;
             objective.LastStatus = "tracking stopped";
             AIGMCompanionStateAccess.SetTrackingObjective(companion, null);
             response = "I have stopped tracking.";
@@ -105,7 +116,7 @@ namespace Server.Custom.AIGM
                 return true;
             }
 
-            response = "Tracking is active. Next sweep: " + FormatStage(objective.CurrentStage) + ".";
+            response = "Tracking is active. Status: " + objective.LastStatus + ". Next sweep: " + FormatStage(objective.CurrentStage) + ".";
             return true;
         }
 
@@ -118,23 +129,38 @@ namespace Server.Custom.AIGM
             if (objective == null || !objective.Enabled)
                 return;
 
+            if (objective.HoldPositionRequested)
+            {
+                objective.ActiveTargetSerial = 0;
+                objective.LastAnnouncedTargetSerial = 0;
+                objective.LastStatus = "holding position";
+                AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
+                return;
+            }
+
             Mobile engagedTarget = objective.ActiveTargetSerial != 0 ? World.FindMobile(objective.ActiveTargetSerial) : null;
             if (IsValidTarget(companion, engagedTarget))
             {
-                AIGMCompanionActionExecutor.IssueAttackOrder(companion, engagedTarget);
+                if (objective.LastAnnouncedTargetSerial != engagedTarget.Serial.Value)
+                    AIGMCompanionActionExecutor.IssueAttackOrder(companion, engagedTarget);
+
+                objective.LastAnnouncedTargetSerial = engagedTarget.Serial.Value;
                 objective.LastStatus = "engaging " + SafeName(engagedTarget);
                 objective.NextSweepUtc = DateTime.UtcNow + RecheckWhileEngaged;
+                objective.LastSweepEngagedTarget = true;
                 AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
                 return;
             }
 
             objective.ActiveTargetSerial = 0;
+            objective.LastAnnouncedTargetSerial = 0;
 
             Mobile combatant = companion.Combatant as Mobile;
             if (IsValidTarget(companion, combatant))
             {
                 objective.LastStatus = "combat already active on " + SafeName(combatant);
                 objective.NextSweepUtc = DateTime.UtcNow + RecheckWhileEngaged;
+                objective.LastSweepEngagedTarget = true;
                 AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
                 return;
             }
@@ -144,6 +170,7 @@ namespace Server.Custom.AIGM
                 objective.LastStatus = objective.ResumeTravelBetweenSweeps && AIGMCompanionStateAccess.GetTravelObjective(companion) != null
                     ? "yielding to travel between sweeps"
                     : "waiting for next sweep";
+                objective.LastSweepEngagedTarget = false;
                 AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
                 return;
             }
@@ -155,19 +182,25 @@ namespace Server.Custom.AIGM
 
             Mobile selected = SelectTarget(companion, sweep, category);
             objective.LastSweepUtc = DateTime.UtcNow;
+            objective.LastSweepFoundAnyEntries = sweep != null && sweep.Entries != null && sweep.Entries.Count > 0;
 
             if (selected != null)
             {
                 objective.ActiveTargetSerial = selected.Serial.Value;
+                objective.LastAnnouncedTargetSerial = selected.Serial.Value;
                 objective.LastStatus = "engaging " + SafeName(selected) + " from " + FormatStage(objective.CurrentStage) + " sweep";
                 objective.CurrentStage = AIGMTrackingLoopStage.Monsters;
                 objective.NextSweepUtc = DateTime.UtcNow + RecheckWhileEngaged;
+                objective.LastSweepEngagedTarget = true;
                 AIGMCompanionActionExecutor.IssueAttackOrder(companion, selected);
                 AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
                 return;
             }
 
-            objective.LastStatus = "no target on " + FormatStage(objective.CurrentStage) + " sweep";
+            objective.LastSweepEngagedTarget = false;
+            objective.LastStatus = objective.LastSweepFoundAnyEntries
+                ? "contacts found on " + FormatStage(objective.CurrentStage) + " sweep, but none worth engaging"
+                : "no target on " + FormatStage(objective.CurrentStage) + " sweep";
             objective.CurrentStage = GetNextStage(objective.CurrentStage);
             objective.NextSweepUtc = DateTime.UtcNow + SweepCadence;
             AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
@@ -176,7 +209,7 @@ namespace Server.Custom.AIGM
         public static bool ShouldHoldTravelForTracking(BaseHire companion)
         {
             AIGMCompanionTrackingObjective objective = AIGMCompanionStateAccess.GetTrackingObjective(companion);
-            if (objective == null || !objective.Enabled)
+            if (objective == null || !objective.Enabled || objective.HoldPositionRequested)
                 return false;
 
             if (objective.ActiveTargetSerial != 0)
@@ -184,6 +217,22 @@ namespace Server.Custom.AIGM
 
             Mobile combatant = companion != null ? companion.Combatant as Mobile : null;
             return IsValidTarget(companion, combatant);
+        }
+
+        public static void NotifyHoldPosition(BaseHire companion)
+        {
+            if (companion == null)
+                return;
+
+            AIGMCompanionTrackingObjective objective = AIGMCompanionStateAccess.GetTrackingObjective(companion);
+            if (objective == null)
+                return;
+
+            objective.HoldPositionRequested = true;
+            objective.ActiveTargetSerial = 0;
+            objective.LastAnnouncedTargetSerial = 0;
+            objective.LastStatus = "holding position";
+            AIGMCompanionStateAccess.SetTrackingObjective(companion, objective);
         }
 
         private static Mobile SelectTarget(BaseHire companion, AIGMCompanionTrackingSweep sweep, AIGMTrackingCategory category)
