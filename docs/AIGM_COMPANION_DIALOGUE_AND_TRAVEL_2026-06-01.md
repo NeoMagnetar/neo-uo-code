@@ -1,17 +1,16 @@
-# AIGM Companion Speech / Travel / Support Notes
+# AIGM Companion Dialogue and Travel Notes
 
 Date: 2026-06-01
 
 ## Summary
 
-This note captures the current AIGM companion behavior changes implemented in the ServUO codebase for Dakeyras and Danyal.
+This note captures the dialogue, hearing, travel, and tracking changes implemented in the ServUO codebase for Dakeyras and Danyal.
 
 Primary goals addressed:
 - restore broader owner/companion hearing for chatbot-style conversation
 - keep direct command authority separate from general dialogue hearing
 - reduce travel/tracking state conflicts
 - make tracking behave more like bounded route perturbation than mission takeover
-- switch reactive self-bandaging to the shard's native bandage timer flow
 
 ## Speech and dialogue changes
 
@@ -54,25 +53,6 @@ Intent:
 - occasionally engage targets
 - then resume the primary destination
 
-## Reactive self-bandaging
-
-### Native shard timer path
-Reactive self-bandaging now uses the real shard bandage flow:
-- `BandageContext.BeginHeal(...)`
-- real ServUO bandage timing
-- real success/failure timing rules
-- avoids duplicate start when already bandaging
-
-### Auto trigger behavior
-`TryReactiveSupport(...)` now attempts self-bandaging when:
-- the companion is under attack
-- the companion is injured at all
-
-This replaced the older behavior that only attempted support healing once the companion dropped to a low-health threshold.
-
-### Scope of change
-At present, the native conversion is focused on self-bandaging behavior. Non-self support/bandage paths may still use older helper behavior and can be normalized later if desired.
-
 ## Files touched
 
 Likely updated files include:
@@ -82,10 +62,8 @@ Likely updated files include:
 - `Scripts/Custom/AIGM/AIGMCompanionActionExecutor.cs`
 - `Scripts/Custom/AIGM/AIGMCompanionTravelController.cs`
 - `Scripts/Custom/AIGM/AIGMMovementController.cs`
-- `Scripts/Custom/AIGM/AIGMCompanionSkillExecutor.cs`
 
 ## Follow-up ideas
-- normalize all bandage usage onto native shard mechanics, not only self-bandage
 - improve combat lock persistence during tracking excursions
 - continue refining command/address parsing aliases and typo tolerance
 - further separate route ownership from temporary combat/awareness excursions
