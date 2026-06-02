@@ -34,6 +34,15 @@ namespace Server.Custom.AIGM
             if (speech.Equals("track players") || speech.Contains("scan players"))
                 return Make(AIGMCompanionIntentKind.TrackPlayers, rawSpeech, out intent);
 
+            if (speech.Equals("start tracking") || speech.Equals("begin tracking") || speech.Equals("track on") || speech.Equals("enable tracking"))
+                return Make(AIGMCompanionIntentKind.StartTracking, rawSpeech, out intent);
+
+            if (speech.Equals("stop tracking") || speech.Equals("end tracking") || speech.Equals("track off") || speech.Equals("disable tracking"))
+                return Make(AIGMCompanionIntentKind.StopTracking, rawSpeech, out intent);
+
+            if (speech.Equals("tracking status") || speech.Equals("report tracking") || speech.Equals("what is your tracking status"))
+                return Make(AIGMCompanionIntentKind.ReportTrackingStatus, rawSpeech, out intent);
+
             if (speech.Equals("report threats") || speech.Contains("report danger") || speech.Contains("report hostiles") || speech.Contains("what do you sense"))
                 return Make(AIGMCompanionIntentKind.ReportThreats, rawSpeech, out intent);
 

@@ -254,6 +254,7 @@ namespace Server.Mobiles
         {
             base.OnThink();
             AIGMCompanionActionExecutor.TryReactiveSupport(this);
+            AIGMCompanionTrackingController.PulseTracking(this);
             AIGMCompanionTravelController.PulseTravel(this);
         }
 

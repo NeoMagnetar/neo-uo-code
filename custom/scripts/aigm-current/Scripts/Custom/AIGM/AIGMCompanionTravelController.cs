@@ -158,6 +158,12 @@ namespace Server.Custom.AIGM
             if (objective == null || DateTime.UtcNow < AIGMCompanionStateAccess.GetNextTravelPulseUtc(companion))
                 return;
 
+            if (AIGMCompanionTrackingController.ShouldHoldTravelForTracking(companion))
+            {
+                AIGMCompanionStateAccess.SetNextTravelPulseUtc(companion, DateTime.UtcNow + TravelPulseInterval);
+                return;
+            }
+
             if (!objective.TravelSpeedApplied)
             {
                 objective.OriginalActiveSpeed = companion.ActiveSpeed;

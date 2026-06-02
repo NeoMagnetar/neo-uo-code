@@ -124,6 +124,9 @@ namespace Server.Custom.AIGM
                 case AIGMCompanionIntentKind.TrackMonsters:
                 case AIGMCompanionIntentKind.TrackHumanNPCs:
                 case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.StartTracking:
+                case AIGMCompanionIntentKind.StopTracking:
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
                 case AIGMCompanionIntentKind.ReportThreats:
                 case AIGMCompanionIntentKind.ShareAwareness:
                 case AIGMCompanionIntentKind.TravelToDestination:

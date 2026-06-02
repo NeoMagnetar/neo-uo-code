@@ -92,6 +92,12 @@ namespace Server.Custom.AIGM
                     return TryReportTracking(companion, AIGMTrackingCategory.HumanNPCs, out response);
                 case AIGMCompanionIntentKind.TrackPlayers:
                     return TryReportTracking(companion, AIGMTrackingCategory.Players, out response);
+                case AIGMCompanionIntentKind.StartTracking:
+                    return AIGMCompanionTrackingController.StartTracking(companion, out response);
+                case AIGMCompanionIntentKind.StopTracking:
+                    return AIGMCompanionTrackingController.StopTracking(companion, out response);
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                    return AIGMCompanionTrackingController.ReportStatus(companion, out response);
                 case AIGMCompanionIntentKind.ReportThreats:
                     return TryReportThreats(companion, out response);
                 case AIGMCompanionIntentKind.ShareAwareness:
@@ -352,7 +358,7 @@ namespace Server.Custom.AIGM
             companion.ControlOrder = OrderType.Guard;
         }
 
-        private static void IssueAttackOrder(BaseHire companion, Mobile target)
+        public static void IssueAttackOrder(BaseHire companion, Mobile target)
         {
             companion.ControlTarget = target;
             companion.Combatant = target;

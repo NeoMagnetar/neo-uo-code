@@ -7,6 +7,7 @@ namespace Server.Custom.AIGM
     public static class AIGMCompanionStateAccess
     {
         private static readonly System.Collections.Generic.Dictionary<int, AIGMCompanionTravelObjective> TravelObjectives = new System.Collections.Generic.Dictionary<int, AIGMCompanionTravelObjective>();
+        private static readonly System.Collections.Generic.Dictionary<int, AIGMCompanionTrackingObjective> TrackingObjectives = new System.Collections.Generic.Dictionary<int, AIGMCompanionTrackingObjective>();
         private static readonly System.Collections.Generic.Dictionary<int, DateTime> NextTravelPulseUtc = new System.Collections.Generic.Dictionary<int, DateTime>();
         private static readonly System.Collections.Generic.Dictionary<int, DateTime> NextTravelThreatScanUtc = new System.Collections.Generic.Dictionary<int, DateTime>();
         public static bool GetGuardOwnerMode(BaseHire companion)
@@ -82,6 +83,27 @@ namespace Server.Custom.AIGM
                 TravelObjectives.Remove(companion.Serial.Value);
             else
                 TravelObjectives[companion.Serial.Value] = objective;
+        }
+
+        public static AIGMCompanionTrackingObjective GetTrackingObjective(BaseHire companion)
+        {
+            if (companion == null)
+                return null;
+
+            AIGMCompanionTrackingObjective objective;
+            TrackingObjectives.TryGetValue(companion.Serial.Value, out objective);
+            return objective;
+        }
+
+        public static void SetTrackingObjective(BaseHire companion, AIGMCompanionTrackingObjective objective)
+        {
+            if (companion == null)
+                return;
+
+            if (objective == null)
+                TrackingObjectives.Remove(companion.Serial.Value);
+            else
+                TrackingObjectives[companion.Serial.Value] = objective;
         }
 
         public static DateTime GetNextTravelPulseUtc(BaseHire companion)
