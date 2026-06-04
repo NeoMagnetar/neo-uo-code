@@ -137,7 +137,9 @@ namespace Server.Custom.AIGM
             double elapsedMs = (DateTime.UtcNow - started).TotalMilliseconds;
 
             BaseHire trustedCompanion = companion as BaseHire;
-            if (trustedCompanion != null)
+            bool isCompanionDialogue = String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase);
+
+            if (trustedCompanion != null && !isCompanionDialogue)
             {
                 AIGMExecutionLog.Write("COMPANION_TRUSTED_ACTION_EXTRACT_START requestId={0} text=\"{1}\" reply=\"{2}\"", request.RequestId, SafeLog(request.Text), SafeLog(reply));
                 AIGMCompanionIntent trustedIntent;
@@ -172,10 +174,14 @@ namespace Server.Custom.AIGM
                     }
                 }
             }
+            else if (trustedCompanion != null)
+            {
+                AIGMExecutionLog.Write("COMPANION_DIALOGUE_ONLY requestId={0} mode={1} text=\"{2}\"", request.RequestId, request.DialogueMode, SafeLog(request.Text));
+            }
 
             AIGMExecutionLog.Write("COMPANION_SAY requestId={0} ok={1} elapsedMs={2} reply=\"{3}\"", request.RequestId, result != null && result.Ok, elapsedMs, SafeLog(reply));
             companion.Say(reply);
-            if (trustedCompanion != null && String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase))
+            if (trustedCompanion != null && isCompanionDialogue)
             {
                 PublishDialogueReply(trustedCompanion, reply);
             }
@@ -191,20 +197,13 @@ namespace Server.Custom.AIGM
             if (trustedCompanion == null || trustedCompanion.Deleted || String.IsNullOrWhiteSpace(reply))
                 return;
 
-            if (trustedCompanion is AIGMCompanionDanyal)
+            Timer.DelayCall(TimeSpan.FromSeconds(1.0), delegate
             {
-                Timer.DelayCall(TimeSpan.FromSeconds(1.0), delegate
-                {
-                    if (trustedCompanion == null || trustedCompanion.Deleted)
-                        return;
+                if (trustedCompanion == null || trustedCompanion.Deleted)
+                    return;
 
-                    AIGMCompanionDialogueBus.PublishDialogue(trustedCompanion, reply);
-                });
-            }
-            else
-            {
                 AIGMCompanionDialogueBus.PublishDialogue(trustedCompanion, reply);
-            }
+            });
         }
 
         private static bool LooksAddressedToLinkedCompanion(BaseHire sourceCompanion, string reply)
@@ -217,6 +216,8 @@ namespace Server.Custom.AIGM
                 return false;
 
             string normalized = reply.Trim();
+            normalized = normalized.Replace("\uFFFD", String.Empty).Replace("?", String.Empty).Replace("\"", String.Empty).Replace("'", String.Empty);
+
             foreach (Mobile mobile in World.Mobiles.Values)
             {
                 BaseHire ally = mobile as BaseHire;
@@ -229,11 +230,15 @@ namespace Server.Custom.AIGM
                 if (ally.GetOwner() != owner)
                     continue;
 
-                string allyName = ally.Name ?? String.Empty;
+                string allyName = (ally.Name ?? String.Empty).Trim();
                 if (allyName.Length == 0)
                     continue;
 
-                if (normalized.StartsWith(allyName + ",", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith(allyName + ".", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith(allyName + " ", StringComparison.OrdinalIgnoreCase))
+                if (normalized.StartsWith(allyName + ",", StringComparison.OrdinalIgnoreCase)
+                    || normalized.StartsWith(allyName + ".", StringComparison.OrdinalIgnoreCase)
+                    || normalized.StartsWith(allyName + " ", StringComparison.OrdinalIgnoreCase)
+                    || normalized.StartsWith(allyName + ":", StringComparison.OrdinalIgnoreCase)
+                    || normalized.IndexOf(allyName, StringComparison.OrdinalIgnoreCase) >= 0)
                     return true;
             }
 

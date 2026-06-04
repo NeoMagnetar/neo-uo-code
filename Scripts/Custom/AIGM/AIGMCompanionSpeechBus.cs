@@ -51,6 +51,8 @@ namespace Server.Custom.AIGM
                     ((AIGMCompanionDakeyras)ally).ReceiveSpeechBusEvent(sourceCompanion, eventSpeaker, speech, companionOrigin);
                 else if (ally is AIGMCompanionDanyal)
                     ((AIGMCompanionDanyal)ally).ReceiveSpeechBusEvent(sourceCompanion, eventSpeaker, speech, companionOrigin);
+                else if (ally is AIGMCompanionDardalion)
+                    ((AIGMCompanionDardalion)ally).ReceiveSpeechBusEvent(sourceCompanion, eventSpeaker, speech, companionOrigin);
             }
         }
 
@@ -69,7 +71,7 @@ namespace Server.Custom.AIGM
                 if (ally.Map != sourceCompanion.Map)
                     continue;
 
-                if (!(ally is AIGMCompanionDakeyras) && !(ally is AIGMCompanionDanyal))
+                if (!(ally is AIGMCompanionDakeyras) && !(ally is AIGMCompanionDanyal) && !(ally is AIGMCompanionDardalion))
                     continue;
 
                 if (ally.GetOwner() != owner)

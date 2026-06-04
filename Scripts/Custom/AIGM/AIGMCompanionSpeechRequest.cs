@@ -57,6 +57,9 @@ namespace Server.Custom.AIGM
             if (companion is Server.Mobiles.AIGMCompanionDakeyras)
                 return "dakeyras";
 
+            if (companion is Server.Mobiles.AIGMCompanionDardalion)
+                return "dardalion";
+
             return "default";
         }
     }

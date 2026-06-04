@@ -36,6 +36,11 @@ namespace Server.Mobiles
             get { return RuntimeStamp; }
         }
 
+        public override bool UsesHirelingPayroll
+        {
+            get { return false; }
+        }
+
         [Constructable]
         public AIGMCompanionDakeyras()
             : base(AIType.AI_Archer)
@@ -149,16 +154,22 @@ namespace Server.Mobiles
             string speech = e.Speech == null ? String.Empty : e.Speech.Trim();
             LogSpeech("DAK_SPEECH_START from=" + SafeName(e.Mobile) + " controlled=" + Controlled + " range=" + e.Mobile.GetDistanceToSqrt(this) + " text=" + speech);
 
-            if (!e.Handled && e.Mobile.InRange(this, 8))
+            Mobile owner = GetOwner();
+            bool allowSharedOwnerSpeech = e.Mobile == owner;
+
+            if ((!e.Handled || allowSharedOwnerSpeech) && e.Mobile.InRange(this, 8))
             {
                 string normalizedSpeech = speech.ToLowerInvariant();
-                Mobile owner = GetOwner();
                 bool trustedCompanion = IsTrustedCompanionSpeaker(e.Mobile, owner);
                 bool trusted = e.Mobile == owner || trustedCompanion || (!Controlled && e.Mobile.AccessLevel >= AccessLevel.GameMaster);
                 LogSpeech("DAK_TRUST_RESULT trusted=" + trusted + " trustedCompanion=" + trustedCompanion + " owner=" + SafeName(owner));
 
                 if (trusted)
                 {
+                    bool clearlyAddressedToDifferentCompanion = AIGMCompanionIntentParser.IsClearlyAddressedToDifferentCompanion(this, e.Speech);
+                    if (clearlyAddressedToDifferentCompanion)
+                        LogSpeech("DAK_AWARE_OTHER_ADDRESSED_EARLY rawSpeech=" + (e.Speech ?? String.Empty));
+
                     if (normalizedSpeech == "runtime stamp" || normalizedSpeech == "version")
                     {
                         SayTo(e.Mobile, RuntimeStamp);
@@ -172,7 +183,13 @@ namespace Server.Mobiles
 
                     if (parsed)
                     {
-                        AIGMCompanionActionPolicyResult decision = AIGMCompanionDirectActionPolicy.Decide(this, e.Mobile, intent);
+                        if (intent != null && intent.AddressedToDifferentCompanion)
+                        {
+                            LogSpeech("DAK_AWARE_OTHER_ADDRESSED rawSpeech=" + (e.Speech ?? String.Empty));
+                        }
+                        else
+                        {
+                            AIGMCompanionActionPolicyResult decision = AIGMCompanionDirectActionPolicy.Decide(this, e.Mobile, intent);
                         LogSpeech("DAK_POLICY_RESULT kind=" + (intent != null ? intent.Kind : "null") + " decision=" + (decision != null ? decision.Decision.ToString() : "null") + " reason=" + (decision != null ? decision.Reason ?? String.Empty : String.Empty));
 
                         if (decision != null && decision.Decision == AIGMCompanionActionDecision.DirectExecute)
@@ -182,7 +199,7 @@ namespace Server.Mobiles
                             bool executed = AIGMCompanionActionExecutor.TryExecuteIntent(this, e.Mobile, intent, out response);
                             LogSpeech("DAK_DIRECT_EXECUTE_RESULT kind=" + (intent != null ? intent.Kind : "null") + " executed=" + executed + " response=" + (response ?? String.Empty));
 
-                            if (e.Mobile == owner)
+                            if (e.Mobile == owner && (intent == null || !intent.ExplicitlyAddressed))
                                 AIGMCompanionSpeechBus.PublishOwnerSpeech(this, e.Mobile, e.Speech);
 
                             if (!String.IsNullOrWhiteSpace(response))
@@ -197,11 +214,11 @@ namespace Server.Mobiles
 
                             e.Handled = true;
                         }
-                        else if (IsSupportIntent(intent))
+                        else if (IsSupportIntent(intent) || IsStrictDirectCommand(intent))
                         {
-                            LogSpeech("DAK_DIRECT_EXECUTE_RESULT kind=" + (intent != null ? intent.Kind : "null") + " executed=False response=Recognized support intent blocked from async fallback.");
-                            SayTo(e.Mobile, "I cannot do that just now.");
+                            LogSpeech("DAK_DIRECT_EXECUTE_RESULT kind=" + (intent != null ? intent.Kind : "null") + " executed=False response=Recognized direct command blocked from async fallback.");
                             e.Handled = true;
+                        }
                         }
                     }
 
@@ -248,6 +265,24 @@ namespace Server.Mobiles
                 default:
                     return false;
             }
+        }
+
+        private bool IsStrictDirectCommand(AIGMCompanionIntent intent)
+        {
+            if (intent == null)
+                return false;
+
+            string kind = intent.Kind;
+            return kind == AIGMCompanionIntentKind.FollowOwner
+                || kind == AIGMCompanionIntentKind.Stay
+                || kind == AIGMCompanionIntentKind.Come
+                || kind == AIGMCompanionIntentKind.TravelToDestination
+                || kind == AIGMCompanionIntentKind.StopTravel
+                || kind == AIGMCompanionIntentKind.ReportTravelStatus
+                || kind == AIGMCompanionIntentKind.FollowCompanion
+                || kind == AIGMCompanionIntentKind.GreetCompanion
+                || kind == AIGMCompanionIntentKind.StartTrackingCycle
+                || kind == AIGMCompanionIntentKind.StopTrackingCycle;
         }
 
         private void LogSpeech(string message)
@@ -302,35 +337,57 @@ namespace Server.Mobiles
 
             LogSpeech("DAK_SPEECH_BUS source=" + SafeName(sourceCompanion) + " speaker=" + SafeName(eventSpeaker) + " companionOrigin=" + companionOrigin + " text=" + speech);
 
-            string handledSpeech = speech;
-            if (companionOrigin && speech.IndexOf(Name ?? "Dakeyras", StringComparison.OrdinalIgnoreCase) < 0)
-                handledSpeech = (Name ?? "Dakeyras") + ", " + speech;
-
             Mobile effectiveSpeaker = eventSpeaker;
             if (effectiveSpeaker == null)
                 effectiveSpeaker = sourceCompanion;
 
-            AIGMCompanionIntent intent;
-            bool parsed = AIGMCompanionIntentParser.TryParse(this, effectiveSpeaker, handledSpeech, out intent);
-            if (parsed && intent != null && !companionOrigin && eventSpeaker == GetOwner())
-                intent.AllowRemoteRelay = true;
-            if (parsed)
+            bool ownerRelayAwarenessOnly = !companionOrigin && eventSpeaker == GetOwner();
+
+            if (companionOrigin)
             {
-                AIGMCompanionActionPolicyResult decision = AIGMCompanionDirectActionPolicy.Decide(this, effectiveSpeaker, intent);
-                if (decision != null && decision.Decision == AIGMCompanionActionDecision.DirectExecute)
-                {
-                    string response;
-                    bool executed = AIGMCompanionActionExecutor.TryExecuteIntent(this, effectiveSpeaker, intent, out response);
-                    LogSpeech("DAK_SPEECH_BUS_EXECUTE kind=" + (intent != null ? intent.Kind : "null") + " executed=" + executed + " response=" + (response ?? String.Empty));
-                    if (!String.IsNullOrWhiteSpace(response))
-                        Say(response);
-                    return;
-                }
+                string rejection;
+                bool enqueuedCompanionDialogue = AIGMCompanionSpeechQueue.TryEnqueue(this, effectiveSpeaker, speech, "companion_dialogue", out rejection);
+                LogSpeech("DAK_SPEECH_BUS_DIALOGUE enqueued=" + enqueuedCompanionDialogue + " rejection=" + (rejection ?? String.Empty));
+                return;
             }
 
-            string rejection;
-            bool enqueued = AIGMCompanionSpeechQueue.TryEnqueue(this, effectiveSpeaker, handledSpeech, out rejection);
-            LogSpeech("DAK_SPEECH_BUS_QUEUE enqueued=" + enqueued + " rejection=" + (rejection ?? String.Empty));
+            if (!ownerRelayAwarenessOnly)
+            {
+                AIGMCompanionIntent intent;
+                bool parsed = AIGMCompanionIntentParser.TryParse(this, effectiveSpeaker, speech, out intent);
+                if (parsed && intent != null)
+                    intent.AllowRemoteRelay = true;
+
+                if (parsed)
+                {
+                    if (intent != null && intent.AddressedToDifferentCompanion)
+                    {
+                        LogSpeech("DAK_SPEECH_BUS_IGNORE_OTHER_ADDRESSED rawSpeech=" + (speech ?? String.Empty));
+                    }
+                    else
+                    {
+                        AIGMCompanionActionPolicyResult decision = AIGMCompanionDirectActionPolicy.Decide(this, effectiveSpeaker, intent);
+                        LogSpeech("DAK_SPEECH_BUS_POLICY kind=" + (intent != null ? intent.Kind : "null") + " decision=" + (decision != null ? decision.Decision.ToString() : "null") + " reason=" + (decision != null ? decision.Reason ?? String.Empty : String.Empty));
+                        if (decision != null && decision.Decision == AIGMCompanionActionDecision.DirectExecute)
+                        {
+                            string response;
+                            bool executed = AIGMCompanionActionExecutor.TryExecuteIntent(this, effectiveSpeaker, intent, out response);
+                            LogSpeech("DAK_SPEECH_BUS_EXECUTE kind=" + (intent != null ? intent.Kind : "null") + " executed=" + executed + " response=" + (response ?? String.Empty));
+                            if (!String.IsNullOrWhiteSpace(response))
+                                Say(response);
+                            return;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                LogSpeech("DAK_SPEECH_BUS_AWARENESS_ONLY rawSpeech=" + (speech ?? String.Empty));
+            }
+
+            string rejectionFallback;
+            bool enqueued = AIGMCompanionSpeechQueue.TryEnqueue(this, effectiveSpeaker, speech, ownerRelayAwarenessOnly ? "owner_relay_awareness" : "owner_relay_dialogue", out rejectionFallback);
+            LogSpeech("DAK_SPEECH_BUS_QUEUE enqueued=" + enqueued + " rejection=" + (rejectionFallback ?? String.Empty));
         }
 
         public void ReceiveCompanionDialogue(BaseHire sourceCompanion, AIGMCompanionDialogueEvent dialogueEvent)
@@ -349,6 +406,7 @@ namespace Server.Mobiles
         {
             base.OnThink();
             AIGMCompanionActionExecutor.TryReactiveSupport(this);
+            AIGMCompanionTrackingCycle.Pulse(this);
             AIGMCompanionTravelController.PulseTravel(this);
         }
 

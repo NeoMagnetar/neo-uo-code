@@ -34,6 +34,9 @@ namespace Server.Custom.AIGM
         public const string ReturnHome = "return_home";
         public const string FollowCompanion = "follow_companion";
         public const string GreetCompanion = "greet_companion";
+        public const string StartTrackingCycle = "start_tracking_cycle";
+        public const string StopTrackingCycle = "stop_tracking_cycle";
+        public const string ReportTrackingStatus = "report_tracking_status";
     }
 
     public sealed class AIGMCompanionIntent
@@ -43,6 +46,8 @@ namespace Server.Custom.AIGM
         public string RawText;
         public string DestinationName;
         public bool AllowRemoteRelay;
+        public bool ExplicitlyAddressed;
+        public bool AddressedToDifferentCompanion;
 
         public bool HasTarget
         {

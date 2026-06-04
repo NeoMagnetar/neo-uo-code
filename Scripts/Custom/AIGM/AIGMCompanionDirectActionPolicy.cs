@@ -65,6 +65,10 @@ namespace Server.Custom.AIGM
             if (!intent.AllowRemoteRelay && !speaker.InRange(companion, 12))
                 return AIGMCompanionActionPolicyResult.Reject("You are too far away.");
 
+            Mobile owner = companion.GetOwner();
+            if (owner != null && speaker == owner && IsAddressRequired(intent.Kind) && !intent.ExplicitlyAddressed)
+                return AIGMCompanionActionPolicyResult.Async("Owner speech was heard, but the command was not addressed to this companion.");
+
             switch (GetExecutionMode(companion))
             {
                 case AIGMExecutionMode.SuggestOnly:
@@ -102,6 +106,20 @@ namespace Server.Custom.AIGM
             return AIGMCompanionStateAccess.GetExecutionMode(companion);
         }
 
+        private static bool IsAddressRequired(string kind)
+        {
+            switch (kind)
+            {
+                case AIGMCompanionIntentKind.ReturnHome:
+                case AIGMCompanionIntentKind.FollowCompanion:
+                case AIGMCompanionIntentKind.GreetCompanion:
+                case AIGMCompanionIntentKind.AttackTarget:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private static bool IsDirectCompanionAbility(string kind)
         {
             switch (kind)
@@ -136,6 +154,9 @@ namespace Server.Custom.AIGM
                 case AIGMCompanionIntentKind.ReturnHome:
                 case AIGMCompanionIntentKind.FollowCompanion:
                 case AIGMCompanionIntentKind.GreetCompanion:
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
                     return true;
                 default:
                     return false;

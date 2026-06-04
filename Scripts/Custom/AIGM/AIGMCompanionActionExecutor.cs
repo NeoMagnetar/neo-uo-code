@@ -17,34 +17,62 @@ namespace Server.Custom.AIGM
             switch (intent.Kind)
             {
                 case AIGMCompanionIntentKind.TravelToDestination:
-                    return AIGMCompanionTravelController.StartTravel(companion, intent != null ? intent.DestinationName : null, out response);
+                    AIGMCompanionTrackingCycle.SuspendPursuitAndTravel(companion);
+                    AIGMCompanionStateAccess.ClearHoldPosition(companion);
+                    return UMGMovementRouter.RouteIntent(companion, new UMGMovementIntent
+                    {
+                        Kind = UMGMovementIntentKind.ReturnToPlayer,
+                        Requester = speaker,
+                        Reason = "travel_lane_removed"
+                    }, out response);
                 case AIGMCompanionIntentKind.StopTravel:
-                    return AIGMCompanionTravelController.StopTravel(companion, null, out response);
+                {
+                    AIGMCompanionTravelController.ClearTravelState(companion, false, true, "Travel lane removed");
+                    UMGMovementRouter.RecordIntent(companion, UMGMovementIntent.Create(UMGMovementIntentKind.Idle));
+                    response = "I am not using destination travel anymore.";
+                    return true;
+                }
                 case AIGMCompanionIntentKind.ReportTravelStatus:
-                    return AIGMCompanionTravelController.ReportStatus(companion, out response);
+                    response = "I am not using destination travel anymore. I can follow, hold, come, guard, and make short pursuit moves.";
+                    return true;
                 case AIGMCompanionIntentKind.ReturnHome:
-                    return AIGMCompanionTravelController.StartTravel(companion, "Britain", out response);
+                    AIGMCompanionTrackingCycle.SuspendPursuitAndTravel(companion);
+                    AIGMCompanionStateAccess.ClearHoldPosition(companion);
+                    return UMGMovementRouter.RouteIntent(companion, new UMGMovementIntent
+                    {
+                        Kind = UMGMovementIntentKind.ReturnToPlayer,
+                        Requester = speaker,
+                        Reason = "return_home_as_come"
+                    }, out response);
                 case AIGMCompanionIntentKind.FollowCompanion:
                     return TryFollowCompanion(companion, intent != null ? intent.DestinationName : null, out response);
                 case AIGMCompanionIntentKind.GreetCompanion:
                     return TryGreetCompanion(companion, intent != null ? intent.DestinationName : null, out response);
                 case AIGMCompanionIntentKind.FollowOwner:
-                    IssueFollowOrder(companion, speaker);
-                    response = "I am with you.";
-                    return true;
+                    return UMGMovementRouter.RouteIntent(companion, new UMGMovementIntent
+                    {
+                        Kind = UMGMovementIntentKind.FollowPlayer,
+                        Requester = speaker
+                    }, out response);
                 case AIGMCompanionIntentKind.Stay:
-                    IssueStayOrder(companion);
-                    response = "I will hold here.";
-                    return true;
+                    return UMGMovementRouter.RouteIntent(companion, new UMGMovementIntent
+                    {
+                        Kind = UMGMovementIntentKind.HoldPosition,
+                        Requester = speaker
+                    }, out response);
                 case AIGMCompanionIntentKind.Come:
-                    IssueComeOrder(companion, speaker);
-                    response = "On my way.";
-                    return true;
+                    return UMGMovementRouter.RouteIntent(companion, new UMGMovementIntent
+                    {
+                        Kind = UMGMovementIntentKind.FollowPlayer,
+                        Requester = speaker
+                    }, out response);
                 case AIGMCompanionIntentKind.GuardOwner:
-                    AIGMCompanionStateAccess.SetGuardOwnerMode(companion, true);
-                    IssueGuardOrder(companion, speaker);
-                    response = "I will guard you.";
-                    return true;
+                    return UMGMovementRouter.RouteIntent(companion, new UMGMovementIntent
+                    {
+                        Kind = UMGMovementIntentKind.GuardTarget,
+                        Requester = speaker,
+                        TargetMobile = speaker
+                    }, out response);
                 case AIGMCompanionIntentKind.StopCombat:
                     IssueStopCombatOrder(companion);
                     response = "I am disengaging.";
@@ -98,6 +126,12 @@ namespace Server.Custom.AIGM
                     return TryReportThreats(companion, out response);
                 case AIGMCompanionIntentKind.ShareAwareness:
                     return AIGMCompanionAwarenessBus.ShareLatestThreatSummary(companion, out response);
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                    return AIGMCompanionTrackingCycle.Start(companion, out response);
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                    return AIGMCompanionTrackingCycle.Stop(companion, out response);
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                    return AIGMCompanionTrackingCycle.ReportStatus(companion, out response);
                 case AIGMCompanionIntentKind.UseHealingSkill:
                     return AIGMCompanionSkillExecutor.TryUseHealingSkill(companion, companion, out response);
                 case AIGMCompanionIntentKind.UseBandages:
@@ -116,10 +150,48 @@ namespace Server.Custom.AIGM
             if (companion == null || companion.Deleted || !companion.Alive)
                 return false;
 
-            if (DateTime.UtcNow < AIGMCompanionStateAccess.GetNextSupportActionUtc(companion))
-                return false;
+            bool underAttack = IsUnderAttack(companion);
+            Mobile directAttacker = companion.Combatant as Mobile;
+            DateTime nextSupportActionUtc = AIGMCompanionStateAccess.GetNextSupportActionUtc(companion);
+            bool supportReady = DateTime.UtcNow >= nextSupportActionUtc;
+            int criticalSelfHealThreshold = Math.Max(35, companion.HitsMax / 2);
+            int sustainedSelfHealThreshold = Math.Max(45, (int)(companion.HitsMax * 0.75));
 
-            if (companion.Hits < Math.Max(25, companion.HitsMax / 2))
+            if (underAttack && directAttacker != null && !directAttacker.Deleted && directAttacker.Alive && directAttacker.Map == companion.Map)
+            {
+                IssueAttackOrder(companion, directAttacker);
+
+                if (!companion.InRange(directAttacker, 1))
+                {
+                    AIGMCompanionTrackingEntry attackerEntry = new AIGMCompanionTrackingEntry();
+                    attackerEntry.TargetSerial = directAttacker.Serial.Value;
+                    attackerEntry.Name = directAttacker.Name ?? directAttacker.GetType().Name;
+                    attackerEntry.TypeName = directAttacker.GetType().Name;
+                    attackerEntry.Category = AIGMTrackingCategory.Monsters;
+                    attackerEntry.Distance = (int)Math.Round(companion.GetDistanceToSqrt(directAttacker));
+                    attackerEntry.DirectionApprox = companion.GetDirectionTo(directAttacker).ToString();
+                    attackerEntry.MapName = directAttacker.Map != null ? directAttacker.Map.Name : String.Empty;
+                    attackerEntry.X = directAttacker.X;
+                    attackerEntry.Y = directAttacker.Y;
+                    attackerEntry.Z = directAttacker.Z;
+                    attackerEntry.HiddenKnown = directAttacker.Hidden;
+                    attackerEntry.IsAlive = directAttacker.Alive;
+                    attackerEntry.ThreatHint = AIGMCompanionThreatClassifier.Classify(companion, directAttacker, AIGMTrackingCategory.Monsters, attackerEntry.Distance);
+                    attackerEntry.TimestampUtc = DateTime.UtcNow;
+                    AIGMCompanionTravelController.StartTrackedPursuit(companion, attackerEntry);
+                }
+
+                if (supportReady && companion.Hits < sustainedSelfHealThreshold)
+                {
+                    string ignored;
+                    if (AIGMCompanionSkillExecutor.TryUseBandages(companion, companion, out ignored))
+                        return true;
+                }
+
+                return true;
+            }
+
+            if (!underAttack && supportReady && companion.Hits < sustainedSelfHealThreshold)
             {
                 string ignored;
                 if (AIGMCompanionSkillExecutor.TryHealTarget(companion, companion, true, out ignored))
@@ -138,6 +210,20 @@ namespace Server.Custom.AIGM
                 }
             }
 
+            if (underAttack && supportReady && companion.Hits < criticalSelfHealThreshold)
+            {
+                string ignored;
+                if (AIGMCompanionSkillExecutor.TryUseBandages(companion, companion, out ignored))
+                    return true;
+            }
+
+            if (supportReady && companion.Hits < sustainedSelfHealThreshold)
+            {
+                string ignored;
+                if (AIGMCompanionSkillExecutor.TryHealTarget(companion, companion, true, out ignored))
+                    return true;
+            }
+
             return false;
         }
 
@@ -150,26 +236,26 @@ namespace Server.Custom.AIGM
                 return false;
             }
 
-            IPooledEnumerable eable = companion.GetMobilesInRange(16);
-            foreach (Mobile mobile in eable)
+            BaseHire targetCompanion = FindLinkedCompanionByName(companion, companionName);
+            if (targetCompanion == null)
             {
-                BaseHire ally = mobile as BaseHire;
-                if (ally == null || ally == companion || ally.Deleted)
-                    continue;
-
-                string name = ally.Name == null ? String.Empty : ally.Name.ToLowerInvariant();
-                if (name == companionName.ToLowerInvariant())
-                {
-                    IssueFollowOrder(companion, ally);
-                    response = "I will follow " + ally.Name + ".";
-                    eable.Free();
-                    return true;
-                }
+                response = "I cannot find that companion nearby.";
+                return false;
             }
-            eable.Free();
 
-            response = "I cannot find that companion nearby.";
-            return false;
+            if (!companion.InRange(targetCompanion, 20))
+            {
+                response = "I cannot find that companion nearby.";
+                return false;
+            }
+
+            UMGMovementIntent followMi = UMGMovementIntent.Create(UMGMovementIntentKind.FollowPlayer);
+            followMi.Requester = targetCompanion;
+            followMi.TargetMobile = targetCompanion;
+            if (!UMGMovementRouter.RouteIntent(companion, followMi, out response))
+                return false;
+            response = "I will follow " + targetCompanion.Name + ".";
+            return true;
         }
 
         private static bool TryGreetCompanion(BaseHire companion, string companionName, out string response)
@@ -236,6 +322,8 @@ namespace Server.Custom.AIGM
                 return false;
             }
 
+            AIGMCompanionTrackingCycle.SuspendPursuitAndTravel(companion);
+            AIGMCompanionStateAccess.ClearHoldPosition(companion);
             AIGMCompanionStateAccess.SetGuardOwnerMode(companion, false);
             IssueAttackOrder(companion, target);
             response = "Attacking now.";
@@ -376,8 +464,26 @@ namespace Server.Custom.AIGM
             return true;
         }
 
+        private static bool IsUnderAttack(BaseHire companion)
+        {
+            if (companion == null || companion.Deleted)
+                return false;
+
+            Mobile combatant = companion.Combatant as Mobile;
+            if (combatant != null && !combatant.Deleted && combatant.Alive)
+                return true;
+
+            Mobile owner = companion.GetOwner();
+            Mobile ownerCombatant = owner != null ? owner.Combatant as Mobile : null;
+            if (ownerCombatant != null && !ownerCombatant.Deleted && ownerCombatant.Alive && owner.InRange(companion, 10))
+                return true;
+
+            return false;
+        }
+
         private static void IssueFollowOrder(BaseHire companion, Mobile target)
         {
+            companion.CantWalk = false;
             companion.Combatant = null;
             companion.ControlTarget = target;
             companion.ControlOrder = OrderType.Follow;
@@ -385,6 +491,7 @@ namespace Server.Custom.AIGM
 
         private static void IssueComeOrder(BaseHire companion, Mobile target)
         {
+            companion.CantWalk = false;
             companion.Combatant = null;
             companion.ControlTarget = target;
             companion.ControlOrder = OrderType.Come;
@@ -399,6 +506,7 @@ namespace Server.Custom.AIGM
 
         private static void IssueGuardOrder(BaseHire companion, Mobile target)
         {
+            companion.CantWalk = false;
             companion.Combatant = null;
             companion.ControlTarget = target;
             companion.ControlOrder = OrderType.Guard;
@@ -406,9 +514,26 @@ namespace Server.Custom.AIGM
 
         private static void IssueAttackOrder(BaseHire companion, Mobile target)
         {
+            if (companion == null || companion.Deleted || target == null || target.Deleted || !target.Alive)
+                return;
+
+            if (target == companion || target == companion.GetOwner())
+                return;
+
+            if (target.Map != companion.Map)
+                return;
+
+            if (!companion.CanBeHarmful(target, false))
+                return;
+
+            companion.CantWalk = false;
+            companion.Warmode = true;
             companion.ControlTarget = target;
             companion.Combatant = target;
             companion.ControlOrder = OrderType.Attack;
+
+            if (!companion.InRange(target, 1))
+                companion.CurrentSpeed = companion.ActiveSpeed;
         }
 
         private static void IssueStopCombatOrder(BaseHire companion)

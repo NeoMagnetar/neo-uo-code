@@ -55,6 +55,8 @@ namespace Server.Custom.AIGM
                 ((AIGMCompanionDakeyras)target).ReceiveCompanionDialogue(sourceCompanion, dialogueEvent);
             else if (target is AIGMCompanionDanyal)
                 ((AIGMCompanionDanyal)target).ReceiveCompanionDialogue(sourceCompanion, dialogueEvent);
+            else if (target is AIGMCompanionDardalion)
+                ((AIGMCompanionDardalion)target).ReceiveCompanionDialogue(sourceCompanion, dialogueEvent);
         }
 
         private static bool TryMarkRecent(AIGMCompanionDialogueEvent dialogueEvent)
@@ -115,7 +117,7 @@ namespace Server.Custom.AIGM
                 if (ally.Map != sourceCompanion.Map)
                     continue;
 
-                if (!(ally is AIGMCompanionDakeyras) && !(ally is AIGMCompanionDanyal))
+                if (!(ally is AIGMCompanionDakeyras) && !(ally is AIGMCompanionDanyal) && !(ally is AIGMCompanionDardalion))
                     continue;
 
                 if (ally.GetOwner() != owner)
