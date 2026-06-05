@@ -8,10 +8,11 @@ namespace Server.Custom.AIGM
 {
     public static class AIGMCompanionSpeechQueue
     {
-        private static readonly ConcurrentDictionary<Serial, DateTime> NextAllowedRequestUtc = new ConcurrentDictionary<Serial, DateTime>();
+        private static readonly ConcurrentDictionary<int, DateTime> NextAllowedRequestUtc = new ConcurrentDictionary<int, DateTime>();
         private static readonly ConcurrentDictionary<Serial, byte> CompanionInFlight = new ConcurrentDictionary<Serial, byte>();
         private static readonly SemaphoreSlim WorkerGate = new SemaphoreSlim(2, 2);
         private static readonly TimeSpan PlayerCooldown = TimeSpan.FromSeconds(3.0);
+        private static readonly TimeSpan SharedOwnerDialogueCooldown = TimeSpan.FromSeconds(0.75);
         private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(25.0);
 
         public static bool TryEnqueue(Mobile companion, Mobile speaker, string text, out string rejection)
@@ -43,14 +44,19 @@ namespace Server.Custom.AIGM
 
             DateTime now = DateTime.UtcNow;
             DateTime nextAllowed;
-            if (NextAllowedRequestUtc.TryGetValue(speaker.Serial, out nextAllowed) && now < nextAllowed)
+            bool sharedOwnerDialogue = String.Equals(dialogueMode, "owner_relay_awareness", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(dialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(dialogueMode, "owner_direct_dialogue", StringComparison.OrdinalIgnoreCase);
+            TimeSpan cooldown = sharedOwnerDialogue ? SharedOwnerDialogueCooldown : PlayerCooldown;
+            int cooldownKey = (speaker.Serial.Value * 397) ^ (sharedOwnerDialogue ? 1 : 0);
+            if (NextAllowedRequestUtc.TryGetValue(cooldownKey, out nextAllowed) && now < nextAllowed)
             {
                 rejection = "Please give me a moment.";
                 AIGMExecutionLog.Write("DIALOGUE_QUEUE_REJECT reason=cooldown companion={0} speaker={1} mode={2} nextAllowed={3:o} text=\"{4}\"", companion.Serial.Value, speaker.Serial.Value, dialogueMode ?? String.Empty, nextAllowed, SafeLog(text));
                 return false;
             }
 
-            NextAllowedRequestUtc[speaker.Serial] = now + PlayerCooldown;
+            NextAllowedRequestUtc[cooldownKey] = now + cooldown;
 
             if (!CompanionInFlight.TryAdd(companion.Serial, 1))
             {

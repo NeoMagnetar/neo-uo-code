@@ -155,7 +155,7 @@ namespace Server.Custom.AIGM
             DateTime nextSupportActionUtc = AIGMCompanionStateAccess.GetNextSupportActionUtc(companion);
             bool supportReady = DateTime.UtcNow >= nextSupportActionUtc;
             int criticalSelfHealThreshold = Math.Max(35, companion.HitsMax / 2);
-            int sustainedSelfHealThreshold = Math.Max(45, (int)(companion.HitsMax * 0.75));
+            bool needsSelfHealing = companion.Hits < companion.HitsMax;
 
             if (underAttack && directAttacker != null && !directAttacker.Deleted && directAttacker.Alive && directAttacker.Map == companion.Map)
             {
@@ -181,20 +181,26 @@ namespace Server.Custom.AIGM
                     AIGMCompanionTravelController.StartTrackedPursuit(companion, attackerEntry);
                 }
 
-                if (supportReady && companion.Hits < sustainedSelfHealThreshold)
+                if (supportReady && needsSelfHealing)
                 {
                     string ignored;
                     if (AIGMCompanionSkillExecutor.TryUseBandages(companion, companion, out ignored))
+                        return true;
+
+                    if (companion is AIGMCompanionDanyal && AIGMCompanionSkillExecutor.TryUseMageryHeal(companion, companion, out ignored))
                         return true;
                 }
 
                 return true;
             }
 
-            if (!underAttack && supportReady && companion.Hits < sustainedSelfHealThreshold)
+            if (!underAttack && supportReady && needsSelfHealing)
             {
                 string ignored;
                 if (AIGMCompanionSkillExecutor.TryHealTarget(companion, companion, true, out ignored))
+                    return true;
+
+                if (companion is AIGMCompanionDanyal && AIGMCompanionSkillExecutor.TryUseMageryHeal(companion, companion, out ignored))
                     return true;
             }
 
@@ -215,12 +221,18 @@ namespace Server.Custom.AIGM
                 string ignored;
                 if (AIGMCompanionSkillExecutor.TryUseBandages(companion, companion, out ignored))
                     return true;
+
+                if (companion is AIGMCompanionDanyal && AIGMCompanionSkillExecutor.TryUseMageryHeal(companion, companion, out ignored))
+                    return true;
             }
 
-            if (supportReady && companion.Hits < sustainedSelfHealThreshold)
+            if (supportReady && needsSelfHealing)
             {
                 string ignored;
                 if (AIGMCompanionSkillExecutor.TryHealTarget(companion, companion, true, out ignored))
+                    return true;
+
+                if (companion is AIGMCompanionDanyal && AIGMCompanionSkillExecutor.TryUseMageryHeal(companion, companion, out ignored))
                     return true;
             }
 
@@ -533,7 +545,15 @@ namespace Server.Custom.AIGM
             companion.ControlOrder = OrderType.Attack;
 
             if (!companion.InRange(target, 1))
+            {
                 companion.CurrentSpeed = companion.ActiveSpeed;
+
+                if (companion is AIGMCompanionDardalion)
+                {
+                    companion.ControlOrder = OrderType.Follow;
+                    companion.ControlTarget = target;
+                }
+            }
         }
 
         private static void IssueStopCombatOrder(BaseHire companion)
@@ -544,3 +564,4 @@ namespace Server.Custom.AIGM
         }
     }
 }
+

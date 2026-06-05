@@ -256,6 +256,11 @@ namespace Server.Custom.AIGM
             objective.DestinationZ = target.Z;
             int destinationDistance = AIGMCompanionMapNavigator.Distance2D(companion.Location, target.Location);
 
+            if (companion is AIGMCompanionDardalion && destinationDistance > 1)
+            {
+                companion.ControlOrder = OrderType.Follow;
+            }
+
             if (destinationDistance > 24)
             {
                 AIGMExecutionLog.Write("TRACKING_PURSUIT_END companion={0} target={1} reason=route_leash distance={2}", companion.Serial.Value, objective.TrackedTargetSerial, destinationDistance);
