@@ -10,6 +10,7 @@ namespace Server.Custom.AIGM
     {
         private static readonly ConcurrentDictionary<int, DateTime> NextAllowedRequestUtc = new ConcurrentDictionary<int, DateTime>();
         private static readonly ConcurrentDictionary<Serial, byte> CompanionInFlight = new ConcurrentDictionary<Serial, byte>();
+        private static readonly ConcurrentDictionary<int, int> SharedOwnerTurnIndex = new ConcurrentDictionary<int, int>();
         private static readonly SemaphoreSlim WorkerGate = new SemaphoreSlim(2, 2);
         private static readonly TimeSpan PlayerCooldown = TimeSpan.FromSeconds(3.0);
         private static readonly TimeSpan SharedOwnerDialogueCooldown = TimeSpan.FromSeconds(0.75);
@@ -47,16 +48,30 @@ namespace Server.Custom.AIGM
             bool sharedOwnerDialogue = String.Equals(dialogueMode, "owner_relay_awareness", StringComparison.OrdinalIgnoreCase)
                 || String.Equals(dialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase)
                 || String.Equals(dialogueMode, "owner_direct_dialogue", StringComparison.OrdinalIgnoreCase);
+            bool companionDialogue = String.Equals(dialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase);
+            bool ownerDialogueReply = sharedOwnerDialogue && !(speaker is BaseHire);
+
+            if (ownerDialogueReply)
+            {
+                if (!ShouldCompanionTakeOwnerTurn(companion, speaker, text))
+                {
+                    rejection = "yield_turn";
+                    AIGMExecutionLog.Write("DIALOGUE_QUEUE_SKIP reason=orchestrated_turn companion={0} speaker={1} mode={2} text=\"{3}\"", companion.Serial.Value, speaker.Serial.Value, dialogueMode ?? String.Empty, SafeLog(text));
+                    return false;
+                }
+            }
+
             TimeSpan cooldown = sharedOwnerDialogue ? SharedOwnerDialogueCooldown : PlayerCooldown;
             int cooldownKey = (speaker.Serial.Value * 397) ^ (sharedOwnerDialogue ? 1 : 0);
-            if (NextAllowedRequestUtc.TryGetValue(cooldownKey, out nextAllowed) && now < nextAllowed)
+            if (!companionDialogue && NextAllowedRequestUtc.TryGetValue(cooldownKey, out nextAllowed) && now < nextAllowed)
             {
                 rejection = "Please give me a moment.";
                 AIGMExecutionLog.Write("DIALOGUE_QUEUE_REJECT reason=cooldown companion={0} speaker={1} mode={2} nextAllowed={3:o} text=\"{4}\"", companion.Serial.Value, speaker.Serial.Value, dialogueMode ?? String.Empty, nextAllowed, SafeLog(text));
                 return false;
             }
 
-            NextAllowedRequestUtc[cooldownKey] = now + cooldown;
+            if (!companionDialogue)
+                NextAllowedRequestUtc[cooldownKey] = now + cooldown;
 
             if (!CompanionInFlight.TryAdd(companion.Serial, 1))
             {
@@ -144,6 +159,16 @@ namespace Server.Custom.AIGM
 
             BaseHire trustedCompanion = companion as BaseHire;
             bool isCompanionDialogue = String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase);
+            bool isOwnerConversationTurn = String.Equals(request.DialogueMode, "owner_relay_awareness", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(request.DialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(request.DialogueMode, "owner_direct_dialogue", StringComparison.OrdinalIgnoreCase);
+
+            if ((result == null || !result.Ok || String.IsNullOrWhiteSpace(reply) || String.Equals(reply, "I lost the thread for a moment.", StringComparison.OrdinalIgnoreCase))
+                && isOwnerConversationTurn)
+            {
+                AIGMExecutionLog.Write("COMPANION_DIALOGUE_YIELD requestId={0} mode={1} elapsedMs={2}", request.RequestId, request.DialogueMode, elapsedMs);
+                return;
+            }
 
             if (trustedCompanion != null && !isCompanionDialogue)
             {
@@ -249,6 +274,45 @@ namespace Server.Custom.AIGM
             }
 
             return false;
+        }
+
+        private static bool ShouldCompanionTakeOwnerTurn(Mobile companion, Mobile speaker, string text)
+        {
+            if (companion == null || companion.Deleted || speaker == null || speaker.Deleted)
+                return false;
+
+            BaseHire self = companion as BaseHire;
+            if (self == null)
+                return false;
+
+            Mobile owner = self.GetOwner();
+            if (owner == null || owner != speaker)
+                return false;
+
+            System.Collections.Generic.List<BaseHire> linked = new System.Collections.Generic.List<BaseHire>();
+            foreach (Mobile mobile in World.Mobiles.Values)
+            {
+                BaseHire ally = mobile as BaseHire;
+                if (ally == null || ally.Deleted || ally.Map != self.Map)
+                    continue;
+
+                if (!(ally is AIGMCompanionDakeyras) && !(ally is AIGMCompanionDanyal) && !(ally is AIGMCompanionDardalion))
+                    continue;
+
+                if (ally.GetOwner() != owner)
+                    continue;
+
+                linked.Add(ally);
+            }
+
+            if (linked.Count <= 1)
+                return true;
+
+            linked.Sort((a, b) => a.Serial.Value.CompareTo(b.Serial.Value));
+            int ownerKey = owner.Serial.Value;
+            int turn = SharedOwnerTurnIndex.AddOrUpdate(ownerKey, 0, (key, current) => (current + 1) % linked.Count);
+            int chosenSerial = linked[turn].Serial.Value;
+            return self.Serial.Value == chosenSerial;
         }
 
         private static string SafeLog(string value)
