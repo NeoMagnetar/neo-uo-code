@@ -1,7 +1,20 @@
 using System;
+using System.Collections.Generic;
 
 namespace Server.Custom.AIGM
 {
+    public class AIGMConversationContext
+    {
+        public string ActiveTaskSummary { get; set; }
+        public string LastWorldSummary { get; set; }
+        public List<AIGMConversationTurn> RecentTurns { get; set; }
+
+        public AIGMConversationContext()
+        {
+            RecentTurns = new List<AIGMConversationTurn>();
+        }
+    }
+
     public class AIGMRequest
     {
         public string RequestId { get; set; }
@@ -14,5 +27,7 @@ namespace Server.Custom.AIGM
         public string Question { get; set; }
         public AIGMTargetInfo Target { get; set; }
         public AIGMSceneContext Scene { get; set; }
+        public AIGMExecutionContext Execution { get; set; }
+        public AIGMConversationContext Conversation { get; set; }
     }
 }
