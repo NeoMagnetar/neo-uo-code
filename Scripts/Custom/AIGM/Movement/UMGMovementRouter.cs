@@ -5,10 +5,17 @@ namespace Server.Custom.AIGM
     public class UMGMovementRouter
     {
         private readonly UMGMovementState _state;
+        private readonly IUMGMovementExecutor _executor;
 
         public UMGMovementRouter(UMGMovementState existingState = null)
+            : this(existingState, null)
+        {
+        }
+
+        public UMGMovementRouter(UMGMovementState existingState, IUMGMovementExecutor executor)
         {
             _state = existingState ?? new UMGMovementState();
+            _executor = executor ?? new UMGMovementNoOpExecutor();
         }
 
         public UMGMovementState State
@@ -16,20 +23,29 @@ namespace Server.Custom.AIGM
             get { return _state; }
         }
 
+        public UMGMovementExecutionResult LastExecutionResult { get; private set; }
+
         public bool TrySubmitIntent(UMGMovementIntent intent, out string reason)
         {
             UMGMovementGateDecision decision = EvaluateIntentGate(intent);
             reason = decision != null ? decision.Reason : null;
 
             if (decision == null || !decision.IsAllowed || !decision.AllowsStateUpdate)
+            {
+                LastExecutionResult = null;
                 return false;
+            }
 
             if (intent == null)
+            {
+                LastExecutionResult = null;
                 return false;
+            }
 
             switch (intent.Kind)
             {
                 case UMGMovementIntentKind.HoldPosition:
+                    LastExecutionResult = null;
                     Hold(intent.Reason);
                     return true;
                 case UMGMovementIntentKind.Idle:
@@ -41,8 +57,10 @@ namespace Server.Custom.AIGM
                 case UMGMovementIntentKind.GuardTarget:
                 case UMGMovementIntentKind.RecoverFromStuck:
                     ApplyIntentToState(intent);
+                    LastExecutionResult = TryExecuteNoOp(intent, decision);
                     return true;
                 default:
+                    LastExecutionResult = null;
                     reason = "Unsupported movement intent kind.";
                     return false;
             }
@@ -159,6 +177,7 @@ namespace Server.Custom.AIGM
             _state.UpdatedUtc = DateTime.UtcNow;
             _state.LastMovementDecision = "Clear";
             _state.LastMovementDecisionUtc = DateTime.UtcNow;
+            LastExecutionResult = null;
         }
 
         public UMGMovementState GetState()
@@ -379,6 +398,54 @@ namespace Server.Custom.AIGM
                 allowsLiveMovement: false,
                 suspendsActiveIntent: true,
                 preservesDestination: true);
+        }
+
+        private UMGMovementExecutionResult TryExecuteNoOp(UMGMovementIntent intent, UMGMovementGateDecision decision)
+        {
+            if (!ShouldSubmitToExecutor(intent, decision))
+                return null;
+
+            UMGMovementExecutionRequest request = BuildExecutionRequest(intent, decision);
+            IUMGMovementExecutor executor = _executor ?? new UMGMovementNoOpExecutor();
+            return executor.Execute(request);
+        }
+
+        private bool ShouldSubmitToExecutor(UMGMovementIntent intent, UMGMovementGateDecision decision)
+        {
+            if (intent == null || decision == null)
+                return false;
+
+            if (!decision.IsAllowed || !decision.AllowsStateUpdate)
+                return false;
+
+            switch (intent.Kind)
+            {
+                case UMGMovementIntentKind.MoveToPoint:
+                case UMGMovementIntentKind.TravelToNamedDestination:
+                case UMGMovementIntentKind.FollowPlayer:
+                case UMGMovementIntentKind.ReturnToPlayer:
+                case UMGMovementIntentKind.GuardTarget:
+                case UMGMovementIntentKind.PursueTrackedTarget:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private UMGMovementExecutionRequest BuildExecutionRequest(UMGMovementIntent intent, UMGMovementGateDecision decision)
+        {
+            return new UMGMovementExecutionRequest
+            {
+                RequestId = Guid.NewGuid().ToString("N"),
+                Source = "UMGMovementRouter",
+                Reason = intent != null ? intent.Reason : null,
+                IsDryRun = true,
+                Intent = intent,
+                State = _state,
+                GateDecision = decision,
+                ActorId = null,
+                ActorProfileKey = _state.RoleProfileKey
+            };
         }
 
         private static bool CanSuspendCurrentIntentForStateTransition(UMGMovementIntentKind intentKind)
