@@ -64,11 +64,11 @@ namespace Server.Custom.AIGM
             if (decision == null || !decision.IsAllowed || !decision.AllowsStateUpdate)
                 return;
 
-            if (decision.SuspendsActiveIntent && _state.ActiveIntent != UMGMovementIntentKind.Idle && _state.ActiveIntent != UMGMovementIntentKind.HoldPosition)
+            if (CanSuspendCurrentIntentForStateTransition(_state.ActiveIntent))
                 _state.SuspendedIntent = _state.ActiveIntent;
 
             _state.ActiveIntent = UMGMovementIntentKind.HoldPosition;
-            _state.InterruptReason = reason;
+            _state.InterruptReason = String.IsNullOrWhiteSpace(reason) ? "hold_requested" : reason;
             _state.TrackingMode = "Idle";
             _state.UpdatedUtc = DateTime.UtcNow;
             _state.LastMovementDecision = "HoldPosition";
@@ -81,13 +81,13 @@ namespace Server.Custom.AIGM
             if (decision == null || !decision.IsAllowed || !decision.AllowsStateUpdate)
                 return;
 
-            if (decision.SuspendsActiveIntent && _state.ActiveIntent != UMGMovementIntentKind.Idle)
+            if (decision.SuspendsActiveIntent && CanSuspendCurrentIntentForStateTransition(_state.ActiveIntent))
                 _state.SuspendedIntent = _state.ActiveIntent;
 
             if (decision.ClearsActiveIntent)
                 _state.ActiveIntent = UMGMovementIntentKind.Idle;
 
-            _state.InterruptReason = reason;
+            _state.InterruptReason = String.IsNullOrWhiteSpace(reason) ? "stop_requested" : reason;
             _state.TrackingMode = "Idle";
             _state.UpdatedUtc = DateTime.UtcNow;
             _state.LastMovementDecision = "Stop";
@@ -96,11 +96,18 @@ namespace Server.Custom.AIGM
 
         public void Suspend(string reason = null)
         {
-            if (_state.ActiveIntent != UMGMovementIntentKind.Idle && _state.ActiveIntent != _state.SuspendedIntent)
-                _state.SuspendedIntent = _state.ActiveIntent;
+            if (!CanSuspendCurrentIntentForStateTransition(_state.ActiveIntent))
+            {
+                _state.InterruptReason = String.IsNullOrWhiteSpace(reason) ? "suspend_ignored" : reason;
+                _state.UpdatedUtc = DateTime.UtcNow;
+                _state.LastMovementDecision = "SuspendIgnored";
+                _state.LastMovementDecisionUtc = DateTime.UtcNow;
+                return;
+            }
 
+            _state.SuspendedIntent = _state.ActiveIntent;
             _state.ActiveIntent = UMGMovementIntentKind.Idle;
-            _state.InterruptReason = reason;
+            _state.InterruptReason = String.IsNullOrWhiteSpace(reason) ? "suspend_requested" : reason;
             _state.UpdatedUtc = DateTime.UtcNow;
             _state.LastMovementDecision = "Suspend";
             _state.LastMovementDecisionUtc = DateTime.UtcNow;
@@ -112,15 +119,16 @@ namespace Server.Custom.AIGM
             if (decision == null || !decision.IsAllowed || !decision.AllowsStateUpdate)
                 return;
 
-            if (_state.SuspendedIntent != UMGMovementIntentKind.Idle)
+            UMGMovementIntentKind resumedIntent = _state.SuspendedIntent;
+            if (resumedIntent != UMGMovementIntentKind.Idle)
             {
-                _state.ActiveIntent = _state.SuspendedIntent;
+                _state.ActiveIntent = resumedIntent;
                 _state.SuspendedIntent = UMGMovementIntentKind.Idle;
             }
 
-            _state.InterruptReason = reason;
+            _state.InterruptReason = String.IsNullOrWhiteSpace(reason) ? "resume_requested" : reason;
             _state.UpdatedUtc = DateTime.UtcNow;
-            _state.LastMovementDecision = "Resume";
+            _state.LastMovementDecision = resumedIntent != UMGMovementIntentKind.Idle ? "Resume" : "ResumeNoOp";
             _state.LastMovementDecisionUtc = DateTime.UtcNow;
         }
 
@@ -130,23 +138,25 @@ namespace Server.Custom.AIGM
             if (decision == null || !decision.IsAllowed || !decision.AllowsStateUpdate)
                 return;
 
-            if (decision.SuspendsActiveIntent
-                && (_state.ActiveIntent == UMGMovementIntentKind.TravelToNamedDestination
-                    || _state.ActiveIntent == UMGMovementIntentKind.MoveToPoint
-                    || _state.ActiveIntent == UMGMovementIntentKind.PursueTrackedTarget
-                    || _state.ActiveIntent == UMGMovementIntentKind.FollowPlayer
-                    || _state.ActiveIntent == UMGMovementIntentKind.ReturnToPlayer
-                    || _state.ActiveIntent == UMGMovementIntentKind.GuardTarget))
+            if (decision.SuspendsActiveIntent && IsCombatInterruptibleIntent(_state.ActiveIntent))
             {
                 Suspend(reason ?? "combat_interruption");
                 _state.LastMovementDecision = "CombatInterruption";
                 _state.LastMovementDecisionUtc = DateTime.UtcNow;
+                return;
             }
+
+            _state.InterruptReason = String.IsNullOrWhiteSpace(reason) ? "combat_interruption_ignored" : reason;
+            _state.UpdatedUtc = DateTime.UtcNow;
+            _state.LastMovementDecision = "CombatInterruptionIgnored";
+            _state.LastMovementDecisionUtc = DateTime.UtcNow;
         }
 
         public void Clear()
         {
             _state.Clear();
+            _state.InterruptReason = "clear_requested";
+            _state.UpdatedUtc = DateTime.UtcNow;
             _state.LastMovementDecision = "Clear";
             _state.LastMovementDecisionUtc = DateTime.UtcNow;
         }
@@ -342,6 +352,16 @@ namespace Server.Custom.AIGM
                     preservesDestination: true);
             }
 
+            if (_state.ActiveIntent == UMGMovementIntentKind.HoldPosition)
+            {
+                return UMGMovementGateDecision.Deny(
+                    UMGMovementGateKind.Resume,
+                    reason ?? "Resume is blocked while hold remains active.",
+                    allowsStateUpdate: false,
+                    allowsLiveMovement: false,
+                    preservesDestination: true);
+            }
+
             return UMGMovementGateDecision.Allow(
                 UMGMovementGateKind.Resume,
                 reason ?? "Suspended movement intent may be restored in bounded state only.",
@@ -359,6 +379,21 @@ namespace Server.Custom.AIGM
                 allowsLiveMovement: false,
                 suspendsActiveIntent: true,
                 preservesDestination: true);
+        }
+
+        private static bool CanSuspendCurrentIntentForStateTransition(UMGMovementIntentKind intentKind)
+        {
+            return intentKind != UMGMovementIntentKind.Idle && intentKind != UMGMovementIntentKind.HoldPosition;
+        }
+
+        private static bool IsCombatInterruptibleIntent(UMGMovementIntentKind intentKind)
+        {
+            return intentKind == UMGMovementIntentKind.TravelToNamedDestination
+                || intentKind == UMGMovementIntentKind.MoveToPoint
+                || intentKind == UMGMovementIntentKind.PursueTrackedTarget
+                || intentKind == UMGMovementIntentKind.FollowPlayer
+                || intentKind == UMGMovementIntentKind.ReturnToPlayer
+                || intentKind == UMGMovementIntentKind.GuardTarget;
         }
     }
 }
