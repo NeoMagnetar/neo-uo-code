@@ -1,0 +1,92 @@
+# NEOUO FULL INTEGRATION PHASE56Q R6 COMPANION COMMAND ROUTING BOUNDARY REPORT
+
+- selected session/agent: ultima-online
+- workspace path: C:\.openclaw\workspace-ultima-online
+- target repo path: C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg
+- branch: neo/staging-aigm
+- HEAD before change: 463a55dbf
+- baseline build result: success (0 warnings, 0 errors)
+- current files inspected:
+  - Scripts\Commands\AIGMCompanionCommand.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+  - Scripts\Custom\AIGM\AIGMCompanionIntent.cs
+  - Scripts\Custom\AIGM\AIGMCompanionIntentParser.cs
+  - Scripts\Custom\AIGM\AIGMCompanionSkillExecutor.cs
+  - Scripts\Custom\AIGM\AIGMCompanionProfile.cs
+  - Scripts\Custom\AIGM\IAIGMCompanionActor.cs
+- old Dev files inspected, if any:
+  - none required in this phase
+- files added:
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteKind.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteDecision.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandBoundary.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandVerbKind.cs
+- files modified:
+  - Scripts\Commands\AIGMCompanionCommand.cs
+- boundary behavior summary:
+  - adds a passive classifier that normalizes speech and returns a route decision object
+  - classifies empty speech, non-companion speech, named companion commands, shared companion commands, and unknown-companion-alias cases
+  - records companion key/name, command verb, route kind, reason, and whether counselor lane should be blocked later
+  - boundary is classification only and does not execute commands
+- diagnostic command behavior:
+  - adds AIGMCompanionRoute <speech>
+  - prints route kind
+  - prints companion key/name if present
+  - prints command verb if present
+  - prints whether counselor lane should be blocked
+  - prints executable-now false and movement deferred
+- recognized companion aliases:
+  - Dakeyras: dak, dakeyras
+  - Danyal: dan, danyal
+  - Dardalion: dar, dardalion
+- recognized shared companion commands:
+  - follow / follow me
+  - come / come here / come to me
+  - guard me / protect me / defend me
+  - stay / stay here
+  - hold / hold position / hold here
+  - stop
+  - wait
+  - track / track around
+  - scan / scan area / scan the area
+  - report / report status
+- non-companion behavior:
+  - generic speech with no recognized companion command shape is returned as non-companion
+  - empty speech is returned as empty-speech
+  - unknown companion-like alias plus known command lead is returned as unknown-companion-alias
+- confirmation IsExecutableNow is false: yes
+- confirmation movement remains disabled/deferred: yes
+- confirmation no movement was implemented: yes
+- confirmation no ControlOrder / ControlTarget used: yes
+- confirmation no StateAccess used: yes
+- confirmation no TravelController used: yes
+- confirmation no AutoPathNavigator used: yes
+- confirmation no ActionExecutor used: yes
+- confirmation no SpeechQueue used: yes
+- confirmation no middleware calls added: yes
+- confirmation no counselor/gump lane used: yes
+- confirmation counselor/gump files were not modified: yes
+- confirmation no gm_follow_requester used: yes
+- forbidden scan result: clean; no forbidden strings found in added/modified files
+- final build result: success
+- warning count/files if any: 15 warnings, all in already-known unrelated files:
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+  - Scripts\Gumps\AIGMResponseGump.cs
+  - Scripts\Gumps\AIGMQuestionGump.cs
+  - Scripts\Custom\AIGM\AIGMBridgeClient.cs
+- recommendation for next phase: PHASE 56Q-R6-COMPANION-COMMAND-ROUTING-BOUNDARY-P — Commit Companion Command Routing Boundary
+
+## Scope result
+Changed files in this phase:
+- Scripts\Commands\AIGMCompanionCommand.cs
+- Scripts\Custom\AIGM\AIGMCompanionCommandRouteKind.cs
+- Scripts\Custom\AIGM\AIGMCompanionCommandRouteDecision.cs
+- Scripts\Custom\AIGM\AIGMCompanionCommandBoundary.cs
+- Scripts\Custom\AIGM\AIGMCompanionCommandVerbKind.cs
+
+## Notes
+- The optional verb-kind enum was added because it keeps the decision object explicit and stable for later counselor early-exit wiring.
+- The boundary exposes BlocksCounselorLane now but does not yet wire any counselor/gump early exit.
+- No movement router invocation, companion state mutation, middleware call, or speech execution path was added.
