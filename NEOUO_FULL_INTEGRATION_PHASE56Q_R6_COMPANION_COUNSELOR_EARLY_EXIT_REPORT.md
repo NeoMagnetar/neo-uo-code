@@ -1,0 +1,76 @@
+# NEOUO FULL INTEGRATION PHASE56Q R6 COMPANION COUNSELOR EARLY EXIT REPORT
+
+- selected session/agent: ultima-online
+- workspace path: C:\.openclaw\workspace-ultima-online
+- target repo path: C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg
+- branch: neo/staging-aigm
+- HEAD before change: 5a3478dae
+- baseline build result: success (0 warnings, 0 errors)
+- files inspected:
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+  - Scripts\Gumps\AIGMResponseGump.cs
+  - Scripts\Gumps\AIGMQuestionGump.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandBoundary.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteDecision.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteKind.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandVerbKind.cs
+- files modified:
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+- early-exit location:
+  - AIGMCounselor.OnSpeech(SpeechEventArgs e) after owner/range gating and before counselor trigger phrase checks or consult-interface open
+- classification behavior used:
+  - AIGMCompanionCommandBoundary.Classify(rawSpeech)
+  - if decision is non-null and BlocksCounselorLane is true, counselor handling returns immediately
+- examples expected to early-exit:
+  - dak follow me
+  - dakeyras follow me
+  - danyal follow me
+  - dan follow me
+  - dar follow me
+  - dardalion follow me
+  - ollow me
+  - come here
+  - guard me
+  - stay here
+  - hold position
+  - stop
+  - wait
+  - 	rack around
+  - scan the area
+  - eport status
+- examples expected to pass through counselor lane:
+  - hello
+  - help
+  - what can you do
+  - open counselor
+  - generic counselor/admin questions
+  - unrelated player speech
+- whether SpeechEventArgs.Handled was changed:
+  - no change for companion-owned commands; early exit returns without setting e.Handled
+  - existing counselor-open path still sets e.Handled = true when used
+- confirmation no movement was implemented: yes
+- confirmation no ControlOrder / ControlTarget used: yes
+- confirmation no StateAccess used: yes
+- confirmation no TravelController used: yes
+- confirmation no AutoPathNavigator used: yes
+- confirmation no ActionExecutor used: yes
+- confirmation no SpeechQueue used: yes
+- confirmation no middleware calls added: yes
+- confirmation no gumps created for companion-owned commands: yes
+- confirmation no gm_follow_requester added: yes
+- confirmation companion boundary files were not modified: yes
+- confirmation movement executor files were not modified: yes
+- diff forbidden scan result: clean; no forbidden movement/runtime/middleware strings found in newly added diff lines
+- final build result: success
+- warning count/files if any: 15 warnings, all already-known unrelated files:
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+  - Scripts\Gumps\AIGMResponseGump.cs
+  - Scripts\Gumps\AIGMQuestionGump.cs
+  - Scripts\Custom\AIGM\AIGMBridgeClient.cs
+- recommendation for next phase: PHASE 56Q-R6-COMPANION-COUNSELOR-EARLY-EXIT-P — Commit Counselor Early Exit
+
+## Inspection Notes
+- counselor speech enters through AIGMCounselor.OnSpeech.
+- counselor consult gump creation is reached through OpenConsultInterface and context/menu/double-click paths.
+- no extra gump file guard was required because the counselor speech entry point was sufficient to prevent companion-owned speech from reaching the consult path.
+- no gm_follow_requester reference was introduced in this phase.
