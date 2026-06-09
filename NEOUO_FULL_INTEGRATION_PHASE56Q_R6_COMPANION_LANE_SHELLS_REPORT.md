@@ -1,0 +1,72 @@
+# NEOUO FULL INTEGRATION PHASE56Q R6 COMPANION LANE SHELLS REPORT
+
+- selected session/agent: ultima-online
+- workspace path: C:\.openclaw\workspace-ultima-online
+- target repo path: C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg
+- branch: neo/staging-aigm
+- HEAD before change: cc6986bc3
+- baseline build result: success (0 warnings, 0 errors)
+- current files inspected:
+  - Scripts\Custom\AIGM\IAIGMCompanionActor.cs
+  - Scripts\Custom\AIGM\IAIGMActor.cs
+  - Scripts\Custom\AIGM\AIGMCompanionProfile.cs
+  - Scripts\Custom\AIGM\AIGMCompanionIntent.cs
+  - Scripts\Custom\AIGM\AIGMCompanionIntentParser.cs
+  - Scripts\Custom\AIGM\AIGMCompanionSkillExecutor.cs
+  - Scripts\Custom\AIGM\Movement\UMGMovementRouter.cs
+  - Scripts\Custom\AIGM\Movement\IUMGMovementExecutor.cs
+  - Scripts\Custom\AIGM\Movement\UMGMovementNoOpExecutor.cs
+- old Dev files inspected:
+  - C:\UO\Server\Neo Ultima Online\NeoUO-Dev\Scripts\Commands\AIGMCompanionCommand.cs
+  - C:\UO\Server\Neo Ultima Online\NeoUO-Dev\Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+  - C:\UO\Server\Neo Ultima Online\NeoUO-Dev\Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+  - C:\UO\Server\Neo Ultima Online\NeoUO-Dev\Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+- files added:
+  - Scripts\Commands\AIGMCompanionCommand.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+- shell behavior summary:
+  - added three constructable companion identity shells
+  - each shell compiles, supports serial construction, and serializes passive shell state only
+  - each shell exposes stable identity through IAIGMCompanionActor-compatible properties
+  - each shell remains passive and does not implement speech execution, live AI action execution, or movement
+- command behavior summary:
+  - added a minimal diagnostic command surface
+  - command reports that the companion lane shell exists
+  - command lists Dakeyras, Danyal, and Dardalion
+  - command explicitly reports that movement is disabled/deferred in this phase
+- confirmation no movement was implemented: yes
+- confirmation no ControlOrder / ControlTarget used: yes
+- confirmation no StateAccess used: yes
+- confirmation no TravelController used: yes
+- confirmation no AutoPathNavigator used: yes
+- confirmation no ActionExecutor used: yes
+- confirmation no SpeechQueue used: yes
+- confirmation no middleware calls added: yes
+- confirmation no counselor/gump lane used: yes
+- confirmation no gm_follow_requester used: yes
+- forbidden scan result: clean; no forbidden strings found in the four added files
+- final build result: success
+- warning count/files if any: 15 warnings, all in pre-existing files:
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+  - Scripts\Gumps\AIGMResponseGump.cs
+  - Scripts\Gumps\AIGMQuestionGump.cs
+  - Scripts\Custom\AIGM\AIGMBridgeClient.cs
+- build-fix classification for initial failure before green build:
+  - A. base mobile class mismatch: removed invalid UsesHirelingPayroll override
+  - B. interface mismatch: added required IAIGMActor members Shell, ActorId, DisplayName, Inventory
+- recommendation for next phase: PHASE 56Q-R6-COMPANION-LANE-SHELLS-P — Commit Companion Lane Shells
+
+## Scope result
+Expected source file scope was preserved:
+- Scripts\Commands\AIGMCompanionCommand.cs
+- Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+- Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+- Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+
+## Notes
+- No optional helper/model was added under Scripts\Custom\AIGM.
+- No old Dev movement/action/state/runtime surfaces were imported.
+- The shells intentionally do not perform OnSpeech live execution.
+- The diagnostic command was kept companion-lane only and does not invoke counselor/gump surfaces or movement router execution.
