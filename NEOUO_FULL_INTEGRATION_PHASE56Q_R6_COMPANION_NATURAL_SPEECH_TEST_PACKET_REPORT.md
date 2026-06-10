@@ -1,0 +1,43 @@
+# NEOUO FULL INTEGRATION PHASE56Q R6 COMPANION NATURAL SPEECH TEST PACKET REPORT
+
+- selected session/agent: ultima-online
+- workspace path: C:\.openclaw\workspace-ultima-online
+- target repo path: C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg
+- branch: neo/staging-aigm
+- HEAD: bbb8cd609
+- baseline build result: success (0 warnings, 0 errors)
+- files inspected:
+  - Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+  - Scripts\Commands\AIGMCompanionCommand.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandBoundary.cs
+- packet path: `C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg\NEOUO_FULL_INTEGRATION_PHASE56Q_R6_COMPANION_NATURAL_SPEECH_TEST_PACKET.md`
+- natural speech UX rule: natural speech is the product; bracket commands are admin/debug only
+- confirmation `[AIGMCompanionRoute ...]` is admin/debug only: yes
+- named speech tests included: yes
+- shared speech tests included: yes
+- anti-spam tests included: yes
+- counselor separation tests included: yes
+- non-companion speech tests included: yes
+- optional admin/debug comparison section included: yes
+- pass/fail criteria included: yes
+- result capture template included: yes
+- next-phase decision rules included: yes
+- confirmation no C# files changed: yes
+- confirmation no runtime code changed: yes
+- confirmation no movement implemented: yes
+- confirmation no middleware calls added: yes
+- confirmation no gump files modified: yes
+- confirmation no companion files modified: yes
+- confirmation no counselor files modified: yes
+- confirmation no files copied from NeoUO-Dev: yes
+- confirmation no backup files copied: yes
+- confirmation no reset/clean/overwrite occurred: yes
+- recommendation for next phase: PHASE 56Q-R6-COMPANION-NATURAL-SPEECH-TEST-PACKET-P — Commit Natural Speech UX Test Packet
+
+## Notes
+- Packet reflects the current natural speech behavior in the committed shell implementations.
+- Packet records the current shared anti-spam rule: closest eligible nearby owned companion echoes, lower-serial tie-break.
+- Packet keeps `[AIGMCompanionRoute ...]` in an optional comparison section only, so average play is not framed around bracket commands.
