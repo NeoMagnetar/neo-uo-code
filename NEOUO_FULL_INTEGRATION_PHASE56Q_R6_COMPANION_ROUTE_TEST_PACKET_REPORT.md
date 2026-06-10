@@ -1,0 +1,42 @@
+# NEOUO FULL INTEGRATION PHASE56Q R6 COMPANION ROUTE TEST PACKET REPORT
+
+- selected session/agent: ultima-online
+- workspace path: C:\.openclaw\workspace-ultima-online
+- target repo path: C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg
+- branch: neo/staging-aigm
+- HEAD: d5265ead6
+- baseline build result: success (0 warnings, 0 errors)
+- files inspected:
+  - Scripts\Commands\AIGMCompanionCommand.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandBoundary.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteDecision.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteKind.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandVerbKind.cs
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+- packet path: `C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg\NEOUO_FULL_INTEGRATION_PHASE56Q_R6_COMPANION_ROUTE_TEST_PACKET.md`
+- diagnostic command syntax confirmed: `AIGMCompanionRoute <speech>`
+- test categories included:
+  - named companion route tests
+  - shared companion route tests
+  - non-companion route tests
+  - unknown alias tests
+  - live speech contamination tests
+- pass/fail criteria included: yes
+- result capture template included: yes
+- next-phase decision rules included: yes
+- confirmation no C# files changed: yes
+- confirmation no runtime code changed: yes
+- confirmation no movement implemented: yes
+- confirmation no middleware calls added: yes
+- confirmation no gump files modified: yes
+- confirmation no companion boundary files modified: yes
+- confirmation no counselor files modified: yes
+- confirmation no files copied from NeoUO-Dev: yes
+- confirmation no backup files copied: yes
+- confirmation no reset/clean/overwrite occurred: yes
+- recommendation for next phase: PHASE 56Q-R6-COMPANION-ROUTE-TEST-PACKET-P — Commit Companion Route Test Packet
+
+## Notes
+- Packet content was derived from the actual current diagnostic command output fields and current boundary route kinds/flags.
+- Packet intentionally avoids requiring live movement or live middleware response.
+- Packet includes live speech contamination checks specifically to verify counselor early-exit behavior without expecting command execution.
