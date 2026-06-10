@@ -1,0 +1,72 @@
+# NEOUO FULL INTEGRATION PHASE56Q R6 COMPANION NATURAL SPEECH ROUTE ECHO REPORT
+
+- selected session/agent: ultima-online
+- workspace path: C:\.openclaw\workspace-ultima-online
+- target repo path: C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg
+- branch: neo/staging-aigm
+- HEAD before change: 5e4535a1e
+- baseline build result: success (0 warnings, 0 errors)
+- files inspected:
+  - Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandBoundary.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteDecision.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandRouteKind.cs
+  - Scripts\Custom\AIGM\AIGMCompanionCommandVerbKind.cs
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+- files modified:
+  - Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+  - Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+- helper file added, if any:
+  - none
+- natural speech UX rule:
+  - natural speech is the player-facing product surface
+  - bracket route command remains diagnostic/admin only
+- confirmation bracket route command remains admin/debug only: yes
+- named speech behavior:
+  - each shell classifies `e.Speech` via `AIGMCompanionCommandBoundary.Classify(...)`
+  - named route echo only occurs when `decision.CompanionKey` matches the shell's `CompanionId`
+  - non-matching shells remain silent
+- shared speech behavior:
+  - shared companion commands are recognized through the companion lane
+  - only one shell echoes a short diagnostic response
+  - no movement or middleware occurs
+- chosen temporary shared-echo anti-spam policy:
+  - closest eligible nearby owned companion echoes shared commands; ties break by lower serial
+- counselor speech behavior:
+  - companion shells ignore non-companion speech such as `hello counselor`
+  - already-committed counselor early exit remains the separation boundary for companion-owned speech
+- echo text style:
+  - short and non-annoying
+  - named example: `Dakeyras recognizes follow; movement deferred.`
+  - shared example: `Shared companion command recognized: follow. Movement deferred.`
+- confirmation IsExecutableNow remains false: yes
+- confirmation movement remains disabled/deferred: yes
+- confirmation no movement was implemented: yes
+- confirmation no ControlOrder / ControlTarget used: yes
+- confirmation no StateAccess used: yes
+- confirmation no TravelController used: yes
+- confirmation no AutoPathNavigator used: yes
+- confirmation no ActionExecutor used: yes
+- confirmation no SpeechQueue used: yes
+- confirmation no middleware calls added: yes
+- confirmation no counselor/gump lane used: yes
+- confirmation no gm_follow_requester used: yes
+- confirmation no old Dev files copied: yes
+- forbidden scan result: clean; no forbidden strings found in modified source files
+- final build result: success
+- warning count/files if any: 15 warnings, all already-known unrelated files:
+  - Scripts\Mobiles\NPCs\AIGMCounselor.cs
+  - Scripts\Gumps\AIGMResponseGump.cs
+  - Scripts\Gumps\AIGMQuestionGump.cs
+  - Scripts\Custom\AIGM\AIGMBridgeClient.cs
+- recommendation for next phase: PHASE 56Q-R6-COMPANION-NATURAL-SPEECH-ROUTE-ECHO-P — Commit Natural Speech Route Echo
+
+## Recorded Surface Notes
+- shell base class: `BaseHire`
+- OnSpeech availability: implemented via shell overrides in this phase
+- current identity/profile keys: `CompanionId`, `CompanionDisplayName`, `CompanionProfileKey`
+- safe local ownership field used: `GetOwner()`
+- safe local speech path used: `SayTo(e.Mobile, ...)`

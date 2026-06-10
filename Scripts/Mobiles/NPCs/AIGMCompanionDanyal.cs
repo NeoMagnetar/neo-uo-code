@@ -171,6 +171,62 @@ namespace Server.Mobiles
             return base.OnDragDrop(from, item);
         }
 
+        public override void OnSpeech(SpeechEventArgs e)
+        {
+            base.OnSpeech(e);
+
+            if (e == null || e.Handled || e.Mobile == null || !e.Mobile.Alive || !e.Mobile.InRange(this, 8))
+                return;
+
+            AIGMCompanionCommandRouteDecision decision = AIGMCompanionCommandBoundary.Classify(e.Speech);
+            if (decision == null || decision.RouteKind == AIGMCompanionCommandRouteKind.EmptySpeech || decision.RouteKind == AIGMCompanionCommandRouteKind.NonCompanion || decision.RouteKind == AIGMCompanionCommandRouteKind.UnknownCompanionAlias)
+                return;
+
+            if (decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
+            {
+                if (!String.Equals(decision.CompanionKey, CompanionId, StringComparison.OrdinalIgnoreCase))
+                    return;
+            }
+            else if (decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion)
+            {
+                if (GetOwner() != e.Mobile)
+                    return;
+
+                double selfDistance = e.Mobile.GetDistanceToSqrt(this);
+                IPooledEnumerable mobiles = e.Mobile.Map != null ? e.Mobile.Map.GetMobilesInRange(e.Mobile.Location, 8) : null;
+                if (mobiles != null)
+                {
+                    foreach (Mobile mobile in mobiles)
+                    {
+                        BaseHire other = mobile as BaseHire;
+                        IAIGMCompanionActor actor = other as IAIGMCompanionActor;
+                        if (other == null || actor == null || other == this || other.Deleted || other.GetOwner() != e.Mobile)
+                            continue;
+
+                        double otherDistance = e.Mobile.GetDistanceToSqrt(other);
+                        if (otherDistance < selfDistance || (Math.Abs(otherDistance - selfDistance) < 0.01 && other.Serial.Value < Serial.Value))
+                        {
+                            mobiles.Free();
+                            return;
+                        }
+                    }
+
+                    mobiles.Free();
+                }
+            }
+            else
+            {
+                return;
+            }
+
+            string verb = String.IsNullOrWhiteSpace(decision.CommandVerb) ? "command" : decision.CommandVerb;
+            string text = decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion
+                ? String.Format("{0} recognizes {1}; movement deferred.", CompanionDisplayName, verb)
+                : String.Format("Shared companion command recognized: {0}. Movement deferred.", verb);
+
+            SayTo(e.Mobile, text);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
