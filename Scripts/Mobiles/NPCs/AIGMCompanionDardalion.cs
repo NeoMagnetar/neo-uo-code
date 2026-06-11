@@ -76,6 +76,11 @@ namespace Server.Mobiles
             get { return "shell-disabled"; }
         }
 
+        public override bool UsesHirelingPayroll
+        {
+            get { return false; }
+        }
+
         [Constructable]
         public AIGMCompanionDardalion()
             : base(AIType.AI_Melee)
@@ -108,7 +113,7 @@ namespace Server.Mobiles
             Karma = 1000;
 
             VirtualArmor = 24;
-            ControlSlots = 2;
+            ControlSlots = 0;
             Tamable = false;
 
             AddItem(new Boots(Utility.RandomNeutralHue()));
@@ -174,58 +179,211 @@ namespace Server.Mobiles
 
         public override void OnSpeech(SpeechEventArgs e)
         {
-            base.OnSpeech(e);
-
             if (e == null || e.Handled || e.Mobile == null || !e.Mobile.Alive || !e.Mobile.InRange(this, 8))
+            {
+                base.OnSpeech(e);
                 return;
+            }
+
+            Mobile owner = GetOwner();
+            bool trustedSpeaker = e.Mobile == owner || (!Controlled && e.Mobile.AccessLevel >= AccessLevel.GameMaster);
 
             AIGMCompanionCommandRouteDecision decision = AIGMCompanionCommandBoundary.Classify(e.Speech);
-            if (decision == null || decision.RouteKind == AIGMCompanionCommandRouteKind.EmptySpeech || decision.RouteKind == AIGMCompanionCommandRouteKind.NonCompanion || decision.RouteKind == AIGMCompanionCommandRouteKind.UnknownCompanionAlias)
+            if (decision == null || decision.RouteKind == AIGMCompanionCommandRouteKind.EmptySpeech)
+            {
+                base.OnSpeech(e);
                 return;
+            }
+
+            bool shouldSpeak = false;
+            bool allowTrustedOwnerFallback = false;
 
             if (decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
             {
                 if (!String.Equals(decision.CompanionKey, CompanionId, StringComparison.OrdinalIgnoreCase))
                     return;
+
+                shouldSpeak = true;
             }
             else if (decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion)
             {
-                if (GetOwner() != e.Mobile)
+                if (owner != e.Mobile)
                     return;
 
-                double selfDistance = e.Mobile.GetDistanceToSqrt(this);
-                IPooledEnumerable mobiles = e.Mobile.Map != null ? e.Mobile.Map.GetMobilesInRange(e.Mobile.Location, 8) : null;
-                if (mobiles != null)
-                {
-                    foreach (Mobile mobile in mobiles)
-                    {
-                        BaseHire other = mobile as BaseHire;
-                        IAIGMCompanionActor actor = other as IAIGMCompanionActor;
-                        if (other == null || actor == null || other == this || other.Deleted || other.GetOwner() != e.Mobile)
-                            continue;
-
-                        double otherDistance = e.Mobile.GetDistanceToSqrt(other);
-                        if (otherDistance < selfDistance || (Math.Abs(otherDistance - selfDistance) < 0.01 && other.Serial.Value < Serial.Value))
-                        {
-                            mobiles.Free();
-                            return;
-                        }
-                    }
-
-                    mobiles.Free();
-                }
+                shouldSpeak = IsSharedCommandSpokesperson(e.Mobile);
+            }
+            else if (decision.RouteKind == AIGMCompanionCommandRouteKind.NonCompanion && trustedSpeaker)
+            {
+                allowTrustedOwnerFallback = true;
+                shouldSpeak = IsSharedCommandSpokesperson(e.Mobile);
             }
             else
             {
+                base.OnSpeech(e);
                 return;
             }
 
-            string verb = String.IsNullOrWhiteSpace(decision.CommandVerb) ? "command" : decision.CommandVerb;
-            string text = decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion
-                ? String.Format("{0} recognizes {1}; movement deferred.", CompanionDisplayName, verb)
-                : String.Format("Shared companion command recognized: {0}. Movement deferred.", verb);
+            AIGMCompanionIntent intent;
+            bool parsedIntent = AIGMCompanionIntentParser.TryParse(this, e.Mobile, e.Speech, out intent);
 
-            SayTo(e.Mobile, text);
+            if (allowTrustedOwnerFallback || ShouldUseCompanionChat(e.Mobile, e.Speech, decision, intent, parsedIntent))
+            {
+                string rejection;
+                if (AIGMCompanionSpeechQueue.TryEnqueue(this, e.Mobile, e.Speech, shouldSpeak, out rejection))
+                {
+                    e.Handled = true;
+                    return;
+                }
+
+                if (!String.IsNullOrWhiteSpace(rejection) && shouldSpeak)
+                    SayTo(e.Mobile, rejection);
+
+                e.Handled = true;
+                return;
+            }
+
+            if (!parsedIntent)
+            {
+                if (!TryExecuteCompanionCommand(e.Mobile, decision, null, shouldSpeak))
+                    return;
+
+                return;
+            }
+
+            if (!TryExecuteCompanionCommand(e.Mobile, decision, intent, shouldSpeak))
+                return;
+        }
+
+        private bool TryExecuteCompanionCommand(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool shouldSpeak)
+        {
+            if (speaker == null || decision == null)
+                return false;
+
+            Mobile owner = GetOwner();
+            if (owner == null)
+            {
+                if (!SetControlMaster(speaker))
+                {
+                    SayTo(speaker, "I could not bind to you.");
+                    return false;
+                }
+
+                IsHired = true;
+                owner = speaker;
+            }
+            else if (owner != speaker)
+            {
+                return false;
+            }
+
+            string text;
+            string intentKind = intent != null ? intent.Kind : null;
+
+            if (intentKind == AIGMCompanionIntentKind.FollowOwner || intentKind == AIGMCompanionIntentKind.Come)
+            {
+                ControlTarget = speaker;
+                ControlOrder = OrderType.Follow;
+                text = String.Format("{0} acknowledges {1} and follows.", CompanionDisplayName, decision.CommandVerb ?? "follow");
+            }
+            else if (intentKind == AIGMCompanionIntentKind.Stay)
+            {
+                ControlTarget = null;
+                ControlOrder = OrderType.Stay;
+                text = String.Format("{0} acknowledges {1} and holds position.", CompanionDisplayName, decision.CommandVerb ?? "stay");
+            }
+            else if (intentKind == AIGMCompanionIntentKind.GuardOwner)
+            {
+                ControlTarget = speaker;
+                ControlOrder = OrderType.Guard;
+                text = String.Format("{0} acknowledges {1} and guards you.", CompanionDisplayName, decision.CommandVerb ?? "guard");
+            }
+            else if (!String.IsNullOrWhiteSpace(intentKind))
+            {
+                text = String.Format("{0} recognizes that command, but that action lane is not enabled yet.", CompanionDisplayName);
+            }
+            else
+            {
+                switch (decision.VerbKind)
+                {
+                    case AIGMCompanionCommandVerbKind.Follow:
+                    case AIGMCompanionCommandVerbKind.Come:
+                        ControlTarget = speaker;
+                        ControlOrder = OrderType.Follow;
+                        text = String.Format("{0} acknowledges {1} and follows.", CompanionDisplayName, decision.CommandVerb);
+                        break;
+                    case AIGMCompanionCommandVerbKind.Stop:
+                    case AIGMCompanionCommandVerbKind.Stay:
+                    case AIGMCompanionCommandVerbKind.Hold:
+                    case AIGMCompanionCommandVerbKind.Wait:
+                        ControlTarget = null;
+                        ControlOrder = OrderType.Stay;
+                        text = String.Format("{0} acknowledges {1} and holds position.", CompanionDisplayName, decision.CommandVerb);
+                        break;
+                    case AIGMCompanionCommandVerbKind.Guard:
+                        ControlTarget = speaker;
+                        ControlOrder = OrderType.Guard;
+                        text = String.Format("{0} acknowledges {1} and guards you.", CompanionDisplayName, decision.CommandVerb);
+                        break;
+                    default:
+                        text = decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion
+                            ? String.Format("{0} recognizes {1}; advanced action deferred.", CompanionDisplayName, decision.CommandVerb ?? "command")
+                            : String.Format("Shared companion command recognized: {0}. Advanced action deferred.", decision.CommandVerb ?? "command");
+                        break;
+                }
+            }
+
+            if (shouldSpeak)
+                SayTo(speaker, text);
+
+            return true;
+        }
+
+        private bool ShouldUseCompanionChat(Mobile speaker, string speech, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool parsedIntent)
+        {
+            if (speaker == null || String.IsNullOrWhiteSpace(speech) || decision == null)
+                return false;
+
+            if (decision.RouteKind != AIGMCompanionCommandRouteKind.NamedCompanion && decision.RouteKind != AIGMCompanionCommandRouteKind.SharedCompanion)
+                return false;
+
+            if (parsedIntent)
+            {
+                string kind = intent != null ? intent.Kind : null;
+                if (kind == AIGMCompanionIntentKind.FollowOwner || kind == AIGMCompanionIntentKind.Come || kind == AIGMCompanionIntentKind.Stay || kind == AIGMCompanionIntentKind.GuardOwner)
+                    return false;
+
+                if (!String.IsNullOrWhiteSpace(kind))
+                    return false;
+            }
+
+            return true;
+        }
+
+
+        private bool IsSharedCommandSpokesperson(Mobile speaker)
+        {
+            if (speaker == null || speaker.Map == null)
+                return false;
+
+            double selfDistance = speaker.GetDistanceToSqrt(this);
+            IPooledEnumerable mobiles = speaker.Map.GetMobilesInRange(speaker.Location, 8);
+            foreach (Mobile mobile in mobiles)
+            {
+                BaseHire other = mobile as BaseHire;
+                IAIGMCompanionActor actor = other as IAIGMCompanionActor;
+                if (other == null || actor == null || other == this || other.Deleted || other.GetOwner() != speaker)
+                    continue;
+
+                double otherDistance = speaker.GetDistanceToSqrt(other);
+                if (otherDistance < selfDistance || (Math.Abs(otherDistance - selfDistance) < 0.01 && other.Serial.Value < Serial.Value))
+                {
+                    mobiles.Free();
+                    return false;
+                }
+            }
+
+            mobiles.Free();
+            return true;
         }
 
         public override void Serialize(GenericWriter writer)

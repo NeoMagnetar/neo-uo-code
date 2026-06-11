@@ -16,6 +16,7 @@ namespace Server.Mobiles
         public override bool IsBondable { get { return false; } }
         public override bool CanAutoStable { get { return false; } }
         public override bool CanDetectHidden { get { return false; } }
+        public virtual bool UsesHirelingPayroll { get { return true; } }
 
         public BaseHire(AIType AI)
             : base(AI, FightMode.Aggressor, 10, 1, 0.1, 4.0)
@@ -53,8 +54,11 @@ namespace Server.Mobiles
             m_IsHired = reader.ReadBool();
             m_HoldGold = reader.ReadInt();
 
-            m_PayTimer = new PayTimer(this);
-            m_PayTimer.Start();
+            if (UsesHirelingPayroll)
+            {
+                m_PayTimer = new PayTimer(this);
+                m_PayTimer.Start();
+            }
         }
 
         public override bool KeepsItemsOnDeath
@@ -202,8 +206,11 @@ namespace Server.Mobiles
                             {
                                 this.SayTo(from, 1043258, string.Format("{0}", (int)item.Amount / m_Pay), 0x3B2);//"I thank thee for paying me. I will work for thee for ~1_NUMBER~ days.", (int)item.Amount / m_Pay );
                                 m_HoldGold += item.Amount;
-                                m_PayTimer = new PayTimer(this);
-                                m_PayTimer.Start();
+                                if (UsesHirelingPayroll)
+                                {
+                                    m_PayTimer = new PayTimer(this);
+                                    m_PayTimer.Start();
+                                }
                                 return true;
                             }
                             else
@@ -304,6 +311,18 @@ namespace Server.Mobiles
 	  
             protected override void OnTick() 
             { 
+                if (m_Hire == null || m_Hire.Deleted)
+                {
+                    Stop();
+                    return;
+                }
+
+                if (!m_Hire.UsesHirelingPayroll)
+                {
+                    Stop();
+                    return;
+                }
+
                 int m_Pay = m_Hire.m_Pay;
                 if (m_Hire.m_HoldGold <= m_Pay) 
                 { 

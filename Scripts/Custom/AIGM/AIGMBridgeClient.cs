@@ -15,6 +15,12 @@ namespace Server.Custom.AIGM
             return AskInternal(request);
         }
 
+        public static AIGMResponse AskCompanionSpeech(Mobile from, string question, IAIGMCompanionActor companion)
+        {
+            AIGMRequest request = BuildCompanionSpeechRequest(from, question, companion);
+            return AskInternal(request);
+        }
+
         private static AIGMResponse AskInternal(AIGMRequest request)
         {
             try
@@ -114,6 +120,50 @@ namespace Server.Custom.AIGM
                 Execution = execution,
                 Conversation = conversation
             };
+        }
+
+        private static AIGMRequest BuildCompanionSpeechRequest(Mobile from, string question, IAIGMCompanionActor companion)
+        {
+            AIGMTargetInfo target = new AIGMTargetInfo();
+            if (companion != null && companion.Shell != null)
+            {
+                Mobile shell = companion.Shell;
+                target.Kind = "companion_speech";
+                target.Serial = shell.Serial.Value;
+                target.Name = companion.CompanionDisplayName;
+                target.TypeName = shell.GetType().FullName;
+                target.MapName = shell.Map != null ? shell.Map.Name : null;
+                target.RegionName = shell.Region != null ? shell.Region.Name : null;
+                target.X = shell.X;
+                target.Y = shell.Y;
+                target.Z = shell.Z;
+                target.Distance = from != null ? (int)Math.Round(from.GetDistanceToSqrt(shell)) : 0;
+                target.IsNpc = true;
+                target.IsAlive = shell.Alive;
+                target.ParentTypeName = shell.GetType().BaseType != null ? shell.GetType().BaseType.FullName : null;
+                target.Tags.Add("companion_speech");
+                if (!String.IsNullOrWhiteSpace(companion.CompanionId))
+                    target.Tags.Add("companion_id:" + companion.CompanionId);
+                if (!String.IsNullOrWhiteSpace(companion.CompanionProfileKey))
+                    target.Tags.Add("profile:" + companion.CompanionProfileKey);
+                if (!String.IsNullOrWhiteSpace(companion.CompanionRole))
+                    target.Tags.Add("role:" + companion.CompanionRole);
+                if (!String.IsNullOrWhiteSpace(companion.ExecutionModeKey))
+                    target.Tags.Add("execution_mode:" + companion.ExecutionModeKey);
+            }
+
+            string companionQuestion = question ?? String.Empty;
+            if (companion != null)
+            {
+                companionQuestion = "[mode:companion_speech]\n"
+                    + "[companion_id:" + (companion.CompanionId ?? String.Empty) + "]\n"
+                    + "[companion_name:" + (companion.CompanionDisplayName ?? String.Empty) + "]\n"
+                    + "[companion_role:" + (companion.CompanionRole ?? String.Empty) + "]\n"
+                    + "[companion_profile:" + (companion.CompanionProfileKey ?? String.Empty) + "]\n"
+                    + question;
+            }
+
+            return BuildRequest(from, companionQuestion, target, null);
         }
 
         private static byte[] Serialize<T>(T value)
