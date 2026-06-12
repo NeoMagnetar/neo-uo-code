@@ -22,14 +22,19 @@ namespace Server.Custom.AIGM
                 case AIGMCompanionCapabilityKind.ScanReadOnly:
                 case AIGMCompanionCapabilityKind.ReportThreatsReadOnly:
                 case AIGMCompanionCapabilityKind.ShareAwarenessReadOnly:
-                case AIGMCompanionCapabilityKind.TrackReadOnly:
                 case AIGMCompanionCapabilityKind.ReportTrackingStatus:
                 case AIGMCompanionCapabilityKind.TravelReadOnly:
+                    decision.Allowed = true;
+                    decision.Deferred = false;
+                    decision.RequiresFutureExecutor = false;
+                    decision.Reason = "read_only_live";
+                    break;
+                case AIGMCompanionCapabilityKind.TrackReadOnly:
                     decision.Allowed = false;
                     decision.Deferred = true;
                     decision.RequiresFutureExecutor = false;
-                    decision.Reason = "read_only_pending";
-                    decision.VisibleResponse = "I can speak to that when the read-only lane is opened.";
+                    decision.Reason = "tracking_read_only_pending";
+                    decision.VisibleResponse = "I can speak to signs and sightings, but the deeper tracking lane is still gated.";
                     break;
                 case AIGMCompanionCapabilityKind.None:
                     decision.Allowed = false;

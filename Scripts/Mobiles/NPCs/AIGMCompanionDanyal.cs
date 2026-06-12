@@ -270,6 +270,9 @@ namespace Server.Mobiles
             if (speaker == null || decision == null)
                 return false;
 
+            if (TryHandleReadOnlyCapability(speaker, decision, intent, shouldSpeak))
+                return true;
+
             Mobile owner = GetOwner();
             if (owner == null)
             {
@@ -367,6 +370,9 @@ namespace Server.Mobiles
                 if (kind == AIGMCompanionIntentKind.FollowOwner || kind == AIGMCompanionIntentKind.Come || kind == AIGMCompanionIntentKind.Stay || kind == AIGMCompanionIntentKind.GuardOwner)
                     return false;
 
+                if (IsReadOnlyIntentKind(kind))
+                    return false;
+
                 if (!String.IsNullOrWhiteSpace(kind))
                     return false;
             }
@@ -374,6 +380,74 @@ namespace Server.Mobiles
             return true;
         }
 
+        private bool TryHandleReadOnlyCapability(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool shouldSpeak)
+        {
+            AIGMCompanionCapabilityRequest request = BuildCapabilityRequest(speaker, decision, intent);
+            AIGMCompanionCapabilityDecision gateDecision = AIGMCompanionCapabilityGate.Decide(request);
+            if (gateDecision == null || !gateDecision.Allowed)
+                return false;
+
+            string text = null;
+            switch (gateDecision.Capability)
+            {
+                case AIGMCompanionCapabilityKind.ScanReadOnly:
+                    text = AIGMCompanionReadOnlyAwareness.BuildScanAreaReport(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.ReportThreatsReadOnly:
+                    text = AIGMCompanionReadOnlyAwareness.BuildThreatReport(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.ShareAwarenessReadOnly:
+                    text = AIGMCompanionReadOnlyAwareness.BuildShareAwarenessReport(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.ReportTrackingStatus:
+                    text = AIGMCompanionReadOnlyAwareness.BuildTrackingStatusReport(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TravelReadOnly:
+                    text = AIGMCompanionReadOnlyAwareness.BuildTravelStatusReport(this, speaker);
+                    break;
+            }
+
+            if (String.IsNullOrWhiteSpace(text))
+                text = gateDecision.VisibleResponse;
+
+            if (String.IsNullOrWhiteSpace(text))
+                return false;
+
+            if (shouldSpeak)
+                SayTo(speaker, text);
+
+            return true;
+        }
+
+        private AIGMCompanionCapabilityRequest BuildCapabilityRequest(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent)
+        {
+            AIGMCompanionCapabilityRequest request = new AIGMCompanionCapabilityRequest();
+            request.CompanionId = CompanionId;
+            request.Speaker = speaker;
+            request.RawSpeech = decision != null ? decision.OriginalSpeech : String.Empty;
+            request.IntentKind = intent != null ? intent.Kind : String.Empty;
+            request.Capability = decision != null ? decision.Capability : AIGMCompanionCapabilityKind.None;
+            request.TargetText = intent != null ? intent.DestinationName : String.Empty;
+            request.DestinationText = intent != null ? intent.DestinationName : String.Empty;
+            request.IsExplicitlyAddressed = intent != null && intent.ExplicitlyAddressed;
+            request.DialogueMode = "owner_or_world_speech";
+            return request;
+        }
+
+        private bool IsReadOnlyIntentKind(string intentKind)
+        {
+            switch (intentKind)
+            {
+                case AIGMCompanionIntentKind.ScanArea:
+                case AIGMCompanionIntentKind.ReportThreats:
+                case AIGMCompanionIntentKind.ShareAwareness:
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                case AIGMCompanionIntentKind.ReportTravelStatus:
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
         private bool IsExplicitDeferredActionIntent(string intentKind)
         {
