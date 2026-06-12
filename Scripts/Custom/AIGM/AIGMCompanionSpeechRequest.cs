@@ -15,6 +15,12 @@ namespace Server.Custom.AIGM
         public string CompanionDisplayName { get; private set; }
         public string CompanionProfileKey { get; private set; }
         public string CompanionRole { get; private set; }
+        public string CompanionDescription { get; private set; }
+        public string CompanionVoiceGuidance { get; private set; }
+        public string CompanionDutySummary { get; private set; }
+        public string CompanionCapabilityBoundary { get; private set; }
+        public string CompanionSiblingContext { get; private set; }
+        public string CompanionPartyRoster { get; private set; }
         public Serial CompanionSerial { get; private set; }
         public Serial SpeakerSerial { get; private set; }
         public Serial OwnerSerial { get; private set; }
@@ -48,6 +54,13 @@ namespace Server.Custom.AIGM
             CompanionDisplayName = companion != null ? companion.CompanionDisplayName : null;
             CompanionProfileKey = companion != null ? companion.CompanionProfileKey : null;
             CompanionRole = companion != null ? companion.CompanionRole : null;
+            AIGMCompanionPersonaContext persona = AIGMCompanionProfileLibrary.BuildPersonaContext(companion);
+            CompanionDescription = persona != null ? persona.CompanionIdentityLine : null;
+            CompanionVoiceGuidance = persona != null ? persona.VoiceGuidance : null;
+            CompanionDutySummary = persona != null ? persona.DutySummary : null;
+            CompanionCapabilityBoundary = persona != null ? persona.CapabilityBoundary : null;
+            CompanionSiblingContext = persona != null ? persona.SiblingFraming : null;
+            CompanionPartyRoster = persona != null ? persona.PartyRoster : null;
             CompanionSerial = companion != null && companion.Shell != null ? companion.Shell.Serial : Serial.MinusOne;
             SpeakerSerial = speaker != null ? speaker.Serial : Serial.MinusOne;
             BaseHire baseHire = companion != null ? companion.Shell as BaseHire : null;

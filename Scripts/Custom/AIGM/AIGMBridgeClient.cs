@@ -42,15 +42,29 @@ namespace Server.Custom.AIGM
             sb.AppendLine("hop_count: " + request.HopCount);
             sb.AppendLine("speech: " + (request.RawSpeech ?? String.Empty));
             sb.AppendLine();
+            sb.AppendLine("[active_companion_identity]");
+            sb.AppendLine(request.CompanionDescription ?? String.Empty);
+            sb.AppendLine("role_profile: " + (request.CompanionRole ?? String.Empty));
+            sb.AppendLine("voice_guidance: " + (request.CompanionVoiceGuidance ?? String.Empty));
+            sb.AppendLine("duties: " + (request.CompanionDutySummary ?? String.Empty));
+            sb.AppendLine("capability_boundary: " + (request.CompanionCapabilityBoundary ?? String.Empty));
+            sb.AppendLine("sibling_context: " + (request.CompanionSiblingContext ?? String.Empty));
+            sb.AppendLine("companion_party: " + (request.CompanionPartyRoster ?? String.Empty));
+            sb.AppendLine("[/active_companion_identity]");
+            sb.AppendLine();
             sb.AppendLine("[behavior_rules]");
-            sb.AppendLine("Answer only as the active companion.");
-            sb.AppendLine("Do not speak for linked companions.");
-            sb.AppendLine("Do not narrate linked companions as scenery.");
-            sb.AppendLine("Do not summarize the relay, queue, bus, bridge, or archives.");
-            sb.AppendLine("Use linked dialogue only as prior conversation context.");
-            sb.AppendLine("If visible_turn is false, this request should not produce visible speech.");
-            sb.AppendLine("If asked what another companion said, answer from dialogue context if present.");
+            sb.AppendLine("Speak as the active companion only.");
+            sb.AppendLine("Do not speak as another companion.");
+            sb.AppendLine("Treat sibling companions as real companions, not scenery.");
+            sb.AppendLine("If asked about another companion, use dialogue context if present.");
             sb.AppendLine("If no relevant linked dialogue context exists, say so naturally in character.");
+            sb.AppendLine("Do not summarize the relay, queue, bus, bridge, archives, or technical system behavior.");
+            sb.AppendLine("Do not claim to execute gated actions.");
+            sb.AppendLine("Do not fake healing, cure, bandage, travel, tracking pursuit, movement, attack, or combat execution.");
+            sb.AppendLine("For gated actions, give a brief in-character deferral matching this companion's role.");
+            sb.AppendLine("Keep the reply short, clear, and suitable for Ultima Online journal readability.");
+            sb.AppendLine("If visible_turn is false, this request should not produce visible speech.");
+            sb.AppendLine("[/behavior_rules]");
             sb.AppendLine("[/companion_speech_request]");
 
             return AskCompanionSpeech(request.Speaker, sb.ToString(), request.Companion);
@@ -190,11 +204,18 @@ namespace Server.Custom.AIGM
             string companionQuestion = question ?? String.Empty;
             if (companion != null)
             {
+                AIGMCompanionPersonaContext persona = AIGMCompanionProfileLibrary.BuildPersonaContext(companion);
                 companionQuestion = "[mode:companion_speech]\n"
                     + "[companion_id:" + (companion.CompanionId ?? String.Empty) + "]\n"
                     + "[companion_name:" + (companion.CompanionDisplayName ?? String.Empty) + "]\n"
                     + "[companion_role:" + (companion.CompanionRole ?? String.Empty) + "]\n"
                     + "[companion_profile:" + (companion.CompanionProfileKey ?? String.Empty) + "]\n"
+                    + "[persona_identity:" + (persona != null ? persona.CompanionIdentityLine ?? String.Empty : String.Empty) + "]\n"
+                    + "[persona_voice:" + (persona != null ? persona.VoiceGuidance ?? String.Empty : String.Empty) + "]\n"
+                    + "[persona_duties:" + (persona != null ? persona.DutySummary ?? String.Empty : String.Empty) + "]\n"
+                    + "[persona_boundary:" + (persona != null ? persona.CapabilityBoundary ?? String.Empty : String.Empty) + "]\n"
+                    + "[persona_siblings:" + (persona != null ? persona.SiblingFraming ?? String.Empty : String.Empty) + "]\n"
+                    + "[party_roster:" + (persona != null ? persona.PartyRoster ?? String.Empty : String.Empty) + "]\n"
                     + question;
             }
 
@@ -252,7 +273,7 @@ namespace Server.Custom.AIGM
             response.Ok = false;
             response.Confidence = "none";
             response.ErrorMessage = message;
-            response.ReplyText = "The archives could not complete the live bridge call.";
+            response.ReplyText = "I need a moment to gather that.";
             response.Warnings.Add("Falling back from live bridge call.");
             if (!String.IsNullOrWhiteSpace(message))
                 response.Warnings.Add(message);
