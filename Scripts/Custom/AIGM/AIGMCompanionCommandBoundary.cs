@@ -48,6 +48,42 @@ namespace Server.Custom.AIGM
             "report"
         };
 
+        public static List<string> GetAddressedCompanionIds(string speech)
+        {
+            List<string> ids = new List<string>();
+            string normalized = NormalizeSpeech(speech);
+            if (String.IsNullOrWhiteSpace(normalized))
+                return ids;
+
+            string[] words = normalized.Split(' ');
+            foreach (CompanionAliasEntry entry in CompanionAliases)
+            {
+                if (entry == null || entry.Aliases == null)
+                    continue;
+
+                bool matched = false;
+                foreach (string alias in entry.Aliases)
+                {
+                    for (int i = 0; i < words.Length; i++)
+                    {
+                        if (String.Equals(words[i], alias, StringComparison.Ordinal))
+                        {
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    if (matched)
+                        break;
+                }
+
+                if (matched)
+                    ids.Add(entry.Key);
+            }
+
+            return ids;
+        }
+
         public static AIGMCompanionCommandRouteDecision Classify(string speech)
         {
             AIGMCompanionCommandRouteDecision decision = new AIGMCompanionCommandRouteDecision();

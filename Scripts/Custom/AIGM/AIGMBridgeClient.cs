@@ -4,6 +4,7 @@ using System.Net;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using Server.Diagnostics;
+using Server.Mobiles;
 
 namespace Server.Custom.AIGM
 {
@@ -19,6 +20,40 @@ namespace Server.Custom.AIGM
         {
             AIGMRequest request = BuildCompanionSpeechRequest(from, question, companion);
             return AskInternal(request);
+        }
+
+        public static AIGMResponse AskCompanionSpeechRequest(AIGMCompanionSpeechRequest request)
+        {
+            if (request == null)
+                return Failure("Companion speech request was null.");
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("[companion_speech_request]");
+            sb.AppendLine("mode: " + (request.DialogueMode ?? "owner_or_world_speech"));
+            sb.AppendLine("visible_turn: " + (request.IsPrimaryVisibleTurn ? "true" : "false"));
+            sb.AppendLine("active_companion: " + (request.CompanionDisplayName ?? request.CompanionId ?? "unknown"));
+            sb.AppendLine("active_profile: " + (request.CompanionProfileKey ?? "unknown"));
+            sb.AppendLine("active_role: " + (request.CompanionRole ?? "unknown"));
+            sb.AppendLine("speaker: " + (request.Speaker != null ? request.Speaker.Name ?? request.Speaker.GetType().Name : "unknown"));
+            sb.AppendLine("speaker_kind: " + (request.Speaker is BaseHire ? "companion" : "owner"));
+            sb.AppendLine("allow_remote_relay: " + (request.AllowRemoteRelay ? "true" : "false"));
+            sb.AppendLine("event_id: " + (request.EventId.HasValue ? request.EventId.Value.ToString() : String.Empty));
+            sb.AppendLine("origin_companion_id: " + (request.OriginCompanionId ?? String.Empty));
+            sb.AppendLine("hop_count: " + request.HopCount);
+            sb.AppendLine("speech: " + (request.RawSpeech ?? String.Empty));
+            sb.AppendLine();
+            sb.AppendLine("[behavior_rules]");
+            sb.AppendLine("Answer only as the active companion.");
+            sb.AppendLine("Do not speak for linked companions.");
+            sb.AppendLine("Do not narrate linked companions as scenery.");
+            sb.AppendLine("Do not summarize the relay, queue, bus, bridge, or archives.");
+            sb.AppendLine("Use linked dialogue only as prior conversation context.");
+            sb.AppendLine("If visible_turn is false, this request should not produce visible speech.");
+            sb.AppendLine("If asked what another companion said, answer from dialogue context if present.");
+            sb.AppendLine("If no relevant linked dialogue context exists, say so naturally in character.");
+            sb.AppendLine("[/companion_speech_request]");
+
+            return AskCompanionSpeech(request.Speaker, sb.ToString(), request.Companion);
         }
 
         private static AIGMResponse AskInternal(AIGMRequest request)
