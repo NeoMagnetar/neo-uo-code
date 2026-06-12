@@ -14,6 +14,9 @@ namespace Server.Custom.AIGM
         public string CompanionName { get; set; }
         public string CommandVerb { get; set; }
         public AIGMCompanionCommandVerbKind VerbKind { get; set; }
+        public AIGMCompanionCapabilityKind Capability { get; set; }
+        public bool IsDeferredCapability { get; set; }
+        public bool RequiresFutureExecutor { get; set; }
         public AIGMCompanionCommandRouteKind RouteKind { get; set; }
         public string Reason { get; set; }
         public bool IsExecutableNow { get; set; }
@@ -26,6 +29,9 @@ namespace Server.Custom.AIGM
             CompanionName = null;
             CommandVerb = null;
             VerbKind = AIGMCompanionCommandVerbKind.None;
+            Capability = AIGMCompanionCapabilityKind.None;
+            IsDeferredCapability = false;
+            RequiresFutureExecutor = false;
             RouteKind = AIGMCompanionCommandRouteKind.None;
             Reason = "not_companion_command";
             IsExecutableNow = false;

@@ -1,26 +1,21 @@
 namespace Server.Custom.AIGM
 {
-    public enum AIGMCompanionCommandVerbKind
+    public enum AIGMCompanionCapabilityKind
     {
         None,
         Follow,
-        Come,
-        Guard,
         Stay,
-        Hold,
-        Stop,
-        Wait,
+        Guard,
         ReturnHome,
-        Travel,
+        TravelReadOnly,
+        TravelExecute,
         StopTravel,
-        TravelStatus,
-        Scan,
-        ReportThreats,
-        ShareAwareness,
+        ScanReadOnly,
+        ReportThreatsReadOnly,
+        ShareAwarenessReadOnly,
         TrackReadOnly,
-        StartTracking,
-        StopTracking,
-        TrackingStatus,
+        TrackingCycle,
+        ReportTrackingStatus,
         Attack,
         Disengage,
         Heal,
@@ -30,6 +25,7 @@ namespace Server.Custom.AIGM
         CastCure,
         FollowCompanion,
         GreetCompanion,
-        Report
+        AdminCommand,
+        Counselor
     }
 }

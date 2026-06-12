@@ -12,40 +12,101 @@ namespace Server.Custom.AIGM
             public string[] Aliases;
         }
 
+        private sealed class RecognizedCommandFamily
+        {
+            public AIGMCompanionCommandVerbKind VerbKind;
+            public AIGMCompanionCapabilityKind Capability;
+            public string CanonicalVerb;
+            public bool IsExecutableNow;
+            public bool IsDeferredCapability;
+            public bool RequiresFutureExecutor;
+            public string[] ExactMatches;
+            public string[] PrefixMatches;
+        }
+
         private static readonly CompanionAliasEntry[] CompanionAliases =
         {
             new CompanionAliasEntry
             {
                 Key = "dakeyras",
                 Name = "Dakeyras",
-                Aliases = new[] { "dak", "dakeyras" }
+                Aliases = new[] { "dak", "dakeyras", "waylander" }
             },
             new CompanionAliasEntry
             {
                 Key = "danyal",
                 Name = "Danyal",
-                Aliases = new[] { "danyal", "dan" }
+                Aliases = new[] { "danyal" }
             },
             new CompanionAliasEntry
             {
                 Key = "dardalion",
                 Name = "Dardalion",
-                Aliases = new[] { "dar", "dardalion" }
+                Aliases = new[] { "dardalion" }
             }
         };
 
-        private static readonly string[] KnownSharedLeadWords =
+        private static readonly RecognizedCommandFamily[] CommandFamilies =
         {
-            "follow",
-            "come",
-            "guard",
-            "stay",
-            "hold",
-            "stop",
-            "wait",
-            "track",
-            "scan",
-            "report"
+            Create(AIGMCompanionCommandVerbKind.Follow, AIGMCompanionCapabilityKind.Follow, "follow", true, false, false,
+                exactMatches: new[] { "follow", "follow me" }),
+            Create(AIGMCompanionCommandVerbKind.Come, AIGMCompanionCapabilityKind.Follow, "come", true, false, false,
+                exactMatches: new[] { "come", "come here", "come to me" }),
+            Create(AIGMCompanionCommandVerbKind.Guard, AIGMCompanionCapabilityKind.Guard, "guard", true, false, false,
+                exactMatches: new[] { "guard me", "protect me", "defend me" }),
+            Create(AIGMCompanionCommandVerbKind.Stay, AIGMCompanionCapabilityKind.Stay, "stay", true, false, false,
+                exactMatches: new[] { "stay", "stay here" }),
+            Create(AIGMCompanionCommandVerbKind.Hold, AIGMCompanionCapabilityKind.Stay, "hold", true, false, false,
+                exactMatches: new[] { "hold", "hold here", "hold position" }),
+            Create(AIGMCompanionCommandVerbKind.Stop, AIGMCompanionCapabilityKind.Stay, "stop", true, false, false,
+                exactMatches: new[] { "stop" }),
+            Create(AIGMCompanionCommandVerbKind.Wait, AIGMCompanionCapabilityKind.Stay, "wait", true, false, false,
+                exactMatches: new[] { "wait" }),
+            Create(AIGMCompanionCommandVerbKind.ReturnHome, AIGMCompanionCapabilityKind.ReturnHome, "return home", false, true, true,
+                exactMatches: new[] { "return home" }),
+            Create(AIGMCompanionCommandVerbKind.Travel, AIGMCompanionCapabilityKind.TravelExecute, "travel", false, true, true,
+                prefixMatches: new[] { "go to ", "travel to ", "head to " }),
+            Create(AIGMCompanionCommandVerbKind.StopTravel, AIGMCompanionCapabilityKind.StopTravel, "stop travel", false, true, true,
+                exactMatches: new[] { "stop travel", "stop traveling", "cancel travel", "cancel traveling", "stop moving" }),
+            Create(AIGMCompanionCommandVerbKind.TravelStatus, AIGMCompanionCapabilityKind.TravelReadOnly, "travel status", false, true, false,
+                exactMatches: new[] { "travel status", "what is your travel status", "where are you headed", "what are you doing travel wise" }),
+            Create(AIGMCompanionCommandVerbKind.Scan, AIGMCompanionCapabilityKind.ScanReadOnly, "scan", false, true, false,
+                exactMatches: new[] { "scan", "scan area", "scan the area" },
+                prefixMatches: new[] { "look around" }),
+            Create(AIGMCompanionCommandVerbKind.ReportThreats, AIGMCompanionCapabilityKind.ReportThreatsReadOnly, "report threats", false, true, false,
+                exactMatches: new[] { "report threats" },
+                prefixMatches: new[] { "report danger", "report hostiles", "what do you sense" }),
+            Create(AIGMCompanionCommandVerbKind.ShareAwareness, AIGMCompanionCapabilityKind.ShareAwarenessReadOnly, "share awareness", false, true, false,
+                exactMatches: new[] { "share awareness", "share what you see" },
+                prefixMatches: new[] { "share what you sense" }),
+            Create(AIGMCompanionCommandVerbKind.TrackReadOnly, AIGMCompanionCapabilityKind.TrackReadOnly, "track", false, true, false,
+                exactMatches: new[] { "track animals", "track monsters", "track players", "track animal", "track monster", "scan animals", "scan monsters", "scan players" }),
+            Create(AIGMCompanionCommandVerbKind.StartTracking, AIGMCompanionCapabilityKind.TrackingCycle, "start tracking", false, true, true,
+                exactMatches: new[] { "track", "start tracking", "begin tracking", "track cycle on", "track on" }),
+            Create(AIGMCompanionCommandVerbKind.StopTracking, AIGMCompanionCapabilityKind.TrackingCycle, "stop tracking", false, true, true,
+                exactMatches: new[] { "stop tracking", "end tracking", "track cycle off", "track off" }),
+            Create(AIGMCompanionCommandVerbKind.TrackingStatus, AIGMCompanionCapabilityKind.ReportTrackingStatus, "tracking status", false, true, false,
+                exactMatches: new[] { "tracking status", "track status", "report tracking", "report tracking status", "what is your tracking status" }),
+            Create(AIGMCompanionCommandVerbKind.Attack, AIGMCompanionCapabilityKind.Attack, "attack", false, true, true,
+                prefixMatches: new[] { "attack", "fight", "kill" }),
+            Create(AIGMCompanionCommandVerbKind.Disengage, AIGMCompanionCapabilityKind.Disengage, "disengage", false, true, true,
+                prefixMatches: new[] { "disengage", "stop fighting", "stop attack", "stop attacking", "stop combat" }),
+            Create(AIGMCompanionCommandVerbKind.Heal, AIGMCompanionCapabilityKind.Heal, "heal", false, true, true,
+                prefixMatches: new[] { "heal me", "heal my wounds", "heal owner", "heal yourself", "heal self", "heal myself" }),
+            Create(AIGMCompanionCommandVerbKind.Bandage, AIGMCompanionCapabilityKind.Bandage, "bandage", false, true, true,
+                prefixMatches: new[] { "bandage me", "bandage my wounds", "bandage owner", "use bandages on me", "bandage yourself", "bandage self", "bandage myself", "bandage your own self" }),
+            Create(AIGMCompanionCommandVerbKind.Cure, AIGMCompanionCapabilityKind.Cure, "cure", false, true, true,
+                prefixMatches: new[] { "cure me", "cure my poison", "cure yourself", "cure self" }),
+            Create(AIGMCompanionCommandVerbKind.CastHeal, AIGMCompanionCapabilityKind.CastHeal, "cast heal", false, true, true,
+                prefixMatches: new[] { "cast heal" }),
+            Create(AIGMCompanionCommandVerbKind.CastCure, AIGMCompanionCapabilityKind.CastCure, "cast cure", false, true, true,
+                prefixMatches: new[] { "cast cure" }),
+            Create(AIGMCompanionCommandVerbKind.FollowCompanion, AIGMCompanionCapabilityKind.FollowCompanion, "follow companion", false, true, true,
+                prefixMatches: new[] { "follow danyal", "follow dardalion", "follow dak", "follow dakeyras", "follow waylander" }),
+            Create(AIGMCompanionCommandVerbKind.GreetCompanion, AIGMCompanionCapabilityKind.GreetCompanion, "greet companion", false, true, true,
+                prefixMatches: new[] { "greet danyal", "greet dardalion", "greet dak", "greet dakeyras", "greet waylander", "hello danyal", "hello dardalion", "hello dak", "hello dakeyras", "hello waylander", "say hello to danyal", "say hello to dardalion", "say hello to dak", "say hello to dakeyras", "say hello to waylander" }),
+            Create(AIGMCompanionCommandVerbKind.Report, AIGMCompanionCapabilityKind.None, "report", false, false, false,
+                exactMatches: new[] { "report", "report status" })
         };
 
         public static List<string> GetAddressedCompanionIds(string speech)
@@ -105,18 +166,8 @@ namespace Server.Custom.AIGM
                 decision.CompanionKey = namedAlias.Key;
                 decision.CompanionName = namedAlias.Name;
 
-                if (TryRecognizeVerb(payload, out var verbKind, out var verbText))
-                {
-                    decision.IsCompanionCommand = true;
-                    decision.BlocksCounselorLane = true;
-                    decision.IsNamedCompanionCommand = true;
-                    decision.IsSharedCompanionCommand = false;
-                    decision.CommandVerb = verbText;
-                    decision.VerbKind = verbKind;
-                    decision.RouteKind = AIGMCompanionCommandRouteKind.NamedCompanion;
-                    decision.Reason = "companion_named_command";
-                    return decision;
-                }
+                if (TryRecognizeCommandFamily(payload, out var family))
+                    return ApplyFamilyDecision(decision, family, AIGMCompanionCommandRouteKind.NamedCompanion, "companion_named_command");
 
                 decision.RouteKind = AIGMCompanionCommandRouteKind.NonCompanion;
                 decision.Reason = "not_companion_command";
@@ -132,21 +183,28 @@ namespace Server.Custom.AIGM
                 return decision;
             }
 
-            if (TryRecognizeVerb(decision.NormalizedSpeech, out var sharedVerbKind, out var sharedVerbText))
-            {
-                decision.IsCompanionCommand = true;
-                decision.BlocksCounselorLane = true;
-                decision.IsNamedCompanionCommand = false;
-                decision.IsSharedCompanionCommand = true;
-                decision.CommandVerb = sharedVerbText;
-                decision.VerbKind = sharedVerbKind;
-                decision.RouteKind = AIGMCompanionCommandRouteKind.SharedCompanion;
-                decision.Reason = "companion_shared_command";
-                return decision;
-            }
+            if (TryRecognizeCommandFamily(decision.NormalizedSpeech, out var sharedFamily))
+                return ApplyFamilyDecision(decision, sharedFamily, AIGMCompanionCommandRouteKind.SharedCompanion, "companion_shared_command");
 
             decision.RouteKind = AIGMCompanionCommandRouteKind.NonCompanion;
             decision.Reason = "not_companion_command";
+            return decision;
+        }
+
+        private static AIGMCompanionCommandRouteDecision ApplyFamilyDecision(AIGMCompanionCommandRouteDecision decision, RecognizedCommandFamily family, AIGMCompanionCommandRouteKind routeKind, string reason)
+        {
+            decision.IsCompanionCommand = true;
+            decision.BlocksCounselorLane = true;
+            decision.IsNamedCompanionCommand = routeKind == AIGMCompanionCommandRouteKind.NamedCompanion;
+            decision.IsSharedCompanionCommand = routeKind == AIGMCompanionCommandRouteKind.SharedCompanion;
+            decision.CommandVerb = family.CanonicalVerb;
+            decision.VerbKind = family.VerbKind;
+            decision.Capability = family.Capability;
+            decision.IsDeferredCapability = family.IsDeferredCapability;
+            decision.RequiresFutureExecutor = family.RequiresFutureExecutor;
+            decision.IsExecutableNow = family.IsExecutableNow;
+            decision.RouteKind = routeKind;
+            decision.Reason = reason;
             return decision;
         }
 
@@ -187,54 +245,68 @@ namespace Server.Custom.AIGM
             return false;
         }
 
-        private static bool TryRecognizeVerb(string normalizedSpeech, out AIGMCompanionCommandVerbKind verbKind, out string verbText)
+        private static bool TryRecognizeCommandFamily(string normalizedSpeech, out RecognizedCommandFamily family)
         {
-            verbKind = AIGMCompanionCommandVerbKind.None;
-            verbText = null;
-
+            family = null;
             if (String.IsNullOrWhiteSpace(normalizedSpeech))
                 return false;
 
             string speech = normalizedSpeech.Trim();
-
-            if (speech.Equals("follow") || speech.Equals("follow me"))
-                return Match(AIGMCompanionCommandVerbKind.Follow, "follow", out verbKind, out verbText);
-
-            if (speech.Equals("come") || speech.Equals("come here") || speech.Equals("come to me"))
-                return Match(AIGMCompanionCommandVerbKind.Come, "come", out verbKind, out verbText);
-
-            if (speech.Equals("guard me") || speech.Equals("protect me") || speech.Equals("defend me"))
-                return Match(AIGMCompanionCommandVerbKind.Guard, "guard", out verbKind, out verbText);
-
-            if (speech.Equals("stay") || speech.Equals("stay here"))
-                return Match(AIGMCompanionCommandVerbKind.Stay, "stay", out verbKind, out verbText);
-
-            if (speech.Equals("hold") || speech.Equals("hold position") || speech.Equals("hold here"))
-                return Match(AIGMCompanionCommandVerbKind.Hold, "hold", out verbKind, out verbText);
-
-            if (speech.Equals("stop"))
-                return Match(AIGMCompanionCommandVerbKind.Stop, "stop", out verbKind, out verbText);
-
-            if (speech.Equals("wait"))
-                return Match(AIGMCompanionCommandVerbKind.Wait, "wait", out verbKind, out verbText);
-
-            if (speech.Equals("track") || speech.Equals("track around"))
-                return Match(AIGMCompanionCommandVerbKind.Track, "track", out verbKind, out verbText);
-
-            if (speech.Equals("scan") || speech.Equals("scan the area") || speech.Equals("scan area"))
-                return Match(AIGMCompanionCommandVerbKind.Scan, "scan", out verbKind, out verbText);
-
-            if (speech.Equals("report") || speech.Equals("report status"))
-                return Match(AIGMCompanionCommandVerbKind.Report, "report", out verbKind, out verbText);
+            for (int i = 0; i < CommandFamilies.Length; i++)
+            {
+                RecognizedCommandFamily candidate = CommandFamilies[i];
+                if (MatchesFamily(speech, candidate))
+                {
+                    family = candidate;
+                    return true;
+                }
+            }
 
             return false;
         }
 
-        private static bool Match(AIGMCompanionCommandVerbKind kind, string text, out AIGMCompanionCommandVerbKind verbKind, out string verbText)
+        private static bool MatchesFamily(string speech, RecognizedCommandFamily family)
         {
-            verbKind = kind;
-            verbText = text;
-            return true;
+            if (family == null)
+                return false;
+
+            if (family.ExactMatches != null)
+            {
+                for (int i = 0; i < family.ExactMatches.Length; i++)
+                {
+                    if (speech.Equals(family.ExactMatches[i], StringComparison.Ordinal))
+                        return true;
+                }
+            }
+
+            if (family.PrefixMatches != null)
+            {
+                for (int i = 0; i < family.PrefixMatches.Length; i++)
+                {
+                    string prefix = family.PrefixMatches[i];
+                    if (String.IsNullOrWhiteSpace(prefix))
+                        continue;
+
+                    if (speech.Equals(prefix, StringComparison.Ordinal) || speech.StartsWith(prefix, StringComparison.Ordinal))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static RecognizedCommandFamily Create(AIGMCompanionCommandVerbKind verbKind, AIGMCompanionCapabilityKind capability, string canonicalVerb, bool isExecutableNow, bool isDeferredCapability, bool requiresFutureExecutor, string[] exactMatches = null, string[] prefixMatches = null)
+        {
+            RecognizedCommandFamily family = new RecognizedCommandFamily();
+            family.VerbKind = verbKind;
+            family.Capability = capability;
+            family.CanonicalVerb = canonicalVerb;
+            family.IsExecutableNow = isExecutableNow;
+            family.IsDeferredCapability = isDeferredCapability;
+            family.RequiresFutureExecutor = requiresFutureExecutor;
+            family.ExactMatches = exactMatches;
+            family.PrefixMatches = prefixMatches;
+            return family;
         }
 
         private static bool IsUnknownCompanionAlias(string firstWord)
@@ -279,11 +351,11 @@ namespace Server.Custom.AIGM
             if (String.IsNullOrWhiteSpace(firstWord))
                 return false;
 
-            for (int i = 0; i < KnownSharedLeadWords.Length; i++)
-            {
-                if (String.Equals(KnownSharedLeadWords[i], firstWord, StringComparison.Ordinal))
-                    return true;
-            }
+            if (TryRecognizeCommandFamily(firstWord, out _))
+                return true;
+
+            if (speech.Length > firstWord.Length && TryRecognizeCommandFamily(speech, out _))
+                return true;
 
             return false;
         }
