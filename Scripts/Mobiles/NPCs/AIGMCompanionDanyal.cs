@@ -185,6 +185,9 @@ namespace Server.Mobiles
                 return;
             }
 
+            if (TryHandleExplicitGroupTrackingCommand(e))
+                return;
+
             Mobile owner = GetOwner();
             bool trustedSpeaker = e.Mobile == owner || (!Controlled && e.Mobile.AccessLevel >= AccessLevel.GameMaster);
 
@@ -263,6 +266,37 @@ namespace Server.Mobiles
 
             if (!TryExecuteCompanionCommand(e.Mobile, decision, intent, shouldSpeak))
                 return;
+        }
+
+        private bool TryHandleExplicitGroupTrackingCommand(SpeechEventArgs e)
+        {
+            if (e == null || e.Handled || e.Mobile == null)
+                return false;
+
+            if (!AIGMCompanionTrackingService.IsExplicitGroupTrackingCommand(e.Speech))
+                return false;
+
+            Mobile owner = GetOwner();
+            if (owner != e.Mobile)
+                return false;
+
+            string speech = e.Speech ?? String.Empty;
+            string normalized = speech.Trim().ToLowerInvariant();
+            if (normalized == "all tracking status")
+            {
+                SayTo(e.Mobile, AIGMCompanionTrackingService.GetTrackingStatus(this, e.Mobile));
+                e.Handled = true;
+                return true;
+            }
+
+            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromSpeech(speech);
+            if (normalized.Contains("start tracking"))
+                SayTo(e.Mobile, AIGMCompanionTrackingService.StartTracking(this, e.Mobile, mode));
+            else
+                SayTo(e.Mobile, AIGMCompanionTrackingService.BuildTrackingSweepReport(this, e.Mobile, mode));
+
+            e.Handled = true;
+            return true;
         }
 
         private bool TryExecuteCompanionCommand(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool shouldSpeak)
@@ -399,6 +433,9 @@ namespace Server.Mobiles
                 case AIGMCompanionCapabilityKind.ShareAwarenessReadOnly:
                     text = AIGMCompanionReadOnlyAwareness.BuildShareAwarenessReport(this, speaker);
                     break;
+                case AIGMCompanionCapabilityKind.TrackReadOnly:
+                    text = BuildTrackReadOnlyReport(intent, speaker);
+                    break;
                 case AIGMCompanionCapabilityKind.ReportTrackingStatus:
                     text = AIGMCompanionReadOnlyAwareness.BuildTrackingStatusReport(this, speaker);
                     break;
@@ -432,6 +469,11 @@ namespace Server.Mobiles
             request.IsExplicitlyAddressed = intent != null && intent.ExplicitlyAddressed;
             request.DialogueMode = "owner_or_world_speech";
             return request;
+        }
+
+        private string BuildTrackReadOnlyReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            return AIGMCompanionReadOnlyAwareness.BuildTrackingDeferredReport(this, speaker);
         }
 
         private bool IsReadOnlyIntentKind(string intentKind)

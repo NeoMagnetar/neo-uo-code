@@ -16,6 +16,7 @@ namespace Server.Custom.AIGM
         public string LastKnownTargetDescription { get; set; }
         public string LastKnownDirectionText { get; set; }
         public string LastKnownDistanceText { get; set; }
+        public string LastKnownTileText { get; set; }
         public double SkillValue { get; set; }
         public string SkillTier { get; set; }
 
@@ -29,6 +30,7 @@ namespace Server.Custom.AIGM
             LastKnownTargetDescription = String.Empty;
             LastKnownDirectionText = String.Empty;
             LastKnownDistanceText = String.Empty;
+            LastKnownTileText = String.Empty;
             SkillTier = String.Empty;
         }
     }

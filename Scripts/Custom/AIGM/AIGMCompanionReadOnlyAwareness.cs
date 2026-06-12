@@ -93,6 +93,18 @@ namespace Server.Custom.AIGM
             return String.Format("{0} I can read nearby {1}, but the pursuit cycle is still gated.", readiness, categoryLabel);
         }
 
+        public static string BuildTrackingDeferredReport(BaseHire companion, Mobile speaker)
+        {
+            string companionId = GetCompanionId(companion);
+            if (String.Equals(companionId, "danyal", StringComparison.OrdinalIgnoreCase))
+                return AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion) + " I can help observe, but Dakeyras remains the sharper tracker.";
+
+            if (String.Equals(companionId, "dardalion", StringComparison.OrdinalIgnoreCase))
+                return AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion) + " I can hold watch, but Dakeyras is better suited to trail-reading.";
+
+            return AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion) + " Pursuit remains gated.";
+        }
+
         public static string BuildHealingStatusReport(BaseHire companion, Mobile speaker)
         {
             return AIGMCompanionSkillReadiness.BuildHealingReadiness(companion) + " Direct healing remains gated.";

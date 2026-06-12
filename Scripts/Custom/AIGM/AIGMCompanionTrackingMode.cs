@@ -8,6 +8,7 @@ namespace Server.Custom.AIGM
         Players,
         HumanNPCs,
         Threats,
-        General
+        General,
+        All
     }
 }
