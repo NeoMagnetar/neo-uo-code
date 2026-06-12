@@ -14,14 +14,15 @@ namespace Server.Custom.AIGM
             int nearbyFigures = scene != null && scene.NearbyMobiles != null ? scene.NearbyMobiles.Count : 0;
             int possibleThreats = CountPossibleThreats(companion, speaker, scene);
             string posture = possibleThreats > 0 ? "uncertain" : "clear";
+            string companionId = GetCompanionId(companion);
 
-            if (String.Equals(GetCompanionId(companion), "dakeyras", StringComparison.OrdinalIgnoreCase))
-                return String.Format("I scan the area. I see {0} nearby figures, {1} possible threats, and the path around us is {2}.", nearbyFigures, possibleThreats, posture);
+            if (String.Equals(companionId, "dakeyras", StringComparison.OrdinalIgnoreCase))
+                return String.Format("I scan the area. I see {0} nearby figures, {1} possible threats, and the path around us is {2}. {3} Pursuit remains gated.", nearbyFigures, possibleThreats, posture, AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion));
 
-            if (String.Equals(GetCompanionId(companion), "dardalion", StringComparison.OrdinalIgnoreCase))
-                return String.Format("I have the ground in sight. There are {0} nearby figures, {1} possible threats, and our immediate footing is {2}.", nearbyFigures, possibleThreats, posture);
+            if (String.Equals(companionId, "dardalion", StringComparison.OrdinalIgnoreCase))
+                return String.Format("I have the ground in sight. There are {0} nearby figures, {1} possible threats, and our immediate footing is {2}. {3}", nearbyFigures, possibleThreats, posture, TrimSentence(AIGMCompanionSkillReadiness.BuildCombatReadiness(companion)));
 
-            return String.Format("I look over the immediate area. I see {0} nearby figures, {1} possible threats, and nothing suggests a clear move yet.", nearbyFigures, possibleThreats);
+            return String.Format("I look over the immediate area. I see {0} nearby figures, {1} possible threats, and nothing suggests a clear move yet. {2}", nearbyFigures, possibleThreats, TrimSentence(AIGMCompanionSkillReadiness.BuildSupportReadiness(companion)));
         }
 
         public static string BuildThreatReport(BaseHire companion, Mobile speaker)
@@ -31,19 +32,20 @@ namespace Server.Custom.AIGM
 
             AIGMSceneContext scene = AIGMSceneScanner.Capture(companion, 8);
             int possibleThreats = CountPossibleThreats(companion, speaker, scene);
+            string companionId = GetCompanionId(companion);
 
             if (possibleThreats <= 0)
             {
-                if (String.Equals(GetCompanionId(companion), "dardalion", StringComparison.OrdinalIgnoreCase))
-                    return "I see no immediate threat pressing on us, though I remain watchful.";
+                if (String.Equals(companionId, "dardalion", StringComparison.OrdinalIgnoreCase))
+                    return String.Format("I see no immediate threat pressing on us, though I remain watchful. {0} Attack execution remains gated.", TrimSentence(AIGMCompanionSkillReadiness.BuildCombatReadiness(companion)));
 
-                return "I see no obvious threat at hand, though I am still watching the ground around us.";
+                return String.Format("I see no obvious threat at hand, though I am still watching the ground around us. {0}", TrimSentence(AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion)));
             }
 
-            if (String.Equals(GetCompanionId(companion), "dardalion", StringComparison.OrdinalIgnoreCase))
-                return String.Format("I count {0} possible threats in sight. I will hold watch, but that combat lane is still gated.", possibleThreats);
+            if (String.Equals(companionId, "dardalion", StringComparison.OrdinalIgnoreCase))
+                return String.Format("I count {0} possible threats in sight. {1} I will hold watch, but attack execution remains closed.", possibleThreats, TrimSentence(AIGMCompanionSkillReadiness.BuildCombatReadiness(companion)));
 
-            return String.Format("I can mark {0} possible threats in sight. I can report them, but pursuit remains gated.", possibleThreats);
+            return String.Format("I can mark {0} possible threats in sight. {1} I can report them, but pursuit remains gated.", possibleThreats, TrimSentence(AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion)));
         }
 
         public static string BuildShareAwarenessReport(BaseHire companion, Mobile speaker)
@@ -57,26 +59,58 @@ namespace Server.Custom.AIGM
             int figures = scene != null && scene.NearbyMobiles != null ? scene.NearbyMobiles.Count : 0;
             int threats = CountPossibleThreats(companion, speaker, scene);
             string danger = threats > 0 ? "danger is present" : "no immediate threat stands out";
+            string readiness = SelectPrimaryReadiness(companion);
 
-            return String.Format("My awareness is this: {0}, I count {1} nearby figures, {2}, and the action lanes beyond reporting remain gated.", ownerRange, figures, danger);
+            return String.Format("My awareness is this: {0}, I count {1} nearby figures, {2}, and {3}. The action lanes beyond reporting remain gated.", ownerRange, figures, danger, readiness);
         }
 
         public static string BuildTrackingStatusReport(BaseHire companion, Mobile speaker)
         {
             string companionId = GetCompanionId(companion);
             if (String.Equals(companionId, "dakeyras", StringComparison.OrdinalIgnoreCase))
-                return "I can read the signs and report what I notice, but the tracking cycle is still gated.";
+                return AIGMCompanionTrackingService.GetTrackingStatus(companion, speaker);
 
-            return "I can speak to signs and movement around us, but tracking execution is still gated.";
+            string readiness = AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion);
+            return readiness + " Tracking execution is still gated.";
         }
 
         public static string BuildTravelStatusReport(BaseHire companion, Mobile speaker)
         {
+            string readiness = AIGMCompanionSkillReadiness.BuildTravelReadiness(companion);
             string companionId = GetCompanionId(companion);
             if (String.Equals(companionId, "dakeyras", StringComparison.OrdinalIgnoreCase))
-                return "I can discuss the route, but no travel objective is active and travel execution is still gated.";
+                return readiness + " No travel objective is active, and travel execution remains gated.";
 
-            return "I can speak of the road ahead, but travel execution is still gated.";
+            return readiness + " Travel execution remains gated.";
+        }
+
+        public static string BuildTrackCategoryReport(BaseHire companion, Mobile speaker, string categoryLabel)
+        {
+            string readiness = AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion);
+            if (String.IsNullOrWhiteSpace(categoryLabel))
+                categoryLabel = "signs";
+
+            return String.Format("{0} I can read nearby {1}, but the pursuit cycle is still gated.", readiness, categoryLabel);
+        }
+
+        public static string BuildHealingStatusReport(BaseHire companion, Mobile speaker)
+        {
+            return AIGMCompanionSkillReadiness.BuildHealingReadiness(companion) + " Direct healing remains gated.";
+        }
+
+        public static string BuildSupportStatusReport(BaseHire companion, Mobile speaker)
+        {
+            return AIGMCompanionSkillReadiness.BuildSupportReadiness(companion) + " Support execution remains gated.";
+        }
+
+        public static string BuildCombatStatusReport(BaseHire companion, Mobile speaker)
+        {
+            return AIGMCompanionSkillReadiness.BuildCombatReadiness(companion) + " Attack execution remains gated.";
+        }
+
+        public static string BuildGuardStatusReport(BaseHire companion, Mobile speaker)
+        {
+            return AIGMCompanionSkillReadiness.BuildCombatReadiness(companion) + " I am ready to guard, but combat execution remains gated.";
         }
 
         private static int CountPossibleThreats(BaseHire companion, Mobile speaker, AIGMSceneContext scene)
@@ -126,6 +160,29 @@ namespace Server.Custom.AIGM
         {
             IAIGMCompanionActor actor = companion as IAIGMCompanionActor;
             return actor != null ? actor.CompanionId ?? String.Empty : String.Empty;
+        }
+
+        private static string SelectPrimaryReadiness(BaseHire companion)
+        {
+            string companionId = GetCompanionId(companion);
+            if (String.Equals(companionId, "dakeyras", StringComparison.OrdinalIgnoreCase))
+                return TrimSentence(AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion));
+            if (String.Equals(companionId, "danyal", StringComparison.OrdinalIgnoreCase))
+                return TrimSentence(AIGMCompanionSkillReadiness.BuildSupportReadiness(companion));
+            if (String.Equals(companionId, "dardalion", StringComparison.OrdinalIgnoreCase))
+                return TrimSentence(AIGMCompanionSkillReadiness.BuildCombatReadiness(companion));
+            return "my readiness remains measured";
+        }
+
+        private static string TrimSentence(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value))
+                return String.Empty;
+
+            string text = value.Trim();
+            while (text.EndsWith(".", StringComparison.Ordinal))
+                text = text.Substring(0, text.Length - 1).TrimEnd();
+            return text;
         }
 
         private static bool Matches(string left, string right)

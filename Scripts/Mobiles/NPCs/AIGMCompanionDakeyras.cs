@@ -400,6 +400,12 @@ namespace Server.Mobiles
                 case AIGMCompanionCapabilityKind.ShareAwarenessReadOnly:
                     text = AIGMCompanionReadOnlyAwareness.BuildShareAwarenessReport(this, speaker);
                     break;
+                case AIGMCompanionCapabilityKind.TrackReadOnly:
+                    text = BuildTrackReadOnlyReport(intent, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TrackingCycle:
+                    text = BuildTrackingCycleReport(intent, speaker);
+                    break;
                 case AIGMCompanionCapabilityKind.ReportTrackingStatus:
                     text = AIGMCompanionReadOnlyAwareness.BuildTrackingStatusReport(this, speaker);
                     break;
@@ -433,6 +439,22 @@ namespace Server.Mobiles
             request.IsExplicitlyAddressed = intent != null && intent.ExplicitlyAddressed;
             request.DialogueMode = "owner_or_world_speech";
             return request;
+        }
+
+        private string BuildTrackReadOnlyReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(intent != null ? intent.Kind : String.Empty);
+            return AIGMCompanionTrackingService.BuildTrackingSweepReport(this, speaker, mode);
+        }
+
+        private string BuildTrackingCycleReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            string kind = intent != null ? intent.Kind : String.Empty;
+            if (kind == AIGMCompanionIntentKind.StopTrackingCycle)
+                return AIGMCompanionTrackingService.StopTracking(this, speaker);
+
+            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(kind);
+            return AIGMCompanionTrackingService.StartTracking(this, speaker, mode);
         }
 
         private bool IsReadOnlyIntentKind(string intentKind)

@@ -30,11 +30,11 @@ namespace Server.Custom.AIGM
                     decision.Reason = "read_only_live";
                     break;
                 case AIGMCompanionCapabilityKind.TrackReadOnly:
-                    decision.Allowed = false;
-                    decision.Deferred = true;
+                case AIGMCompanionCapabilityKind.TrackingCycle:
+                    decision.Allowed = true;
+                    decision.Deferred = false;
                     decision.RequiresFutureExecutor = false;
-                    decision.Reason = "tracking_read_only_pending";
-                    decision.VisibleResponse = "I can speak to signs and sightings, but the deeper tracking lane is still gated.";
+                    decision.Reason = "tracking_read_only_live";
                     break;
                 case AIGMCompanionCapabilityKind.None:
                     decision.Allowed = false;
