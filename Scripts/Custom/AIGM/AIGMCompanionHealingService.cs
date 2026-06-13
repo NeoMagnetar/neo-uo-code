@@ -109,7 +109,8 @@ namespace Server.Custom.AIGM
                 return true;
             }
 
-            if (DateTime.UtcNow < healerActor(healer).NextSupportActionUtc)
+            IAIGMCompanionActor actor = healerActor(healer);
+            if (actor != null && DateTime.UtcNow < actor.NextSupportActionUtc)
             {
                 response = "I am already committed for the moment.";
                 return true;
@@ -150,7 +151,8 @@ namespace Server.Custom.AIGM
             }
 
             bandage.Consume();
-            healerActor(healer).NextSupportActionUtc = DateTime.UtcNow + BandageContext.GetDelay(healer, target);
+            if (actor != null)
+                actor.NextSupportActionUtc = DateTime.UtcNow + BandageContext.GetDelay(healer, target);
 
             if (healer == target)
                 response = healer.Name + " begins bandaging their own wounds.";
@@ -398,34 +400,38 @@ namespace Server.Custom.AIGM
                 return cmd;
             }
 
-            if (s.Contains("bandage "))
+            if (s.Contains("bandage"))
             {
                 cmd.IsHealingCommand = true;
                 cmd.Kind = HealingCommandKind.Bandage;
                 if (s.Contains("yourself") || s.Contains("self"))
                     cmd.TargetKind = HealingTargetKind.Self;
-                else if (s.Contains(" me"))
+                else if (s.Contains(" me") || EndsWithCommandWord(s, "bandage"))
                     cmd.TargetKind = HealingTargetKind.Owner;
                 else
                 {
                     cmd.TargetKind = HealingTargetKind.NamedCompanion;
                     cmd.TargetName = ExtractNamedTarget(rawSpeech, "bandage");
+                    if (String.IsNullOrWhiteSpace(cmd.TargetName))
+                        cmd.TargetKind = HealingTargetKind.Owner;
                 }
                 return cmd;
             }
 
-            if (s.Contains("heal "))
+            if (s.Contains("heal"))
             {
                 cmd.IsHealingCommand = true;
                 cmd.Kind = HealingCommandKind.Heal;
                 if (s.Contains("yourself") || s.Contains("self"))
                     cmd.TargetKind = HealingTargetKind.Self;
-                else if (s.Contains(" me"))
+                else if (s.Contains(" me") || EndsWithCommandWord(s, "heal"))
                     cmd.TargetKind = HealingTargetKind.Owner;
                 else
                 {
                     cmd.TargetKind = HealingTargetKind.NamedCompanion;
                     cmd.TargetName = ExtractNamedTarget(rawSpeech, "heal");
+                    if (String.IsNullOrWhiteSpace(cmd.TargetName))
+                        cmd.TargetKind = HealingTargetKind.Owner;
                 }
             }
 
@@ -446,15 +452,32 @@ namespace Server.Custom.AIGM
             if (String.IsNullOrWhiteSpace(rest))
                 return null;
 
-            string[] prefixes = { "dak ", "dakeyras ", "waylander ", "danyal ", "dardalion " };
+            string[] prefixes = { "dak ", "dakeyras ", "waylander ", "danyal ", "dardalion ", "all ", "companions " };
             string loweredRest = rest.ToLowerInvariant();
             for (int i = 0; i < prefixes.Length; i++)
             {
                 if (loweredRest.StartsWith(prefixes[i], StringComparison.Ordinal))
+                {
                     rest = rest.Substring(prefixes[i].Length).Trim();
+                    loweredRest = rest.ToLowerInvariant();
+                }
             }
 
+            if (String.Equals(loweredRest, "me", StringComparison.Ordinal)
+                || String.Equals(loweredRest, "yourself", StringComparison.Ordinal)
+                || String.Equals(loweredRest, "self", StringComparison.Ordinal))
+                return null;
+
             return rest;
+        }
+
+        private static bool EndsWithCommandWord(string speech, string word)
+        {
+            if (String.IsNullOrWhiteSpace(speech) || String.IsNullOrWhiteSpace(word))
+                return false;
+
+            return speech.Equals(word, StringComparison.Ordinal)
+                || speech.EndsWith(" " + word, StringComparison.Ordinal);
         }
     }
 }
