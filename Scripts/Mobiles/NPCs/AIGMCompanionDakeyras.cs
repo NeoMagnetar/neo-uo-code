@@ -308,6 +308,14 @@ namespace Server.Mobiles
             if (TryHandleReadOnlyCapability(speaker, decision, intent, shouldSpeak))
                 return true;
 
+            string healingResponse;
+            if (AIGMCompanionHealingService.TryHandleExplicitHealingCommand(this, speaker, decision != null ? decision.OriginalSpeech : null, out healingResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(healingResponse))
+                    SayTo(speaker, healingResponse);
+                return true;
+            }
+
             Mobile owner = GetOwner();
             if (owner == null)
             {

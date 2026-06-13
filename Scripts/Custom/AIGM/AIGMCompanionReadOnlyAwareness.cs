@@ -105,14 +105,14 @@ namespace Server.Custom.AIGM
             return AIGMCompanionSkillReadiness.BuildTrackingReadiness(companion) + " Pursuit remains gated.";
         }
 
-        public static string BuildHealingStatusReport(BaseHire companion, Mobile speaker)
-        {
-            return AIGMCompanionSkillReadiness.BuildHealingReadiness(companion) + " Direct healing remains gated.";
-        }
-
         public static string BuildSupportStatusReport(BaseHire companion, Mobile speaker)
         {
-            return AIGMCompanionSkillReadiness.BuildSupportReadiness(companion) + " Support execution remains gated.";
+            return AIGMCompanionHealingService.BuildSupportStatus(companion);
+        }
+
+        public static string BuildHealingStatusReport(BaseHire companion, Mobile speaker)
+        {
+            return AIGMCompanionHealingService.BuildHealingStatus(companion);
         }
 
         public static string BuildCombatStatusReport(BaseHire companion, Mobile speaker)

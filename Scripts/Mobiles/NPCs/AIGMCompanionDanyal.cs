@@ -307,6 +307,14 @@ namespace Server.Mobiles
             if (TryHandleReadOnlyCapability(speaker, decision, intent, shouldSpeak))
                 return true;
 
+            string healingResponse;
+            if (AIGMCompanionHealingService.TryHandleExplicitHealingCommand(this, speaker, decision != null ? decision.OriginalSpeech : null, out healingResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(healingResponse))
+                    SayTo(speaker, healingResponse);
+                return true;
+            }
+
             Mobile owner = GetOwner();
             if (owner == null)
             {
@@ -485,6 +493,8 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.ShareAwareness:
                 case AIGMCompanionIntentKind.ReportTrackingStatus:
                 case AIGMCompanionIntentKind.ReportTravelStatus:
+                case "healing_status":
+                case "support_status":
                     return true;
                 default:
                     return false;
