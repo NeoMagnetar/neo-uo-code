@@ -37,6 +37,9 @@ namespace Server.Custom.AIGM
         public const string StartTrackingCycle = "start_tracking_cycle";
         public const string StopTrackingCycle = "stop_tracking_cycle";
         public const string ReportTrackingStatus = "report_tracking_status";
+        public const string StartMonsterHunt = "start_monster_hunt";
+        public const string StopMonsterHunt = "stop_monster_hunt";
+        public const string ReportMonsterHuntStatus = "report_monster_hunt_status";
     }
 
     public sealed class AIGMCompanionIntent

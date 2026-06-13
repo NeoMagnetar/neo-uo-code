@@ -156,6 +156,28 @@ namespace Server.Custom.AIGM
                 return true;
             }
 
+            string monsterHuntCommand = CanonicalizeMonsterHuntCommand(speech);
+            if (monsterHuntCommand == "start_monster_hunt")
+            {
+                Make(AIGMCompanionIntentKind.StartMonsterHunt, rawSpeech, out intent);
+                intent.ExplicitlyAddressed = explicitlyAddressed;
+                return true;
+            }
+
+            if (monsterHuntCommand == "stop_monster_hunt")
+            {
+                Make(AIGMCompanionIntentKind.StopMonsterHunt, rawSpeech, out intent);
+                intent.ExplicitlyAddressed = explicitlyAddressed;
+                return true;
+            }
+
+            if (monsterHuntCommand == "report_monster_hunt_status")
+            {
+                Make(AIGMCompanionIntentKind.ReportMonsterHuntStatus, rawSpeech, out intent);
+                intent.ExplicitlyAddressed = explicitlyAddressed;
+                return true;
+            }
+
             string trackingCommand = CanonicalizeTrackingCommand(speech);
             if (trackingCommand == "start_tracking_cycle")
             {
@@ -571,11 +593,35 @@ namespace Server.Custom.AIGM
             speech = ReplaceWholeSpeech(speech, "stop travel please", "stop travel");
             speech = ReplaceWholeSpeech(speech, "travel status please", "travel status");
             speech = ReplaceWholeSpeech(speech, "go to britain moongate", "go to britain");
+            speech = ReplaceWholeSpeech(speech, "hunt monsters please", "hunt monsters");
+            speech = ReplaceWholeSpeech(speech, "attack monsters please", "attack monsters");
+            speech = ReplaceWholeSpeech(speech, "clear monsters please", "clear monsters");
+            speech = ReplaceWholeSpeech(speech, "start hunting please", "start hunting");
+            speech = ReplaceWholeSpeech(speech, "stop hunting please", "stop hunting");
+            speech = ReplaceWholeSpeech(speech, "monster status please", "monster status");
 
             while (speech.Contains("  "))
                 speech = speech.Replace("  ", " ");
 
             return speech.Trim();
+        }
+
+        private static string CanonicalizeMonsterHuntCommand(string speech)
+        {
+            if (String.IsNullOrWhiteSpace(speech))
+                return null;
+
+            string normalized = speech.Trim();
+            if (normalized.Equals("hunt monsters") || normalized.Equals("attack monsters") || normalized.Equals("clear monsters") || normalized.Equals("start hunting") || normalized.Equals("start monster tracking") || normalized.Equals("track monsters") || normalized.Equals("start tracking monsters"))
+                return "start_monster_hunt";
+
+            if (normalized.Equals("stop hunting") || normalized.Equals("stop tracking") || normalized.Equals("stop tracking monsters") || normalized.Equals("stop monster tracking"))
+                return "stop_monster_hunt";
+
+            if (normalized.Equals("monster status") || normalized.Equals("hunt status") || normalized.Equals("hunting status"))
+                return "report_monster_hunt_status";
+
+            return null;
         }
 
         private static string CanonicalizeTrackingCommand(string speech)

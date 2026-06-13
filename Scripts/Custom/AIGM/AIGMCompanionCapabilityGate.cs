@@ -36,6 +36,14 @@ namespace Server.Custom.AIGM
                     decision.RequiresFutureExecutor = false;
                     decision.Reason = "tracking_read_only_live";
                     break;
+                case AIGMCompanionCapabilityKind.MonsterHunt:
+                case AIGMCompanionCapabilityKind.MonsterHuntStop:
+                case AIGMCompanionCapabilityKind.MonsterHuntStatus:
+                    decision.Allowed = true;
+                    decision.Deferred = false;
+                    decision.RequiresFutureExecutor = false;
+                    decision.Reason = "phase58a_monster_hunt_live";
+                    break;
                 case AIGMCompanionCapabilityKind.None:
                     decision.Allowed = false;
                     decision.Deferred = false;

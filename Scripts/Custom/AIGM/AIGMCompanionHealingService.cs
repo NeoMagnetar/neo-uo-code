@@ -82,6 +82,11 @@ namespace Server.Custom.AIGM
             return TryBeginBandage(actingHealer, target, out response);
         }
 
+        public static bool TryBeginSelfBandage(BaseHire healer, out string response)
+        {
+            return TryBeginBandage(healer, healer, out response);
+        }
+
         private static bool TryBeginBandage(BaseHire healer, Mobile target, out string response)
         {
             response = null;

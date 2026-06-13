@@ -433,6 +433,15 @@ namespace Server.Mobiles
             string text = null;
             switch (gateDecision.Capability)
             {
+                case AIGMCompanionCapabilityKind.MonsterHunt:
+                    text = AIGMCompanionExecutionSpine.StartMonsterHunt(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.MonsterHuntStop:
+                    text = AIGMCompanionExecutionSpine.StopMonsterHunt(this, "stop_command");
+                    break;
+                case AIGMCompanionCapabilityKind.MonsterHuntStatus:
+                    text = AIGMCompanionExecutionSpine.GetStatus(this);
+                    break;
                 case AIGMCompanionCapabilityKind.ScanReadOnly:
                     text = AIGMCompanionReadOnlyAwareness.BuildScanAreaReport(this, speaker);
                     break;
@@ -475,7 +484,7 @@ namespace Server.Mobiles
             request.Speaker = speaker;
             request.RawSpeech = decision != null ? decision.OriginalSpeech : String.Empty;
             request.IntentKind = intent != null ? intent.Kind : String.Empty;
-            request.Capability = decision != null ? decision.Capability : AIGMCompanionCapabilityKind.None;
+            request.Capability = ResolveCapability(decision, intent);
             request.TargetText = intent != null ? intent.DestinationName : String.Empty;
             request.DestinationText = intent != null ? intent.DestinationName : String.Empty;
             request.IsExplicitlyAddressed = intent != null && intent.ExplicitlyAddressed;
@@ -497,6 +506,22 @@ namespace Server.Mobiles
 
             AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(kind);
             return AIGMCompanionTrackingService.StartTracking(this, speaker, mode);
+        }
+
+        private AIGMCompanionCapabilityKind ResolveCapability(AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent)
+        {
+            string kind = intent != null ? intent.Kind : String.Empty;
+            switch (kind)
+            {
+                case AIGMCompanionIntentKind.StartMonsterHunt:
+                    return AIGMCompanionCapabilityKind.MonsterHunt;
+                case AIGMCompanionIntentKind.StopMonsterHunt:
+                    return AIGMCompanionCapabilityKind.MonsterHuntStop;
+                case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
+                    return AIGMCompanionCapabilityKind.MonsterHuntStatus;
+                default:
+                    return decision != null ? decision.Capability : AIGMCompanionCapabilityKind.None;
+            }
         }
 
         private bool IsReadOnlyIntentKind(string intentKind)
