@@ -1,116 +1,103 @@
 # Phase58A Monster Hunt Runtime Proof
 
-- BaselineCommit: dac4deeb3
+- BaselineCommit: 144928dfb
 - Branch: neo/phase56t-clean-speech-recovery
-- ProofPass: PHASE58A PASS 01R — Runtime Proof
+- ProofPass: PHASE58A PASS 01R-B3 — Controlled Nearby-Monster Proof
 - GeneratedUtc: 2026-06-12 21:29:00Z
-- UpdatedUtc: 2026-06-12 22:04:55Z
+- UpdatedUtc: 2026-06-12 22:23:30Z
+
+## baseline
+- Baseline commit for this B3 pass: `144928dfb`
+- Baseline message: `fix: make Phase58A monster hunt scenario deterministic`
 
 ## preflight
-- git status: unrelated untracked artifacts present only; no new Phase58A code changes introduced during initial runtime pass before blocker-fix work
-- git rev-parse HEAD at runtime-pass start: `dac4deeb32b18a0de68d68e81d6df84ce73f4a16`
-- release build confirmation before runtime work: `dotnet build .\ServUO.sln -c Release` succeeded
-- narrow runtime-fix applied afterward to `Scripts/Commands/AIGMScenarioCommand.cs`
-- post-fix clean stop/build/start cycle succeeded with build output showing `0 warnings` and `0 errors`
-
-## server start result
-- Result: success
-- Initial observed PID during runtime pass: `2152`
-- Post-fix shard restart performed successfully during blocker-fix iteration
-
-## command registration result
-- Source inspection confirms:
-  - `AIGMScenario` registered at `AccessLevel.GameMaster`
-  - `AIGMDump` registered at `AccessLevel.GameMaster`
-- Runtime confirmation: direct live-client execution reached the scenario command handler after the blocker fix
-
-## exact commands run in live client during direct proof
-1. `[AIGMScenario MonsterHunt`
-2. attempted `[AIGMDump CompanionState`
-
-## available runtime/account context
-- Saved account located at `Saves/Accounts/accounts.xml`
-- Observed account:
-  - Username: `NeoMagnetarDev3`
-  - AccessLevel: `Owner`
+- deterministic scenario-command fix already committed before this pass
+- server restarted cleanly before controlled nearby-monster proof attempt
+- live client used: `NeoMagnetar - ClassicUO [dev] - 1.1.0.301`
 
 ## scenario setup result
-- Result: **live runtime success for deterministic scenario invocation**
-- Direct visible client output after blocker fix:
-  - `AIGMScenario key: monsterhunt`
-  - `AIGMScenario result: Danyal: no valid monsters remain nearby.`
-  - `Scenario proof written: ...PHASE58A_MONSTERHUNT_RUNTIME_PROOF_20260613_160413.md`
+- A nearby valid monster was present in the live scene.
+- Visible target in screenshots: `a black bear`
+- Nearby companion party visible in scene; runtime result specifically names `Dakeyras` as the acting companion.
 
-## actor companion used
-- Confirmed from direct runtime output:
-  - `Danyal`
+## direct scenario output
+Visible client/system output confirms:
+- `AIGMScenario key: monsterhunt`
+- `AIGMScenario result: Dakeyras: I move toward a black bear.`
+- `Scenario proof written: C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg\docs\runtime\PHASE58A_MONSTERHUNT_RUNTIME_PROOF_20260613_162201.md`
 
-## spawned/found monster
-- Result: none found in nearby runtime context
-- Direct scenario output indicates:
-  - `no valid monsters remain nearby`
+## companion state / dump evidence
+Visible dump output confirms:
+- `Companion=Dakeyras`
+- `HuntActive=True`
+- `Phase=PursuingMonster`
+- `Reason=pursuing_target`
+- `Target=a black bear`
+- `Trace=step_toward_target`
+- `LastMove=step_toward_target`
+- `LastCombat=none`
+- `LastReject=companion_target`
 
-## target validator decision
-- Indirectly confirmed through runtime outcome
-- The scenario path invoked the monster-hunt scaffold and exited through the no-valid-monsters branch rather than unknown command/modal behavior
+This state packet appeared repeatedly in the screenshots and is sufficient to prove the execution spine left idle and entered live pursuit state.
 
-## rejected unsafe target categories if tested
-- Not directly evidenced in client output
+## validator / target evidence
+- A valid nearby monster target was found and accepted for the active pursuit path.
+- Target accepted in runtime state:
+  - `Target=a black bear`
+- Additional `LastReject=companion_target` also appeared in the dump output.
+- Most conservative reading: while scanning candidate mobiles, at least one companion candidate was rejected by the validator, while the black bear was accepted as the active monster target.
 
-## movement attempt result
-- Not evidenced
-- Scenario appears to have terminated before movement due to no valid nearby monsters
+## movement evidence
+Movement evidence is directly present:
+- Scenario result text: `Dakeyras: I move toward a black bear.`
+- Dump fields:
+  - `Phase=PursuingMonster`
+  - `Trace=step_toward_target`
+  - `LastMove=step_toward_target`
 
-## door-open attempt result
-- Not evidenced
+This is sufficient to confirm bounded movement execution entered the live pursuit lane.
 
-## combat engagement result
-- Not evidenced
+## combat evidence
+- `LastCombat=none`
+- No screenshot in this packet proves combat engagement yet.
+- Therefore this B3 pass confirms movement/pursuit trace, but not attack/contact/combat resolution.
 
-## self-bandage check result
-- Not evidenced
+## door-open evidence
+- Not evidenced in this packet.
 
-## cure-potion check result
-- Not evidenced
+## self-sustain evidence
+- Not evidenced in this packet.
 
-## dump command result
-- Direct desktop automation was still unreliable for the subsequent dump capture because client focus/input handling drifted after command injection.
-- A clean visible companion-state packet was not captured by the agent in this final direct pass.
-- Earlier user-provided screenshots had already shown `AIGMDump` working in-client, but the agent-driven dump follow-up remained inconclusive.
+## capability/action trace evidence
+- `Trace=step_toward_target` is non-none and directly visible.
+- This satisfies the minimum action-trace requirement for B3.
 
-## final companion state
-- Not directly dumped in the final direct pass
-- Scenario result strongly implies the hunt lane started and then terminated through the `no_valid_monsters` path
-
-## final capability state
-- Not directly dumped
-
-## action trace output
-- Not directly dumped
-
-## errors/blockers
-1. The original scenario-command blocker (`Choose your destination` modal behavior / non-deterministic outcome) was fixed.
-2. The final direct runtime result now shows the correct normalized scenario key and a real monster-hunt execution result.
-3. Remaining blocker is not the scenario command itself; remaining blocker is reliable desktop automation/focus for subsequent dump capture from this environment.
-4. The live runtime context used for proof did not contain a nearby valid monster target, so the scenario terminated in the `no valid monsters remain nearby` branch.
+## proof artifact path
+Visible runtime proof path from the live client:
+- `C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg\docs\runtime\PHASE58A_MONSTERHUNT_RUNTIME_PROOF_20260613_162201.md`
 
 ## honest final status label
-**B2 — Runtime proof generated; validator/no-target path confirmed.**
+**B3 — Runtime proof generated; movement/combat trace partially confirmed.**
 
 ## conclusion
-This pass successfully cleared the scenario-command blocker.
+This pass successfully advances beyond the B2 no-target branch.
 
-What is now verified directly in live runtime:
-- scenario command executes deterministically
-- scenario argument normalization works (`monsterhunt`)
-- scenario proof file is written
-- the monster-hunt scaffold actually runs and can terminate through a meaningful bounded outcome
-- companion actor identified in runtime output: `Danyal`
-- current local proof context had no valid nearby monsters, producing the expected bounded result: `no valid monsters remain nearby`
+What is now directly verified in live runtime:
+- scenario key recognized as `monsterhunt`
+- nearby valid monster present: `a black bear`
+- active companion selected: `Dakeyras`
+- hunt left idle state
+- `HuntActive=True`
+- phase entered live pursuit: `PursuingMonster`
+- target field is non-none
+- action trace is non-none
+- movement trace is non-none (`step_toward_target`)
+- validator also rejected at least one companion candidate while scanning (`LastReject=companion_target`), which is consistent with safety filtering still functioning
 
-What is not yet verified in this packet:
-- movement step
+What remains unproven in this packet:
+- actual combat engagement/contact (`LastCombat` still `none`)
 - door handling
-- combat engagement
-- self-sustain
-- post-scenario dump/action-trace capture under reliable client automation
+- self-bandage/cure behavior
+- full hunt loop / reacquire / stop completion
+
+This is enough to close the B3 target honestly: the Phase58A harness now proves real movement-pursuit execution against a valid nearby monster under current safety boundaries.
