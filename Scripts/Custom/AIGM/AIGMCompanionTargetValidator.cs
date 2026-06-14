@@ -17,6 +17,124 @@ namespace Server.Custom.AIGM
 
     public static class AIGMCompanionTargetValidator
     {
+        public static bool IsHostileMonsterCandidate(BaseHire companion, Mobile target, out string reason)
+        {
+            reason = String.Empty;
+
+            if (companion == null || companion.Deleted || !companion.Alive || companion.Map == null)
+            {
+                reason = "invalid_companion";
+                return false;
+            }
+
+            if (target == null)
+            {
+                reason = "null_target";
+                return false;
+            }
+
+            if (target.Deleted)
+            {
+                reason = "deleted_target";
+                return false;
+            }
+
+            if (!target.Alive)
+            {
+                reason = "dead_target";
+                return false;
+            }
+
+            if (target.Map == null || target.Map != companion.Map)
+            {
+                reason = "different_map";
+                return false;
+            }
+
+            if (target == companion)
+            {
+                reason = "self_target";
+                return false;
+            }
+
+            Mobile owner = companion.GetOwner();
+            if (owner != null && target == owner)
+            {
+                reason = "owner_target";
+                return false;
+            }
+
+            if (target is IAIGMCompanionActor)
+            {
+                reason = "companion_target";
+                return false;
+            }
+
+            if (target.Player)
+            {
+                reason = "player_target";
+                return false;
+            }
+
+            BaseCreature creature = target as BaseCreature;
+            if (creature == null)
+            {
+                reason = "not_creature";
+                return false;
+            }
+
+            if (creature.Blessed || creature.IsInvulnerable)
+            {
+                reason = "invulnerable_target";
+                return false;
+            }
+
+            if (creature.Controlled || creature.Summoned)
+            {
+                reason = "controlled_or_summoned_target";
+                return false;
+            }
+
+            if (owner != null && creature.ControlMaster == owner)
+            {
+                reason = "owner_controlled_ally";
+                return false;
+            }
+
+            if (creature is BaseVendor || creature is BaseEscortable)
+            {
+                reason = "civilian_or_vendor_target";
+                return false;
+            }
+
+            if (creature.Body != null && creature.Body.IsHuman)
+            {
+                reason = "human_target";
+                return false;
+            }
+
+            if (creature.Body != null && creature.Body.IsAnimal)
+            {
+                reason = "animal_target";
+                return false;
+            }
+
+            if (creature.Body == null || !creature.Body.IsMonster)
+            {
+                reason = "not_monster_body";
+                return false;
+            }
+
+            if (creature.Team == companion.Team && creature.Team != 0)
+            {
+                reason = "same_team";
+                return false;
+            }
+
+            reason = "hostile_monster_candidate";
+            return true;
+        }
+
         public static AIGMCompanionTargetValidationResult ValidateMonsterTarget(BaseHire companion, Mobile target, int scanRange)
         {
             if (companion == null || companion.Deleted || !companion.Alive || companion.Map == null)
@@ -34,44 +152,12 @@ namespace Server.Custom.AIGM
             if (target.Map == null || target.Map != companion.Map)
                 return new AIGMCompanionTargetValidationResult(false, "different_map");
 
-            if (target == companion)
-                return new AIGMCompanionTargetValidationResult(false, "self_target");
-
-            Mobile owner = companion.GetOwner();
-            if (owner != null && target == owner)
-                return new AIGMCompanionTargetValidationResult(false, "owner_target");
-
-            IAIGMCompanionActor companionActor = target as IAIGMCompanionActor;
-            if (companionActor != null)
-                return new AIGMCompanionTargetValidationResult(false, "companion_target");
-
-            if (target.Player)
-                return new AIGMCompanionTargetValidationResult(false, "player_target");
-
-            BaseCreature creature = target as BaseCreature;
-            if (creature == null)
-                return new AIGMCompanionTargetValidationResult(false, "not_creature");
-
-            if (creature.Blessed || creature.IsInvulnerable)
-                return new AIGMCompanionTargetValidationResult(false, "invulnerable_target");
-
-            if (creature.Controlled || creature.Summoned)
-                return new AIGMCompanionTargetValidationResult(false, "controlled_or_summoned_target");
-
-            if (owner != null && creature.ControlMaster == owner)
-                return new AIGMCompanionTargetValidationResult(false, "owner_controlled_ally");
-
-            if (creature is BaseVendor || creature is BaseEscortable)
-                return new AIGMCompanionTargetValidationResult(false, "civilian_or_vendor_target");
-
-            if (creature.Body != null && creature.Body.IsHuman)
-                return new AIGMCompanionTargetValidationResult(false, "human_target");
+            string hostileReason;
+            if (!IsHostileMonsterCandidate(companion, target, out hostileReason))
+                return new AIGMCompanionTargetValidationResult(false, hostileReason);
 
             if (scanRange > 0 && !companion.InRange(target, scanRange))
                 return new AIGMCompanionTargetValidationResult(false, "out_of_range");
-
-            if (creature.Team == companion.Team && creature.Team != 0)
-                return new AIGMCompanionTargetValidationResult(false, "same_team");
 
             return new AIGMCompanionTargetValidationResult(true, "monster_target_valid");
         }

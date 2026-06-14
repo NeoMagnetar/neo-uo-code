@@ -135,18 +135,57 @@ namespace Server.Custom.AIGM
                 }
 
                 SetPhase(state, AIGMCompanionExecutionPhase.PursuingMonster, "pursuing_target");
+                Point3D before = companion.Location;
+                int distanceBefore = (int)companion.GetDistanceToSqrt(target);
                 Direction direction = companion.GetDirectionTo(target);
-                companion.Direction = direction;
-                bool moved = companion.Move(direction);
-                state.LastMovementResult = moved ? "step_toward_target" : "step_blocked";
-                Trace(state, state.LastMovementResult);
-                if (!moved)
+                state.LastMoveFrom = before;
+                state.LastMoveDirection = (direction & Direction.Mask).ToString();
+                state.LastMoveDistanceBefore = distanceBefore;
+
+                bool moved = false;
+                bool turnedFirst = false;
+                if ((companion.Direction & Direction.Mask) != (direction & Direction.Mask))
                 {
-                    SetPhase(state, AIGMCompanionExecutionPhase.Blocked, state.LastMovementResult);
-                    return companion.Name + ": I am blocked from reaching " + state.CurrentTargetName + ".";
+                    companion.Direction = direction;
+                    turnedFirst = true;
                 }
 
-                return companion.Name + ": I move toward " + state.CurrentTargetName + ".";
+                moved = companion.Move(direction);
+                Point3D after = companion.Location;
+                int distanceAfter = (int)companion.GetDistanceToSqrt(target);
+                state.LastMoveTo = after;
+                state.LastMoveDistanceAfter = distanceAfter;
+
+                if (after != before)
+                {
+                    state.LastMovementResult = "moved_one_step from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter + (turnedFirst ? " turnedFirst=true" : String.Empty);
+                    Trace(state, "step_toward_target_moved");
+
+                    if (companion.InRange(target, 1))
+                    {
+                        string postMoveCombatResult;
+                        if (AIGMCompanionCombatController.TryEngageMonster(companion, target, out postMoveCombatResult))
+                        {
+                            state.LastCombatResult = postMoveCombatResult;
+                            SetPhase(state, AIGMCompanionExecutionPhase.EngagingMonster, postMoveCombatResult);
+                            Trace(state, "post_move_combat_engaged");
+                            return companion.Name + ": I move into range and engage " + state.CurrentTargetName + ".";
+                        }
+
+                        state.LastCombatResult = postMoveCombatResult;
+                    }
+
+                    return companion.Name + ": I move toward " + state.CurrentTargetName + ".";
+                }
+
+                state.LastMovementResult = moved
+                    ? "step_toward_target_no_location_change from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter + (turnedFirst ? " turnedFirst=true" : String.Empty)
+                    : (turnedFirst
+                        ? "turned_toward_target_only from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter
+                        : "movement_blocked from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter);
+                Trace(state, moved ? "step_toward_target_no_location_change" : (turnedFirst ? "turned_toward_target_only" : "movement_blocked"));
+                SetPhase(state, AIGMCompanionExecutionPhase.Blocked, moved ? "no_location_change" : (turnedFirst ? "turned_only" : "movement_blocked"));
+                return companion.Name + ": I could not close the distance to " + state.CurrentTargetName + ".";
             }
 
             string combatResult;
@@ -191,12 +230,24 @@ namespace Server.Custom.AIGM
         {
             Mobile best = null;
             int bestDistance = Int32.MaxValue;
+            List<string> notes = new List<string>();
 
             foreach (Mobile mobile in World.Mobiles.Values)
             {
+                string categoryReason;
+                if (!AIGMCompanionTargetValidator.IsHostileMonsterCandidate(companion, mobile, out categoryReason))
+                {
+                    if (notes.Count < 8)
+                        notes.Add(DescribeCandidate(mobile) + "=" + categoryReason);
+                    state.LastTargetRejectionReason = categoryReason;
+                    continue;
+                }
+
                 AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, mobile, state.ScanRange);
                 if (!validation.Allowed)
                 {
+                    if (notes.Count < 8)
+                        notes.Add(DescribeCandidate(mobile) + "=" + validation.Reason);
                     state.LastTargetRejectionReason = validation.Reason;
                     continue;
                 }
@@ -208,6 +259,10 @@ namespace Server.Custom.AIGM
                     bestDistance = distance;
                 }
             }
+
+            state.LastCandidateSummary = best != null
+                ? "accepted=" + DescribeCandidate(best) + " dist=" + bestDistance + (notes.Count > 0 ? " rejected=" + String.Join(",", notes.ToArray()) : String.Empty)
+                : (notes.Count > 0 ? "accepted=none rejected=" + String.Join(",", notes.ToArray()) : "accepted=none rejected=none");
 
             return best;
         }
@@ -246,6 +301,20 @@ namespace Server.Custom.AIGM
                 return;
 
             state.LastTrace = trace ?? String.Empty;
+        }
+
+        private static string FormatPoint(Point3D point)
+        {
+            return String.Format("({0},{1},{2})", point.X, point.Y, point.Z);
+        }
+
+        private static string DescribeCandidate(Mobile mobile)
+        {
+            if (mobile == null)
+                return "null";
+
+            string name = String.IsNullOrWhiteSpace(mobile.Name) ? mobile.GetType().Name : mobile.Name;
+            return name.Replace(",", String.Empty);
         }
     }
 }

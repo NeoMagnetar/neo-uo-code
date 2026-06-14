@@ -43,6 +43,12 @@ namespace Server.Custom.AIGM
         public string LastMovementResult { get; set; }
         public string LastCombatResult { get; set; }
         public string LastTargetRejectionReason { get; set; }
+        public string LastCandidateSummary { get; set; }
+        public Point3D LastMoveFrom { get; set; }
+        public Point3D LastMoveTo { get; set; }
+        public string LastMoveDirection { get; set; }
+        public int LastMoveDistanceBefore { get; set; }
+        public int LastMoveDistanceAfter { get; set; }
         public int ScanRange { get; set; }
         public int ReacquireCount { get; set; }
 
@@ -60,6 +66,12 @@ namespace Server.Custom.AIGM
             LastMovementResult = String.Empty;
             LastCombatResult = String.Empty;
             LastTargetRejectionReason = String.Empty;
+            LastCandidateSummary = String.Empty;
+            LastMoveFrom = Point3D.Zero;
+            LastMoveTo = Point3D.Zero;
+            LastMoveDirection = String.Empty;
+            LastMoveDistanceBefore = -1;
+            LastMoveDistanceAfter = -1;
             ScanRange = 12;
         }
     }
