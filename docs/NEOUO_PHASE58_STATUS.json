@@ -1,7 +1,7 @@
 {
   "project": "NeoUO AIGM UMG Companion Recovery",
   "branch": "neo/phase56t-clean-speech-recovery",
-  "head": "e32bc99a3c99a39e9d617dfca15777f3e2191f24",
+  "head": "5266f370f0d0fedf9b019812e675040d57954fc8",
   "repoStatus": "dirty_intentionally_untracked_only",
   "phase": "Phase58B",
   "lastStableCommit": "0ea1f9c5c",
@@ -19,7 +19,8 @@
     "Phase58A build passed",
     "Phase58A committed as 0ea1f9c5c",
     "Precleanup report clutter archived under archive/reports/2026-06-14-phase58a-precleanup/",
-    "Phase58B tracking category command surfaces are present in-tree"
+    "Phase58B tracking category command surfaces are present in-tree",
+    "Phase58B blocked proof artifact recorded as docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_20260614_142316.md"
   ],
   "verifiedRuntime": [
     "Phase58A monster hunt scenario key recognized",
@@ -27,7 +28,8 @@
     "Phase58A pursuit phase entry documented",
     "Phase58A movement trace documented",
     "Phase58A hostile-target validator behavior documented",
-    "Closest hostile monster proof artifacts exist under docs/runtime"
+    "Closest hostile monster proof artifacts exist under docs/runtime",
+    "Existing hostile-monster proof artifacts include LastReject: animal_target"
   ],
   "pendingRuntimeProof": [
     "Full long-running Phase58A autonomy loop under broader live conditions",
@@ -44,9 +46,10 @@
   ],
   "blocked": [
     "Runtime proof breadth remains incomplete",
-    "Phase58B canonical runtime completion state is not yet consolidated into a final proof pass"
+    "Phase58B canonical runtime completion state is not yet consolidated into a final proof pass",
+    "Latest direct Phase58B desktop proof attempt could not reliably capture the in-game command/journal surface"
   ],
-  "nextAction": "Freeze gameplay work until this ledger is committed, then run a deliberate Phase58B runtime proof sweep and consolidate one canonical Phase58B completion report.",
+  "nextAction": "Restore a deterministic visible dev-client proof surface, then rerun the Phase58B category command matrix and consolidate one canonical direct runtime proof packet.",
   "safetyBoundaries": [
     "Monster-only attack lane",
     "No player pursuit or attack",
