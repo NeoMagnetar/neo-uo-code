@@ -1,0 +1,67 @@
+{
+  "project": "NeoUO AIGM UMG Companion Recovery",
+  "branch": "neo/phase56t-clean-speech-recovery",
+  "head": "e32bc99a3c99a39e9d617dfca15777f3e2191f24",
+  "repoStatus": "dirty_intentionally_untracked_only",
+  "phase": "Phase58B",
+  "lastStableCommit": "0ea1f9c5c",
+  "completed": [
+    "Phase56/57 speech lane restoration baseline is present",
+    "Read-only tracking and awareness baseline is present",
+    "Bandage-based healing routing baseline is present",
+    "Phase58A bounded monster autonomy is implemented in-tree",
+    "Phase58A execution spine exists",
+    "Phase58A target validator exists",
+    "Phase58A combat controller exists",
+    "Phase58A door service exists",
+    "Phase58A self-sustain service exists",
+    "Phase58A cure potion path was verified against native BaseCurePotion.Drink",
+    "Phase58A build passed",
+    "Phase58A committed as 0ea1f9c5c",
+    "Precleanup report clutter archived under archive/reports/2026-06-14-phase58a-precleanup/",
+    "Phase58B tracking category command surfaces are present in-tree"
+  ],
+  "verifiedRuntime": [
+    "Phase58A monster hunt scenario key recognized",
+    "Phase58A valid nearby hostile monster selection documented",
+    "Phase58A pursuit phase entry documented",
+    "Phase58A movement trace documented",
+    "Phase58A hostile-target validator behavior documented",
+    "Closest hostile monster proof artifacts exist under docs/runtime"
+  ],
+  "pendingRuntimeProof": [
+    "Full long-running Phase58A autonomy loop under broader live conditions",
+    "Phase58A repeated reacquire/clear completion proof",
+    "Phase58A broader door-assist live proof",
+    "Phase58A sustained self-bandage live proof",
+    "Phase58A sustained self-cure live proof",
+    "Phase58B category proof for [ta] + [td]",
+    "Phase58B category proof for [tm] + [td]",
+    "Phase58B category proof for [tp] + [td]",
+    "Phase58B category proof for [tall] + [td]",
+    "Phase58B hunt proof for [hm] with dump/state confirmation",
+    "Phase58B denied-lane proof for [ha]"
+  ],
+  "blocked": [
+    "Runtime proof breadth remains incomplete",
+    "Phase58B canonical runtime completion state is not yet consolidated into a final proof pass"
+  ],
+  "nextAction": "Freeze gameplay work until this ledger is committed, then run a deliberate Phase58B runtime proof sweep and consolidate one canonical Phase58B completion report.",
+  "safetyBoundaries": [
+    "Monster-only attack lane",
+    "No player pursuit or attack",
+    "No owner or companion targeting",
+    "No vendor or civilian or human-NPC attack lane",
+    "No animal attack in monster-hunt lane",
+    "No broad coordinate travel restoration",
+    "No freeform travel reactivation",
+    "Self-bandage through native BandageContext only",
+    "Self-cure through native BaseCurePotion.Drink only",
+    "Combat assignment only after explicit target validation",
+    "Animal hunt remains explicitly denied in current surfaced lane"
+  ],
+  "intentionallyUntracked": [
+    "Saves_BACKUP_before_AIGMCounselor_delete_20260610-115356/",
+    "Saves_BLOCKED_AIGMCounselor_20260610-115749/"
+  ]
+}
