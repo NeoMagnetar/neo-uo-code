@@ -1,0 +1,410 @@
+NEOUO PHASE58A — DEV-PARITY MONSTER AUTONOMY + SELF-SUSTAIN RESTORATION
+
+Purpose:
+Restore the core old NeoUO-Dev companion functionality that made the companions feel alive and responsive:
+1. automatic door opening while moving
+2. monster tracking with actual movement
+3. closest-monster pursuit
+4. monster-only attack loop
+5. re-track / re-acquire until no monsters remain in range
+6. auto-bandage self when below max health
+7. drink cure potion when poisoned, if available
+
+This is the first deliberate execution/autonomy restoration lane after the read-only tracking and bandage-first healing groundwork.
+This pass must use old NeoUO-Dev as behavior evidence and current NeoUO-FullIntegration as the implementation target.
+
+Old working reference:
+C:\UO\Server\Neo Ultima Online\NeoUO-Dev
+
+Current target repo:
+C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg
+
+Branch:
+neo/phase56t-clean-speech-recovery
+
+Expected starting HEAD:
+2acde5c3db0fe886d17a60a140d80dc357d58417
+
+Current restored baseline:
+- tracking reports and tracking watch exist
+- tracking categories exist
+- all-companion tracking reports exist
+- bandage-first healing service exists
+- short healing phrase routing improved
+- safe direct commands exist
+- waylander routes to Dakeyras
+- attack/travel/spell healing still gated before this lane
+
+Core restoration target:
+Bring the current server closer to old Dev practical behavior, but only for a bounded monster-combat loop and self-sustain.
+
+Hard safety boundaries:
+- monsters only
+- do not attack players
+- do not attack blue/innocent NPCs
+- do not attack owner
+- do not attack companions
+- do not attack controlled/tamed/summoned allies
+- do not attack vendors/town NPCs/human NPCs in this pass
+- no player pursuit
+- no travel-to-town or coordinate travel restoration in this pass
+- no spell healing
+- no owner auto-heal loop
+- no broad wandering autonomy
+- no old Dev wholesale import without dependency review
+
+Allowed execution restoration:
+- movement toward closest valid monster target
+- automatic door opening needed by movement
+- attack valid monster target
+- re-acquire nearest valid monster after kill/loss
+- stop when no valid monsters remain in configured range
+- companion self-bandage if damaged and legal
+- companion self cure potion if poisoned, if available
+
+UMG principle:
+The companion cognition/command layer may request an action lane, but ServUO code must validate:
+- target legality
+- skill/resource availability
+- range
+- pathing viability
+- cooldown/action lock
+- self-sustain state
+- owner/companion safety
+
+Before patch:
+Run:
+cd 'C:\UO\Server\Neo Ultima Online\NeoUO-FullIntegration-aigm-umg'
+git status --short --branch
+git rev-parse HEAD
+
+Record:
+- branch
+- HEAD before patch
+- dirty/untracked state
+
+Do not add unrelated reports.
+Do not touch Saves.
+Do not start ServUO during implementation.
+Build after patch is allowed.
+
+Part 1 — Old Dev lane audit.
+Inspect old Dev read-only and map exact behavior.
+Required old files to inspect:
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionTrackingSensor.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionTrackingCycle.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionTrapRecovery.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionStateAccess.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionActionExecutor.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionDirectActionPolicy.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionAutoPathNavigator.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionMapNavigator.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMMovementController.cs
+- NeoUO-Dev\Scripts\Custom\AIGM\AIGMCompanionSkillExecutor.cs
+- NeoUO-Dev\Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+- NeoUO-Dev\Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+- NeoUO-Dev\Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+- NeoUO-Dev\Scripts\Skills\Tracking.cs
+- NeoUO-Dev\Scripts\Items\Resource\Bandage.cs
+- search old Dev for door usage:
+- BaseDoor
+- Open
+- Use
+- OnDoubleClick
+- Door
+- AutoDoor
+- door
+
+Required searches:
+Get-ChildItem -Path 'C:\UO\Server\Neo Ultima Online\NeoUO-Dev\Scripts' -Recurse -Filter *.cs | Select-String -Pattern 'BaseDoor|Door|Open|Use\(|OnDoubleClick|TrackingCycle|TrackingSensor|AutoPathNavigator|MapNavigator|MovementController|Combatant|Attack|BandageContext|CurePotion|RefreshPotion|Potion|Poisoned|CurePoison|ControlTarget|AIObject|MoveToWorld'
+
+Document old evidence for:
+- how old companions selected monsters
+- how old companions moved toward targets
+- how old companions attacked
+- how old companions re-tracked after a target died/lost
+- how old companions stopped when no target remained
+- how old companions opened doors
+- how old companions self-bandaged
+- how old companions cured poison
+- which old code was unsafe or too broad
+
+Do not copy old behavior blindly. Port narrow logic with current gates.
+
+Part 2 — Current lane audit.
+Inspect current files:
+- Scripts\Custom\AIGM\AIGMCompanionTrackingService.cs
+- Scripts\Custom\AIGM\AIGMCompanionTrackingState.cs
+- Scripts\Custom\AIGM\AIGMCompanionTrackingMode.cs
+- Scripts\Custom\AIGM\AIGMCompanionHealingService.cs
+- Scripts\Custom\AIGM\AIGMCompanionCapabilityGate.cs
+- Scripts\Custom\AIGM\AIGMCompanionCapabilityKind.cs
+- Scripts\Custom\AIGM\AIGMCompanionCommandBoundary.cs
+- Scripts\Custom\AIGM\AIGMCompanionIntentParser.cs
+- Scripts\Mobiles\NPCs\AIGMCompanionDakeyras.cs
+- Scripts\Mobiles\NPCs\AIGMCompanionDanyal.cs
+- Scripts\Mobiles\NPCs\AIGMCompanionDardalion.cs
+- Scripts\Items\Resource\Bandage.cs
+- potion files found by search:
+Get-ChildItem -Path .\Scripts -Recurse -Filter '*Potion*.cs'
+- door files found by search:
+Get-ChildItem -Path .\Scripts -Recurse -Filter '*Door*.cs'
+
+Part 3 — Implementation architecture.
+Preferred new helper files:
+- Scripts\Custom\AIGM\AIGMCompanionMonsterAutonomyMode.cs
+- Scripts\Custom\AIGM\AIGMCompanionMonsterAutonomyState.cs
+- Scripts\Custom\AIGM\AIGMCompanionMonsterAutonomyService.cs
+- Scripts\Custom\AIGM\AIGMCompanionDoorService.cs
+- Scripts\Custom\AIGM\AIGMCompanionSelfSustainService.cs
+
+Alternative: Patch existing tracking/healing helpers if cleaner, but keep monster autonomy, door opening, and self-sustain logically separated.
+Do not create one giant untestable method.
+
+Part 4 — Commands to support.
+Supported owner commands:
+- dak hunt monsters
+- dak attack monsters
+- dak clear monsters
+- dak start monster tracking
+- dak start hunting
+- dak stop hunting
+- dak stop tracking
+- dak monster status
+- waylander hunt monsters
+- waylander attack monsters
+- waylander clear monsters
+- all hunt monsters
+- companions hunt monsters
+- all stop hunting
+
+Also accept old-style:
+- start tracking monsters
+- start tracking all
+- track monsters
+- attack monsters
+
+Command meanings:
+- `track monsters`: report monsters and optionally update last monster target, but no attack unless active hunt mode is on.
+- `start tracking monsters`: start read-only watch unless paired with hunt/attack command.
+- `hunt monsters` / `attack monsters` / `clear monsters`: start monster-only movement/attack loop.
+- `stop hunting`: stop movement/attack loop and clear active monster target.
+- `monster status`: report active/inactive state, target, range, self-sustain state.
+
+Part 5 — Valid monster target rules.
+Implement a strict validator: `IsValidMonsterTarget(Mobile companion, Mobile candidate, Mobile owner)`
+Must reject:
+- null/deleted
+- dead
+- owner
+- any companion
+- players / PlayerMobile
+- human NPCs/vendors/town NPCs
+- controlled/tamed/summoned allied creatures
+- blue/innocent/human-body NPCs unless old Dev evidence clearly marks them as monsters and user later approves
+- targets on different map
+- targets beyond configured scan range
+
+Accept only:
+- clear monster creatures according to ServUO Tracking.cs category logic or old Dev monster category evidence
+- preferably hostile/aggressive BaseCreature-style mobiles
+- nearest valid monster first
+
+If classification is uncertain:
+- do not attack
+- report ambiguous classification
+
+Part 6 — Monster scan/retrack.
+Use actual Tracking skill and old/current Tracking.cs evidence.
+Tracking skill should influence:
+- scan range
+- confidence
+- report detail
+- target acquisition confidence
+
+Basic range model unless old code has better one:
+- low Tracking: short range
+- high Tracking: larger range
+- GM Tracking: maximum configured range
+
+Keep configured max reasonable for this pass:
+- default max scan radius around 12–18 tiles unless old Dev used another safe value
+- do not scan entire world
+
+Loop behavior:
+1. scan valid monsters in range
+2. choose closest valid monster
+3. move toward it if not in attack range
+4. open doors if blocking/immediately adjacent during movement
+5. attack when in range
+6. when target dies, is invalid, or leaves range, re-scan
+7. repeat until no valid monsters remain
+8. stop and report "no valid monsters in range"
+
+Part 7 — Movement restoration.
+Restore movement only for monster engagement.
+Preferred:
+- reuse current safe movement shell where possible
+- use old Dev AutoPathNavigator / MovementController evidence for pathing
+- port only the minimal narrow movement helper needed for target pursuit
+
+Rules:
+- no coordinate travel
+- no town travel
+- no arbitrary pathing command
+- no player pursuit
+- no movement toward non-monsters
+- no movement outside configured leash range from owner unless old Dev evidence supports and user approves
+- include owner leash:
+- if companion gets too far from owner, stop hunting or return to owner depending on existing safe follow behavior
+- default leash suggestion: 18–25 tiles
+
+Part 8 — Door opening.
+Restore automatic door opening while moving.
+Implement a small door helper:
+`TryOpenNearbyDoor(Mobile companion)`
+Rules:
+- only while companion is actively moving for allowed behavior
+- only nearby doors, e.g. 1 tile
+- only doors the companion can legally use
+- no locked/secure/private bypass
+- do not teleport through doors
+- do not mutate unrelated items
+
+Use actual door APIs from current ServUO:
+- inspect BaseDoor and door classes
+- prefer standard public use/open methods
+- do not hack locked state
+
+Part 9 — Attack restoration.
+Restore attack only against validated monster target.
+Allowed:
+- assign combat target through legitimate ServUO combat APIs
+- use existing BaseCreature/Mobile combat behavior where safe
+- stop combat when target invalid
+
+Not allowed:
+- attack players
+- attack human NPCs
+- attack tamed/controlled allies
+- attack blue town NPCs
+- attack owner/companions
+- attack based only on name string
+
+Part 10 — Self-sustain restoration.
+Auto-bandage:
+- if companion Hits < HitsMax
+- if has bandages
+- if not already bandaging/action-locked
+- if bandage service supports self target
+- use real `BandageContext.BeginHeal(...)`
+- do not direct mutate HP
+
+Cure potion:
+- if companion is poisoned
+- if cure potion exists in backpack
+- use actual potion item/use mechanics if safe
+- do not direct `CurePoison` shortcut unless it is the legitimate potion logic after legal use
+- if safe potion use is unclear, implement only detection/reporting and document blocker
+
+Search current code for cure potion classes:
+- CurePotion
+- BaseCurePotion
+- GreaterCurePotion
+- Potion
+- Drink
+- OnDoubleClick
+- DrinkPotion
+- Use
+
+Self-sustain should be automatic during:
+- active monster hunt loop
+- active combat with a monster
+
+Optional:
+- allow self-bandage outside hunt if explicit command only; do not add always-on global loop unless old Dev did and it is safe.
+
+Part 11 — UMG gate integration.
+Update current capability/gate model so this is explicit:
+- MonsterHunt
+- MonsterAttack
+- DoorOpenAssist
+- SelfBandage
+- SelfCurePotion
+
+If adding capability kinds is needed, do so narrowly.
+Command routes:
+- monster hunt commands open MonsterHunt capability
+- tracking status remains read-only
+- healing owner remains bandage-first explicit command
+- self-sustain inside hunt uses SelfBandage/SelfCurePotion capability
+
+Part 12 — Response style.
+Keep UO journal text short.
+Good examples:
+- Dakeyras begins hunting nearby monsters.
+- Dakeyras targets mongbat at tile 1498,1625,0.
+- No valid monsters remain in range.
+- Danyal opens the door.
+- Dardalion bandages himself.
+- Dakeyras cannot cure poison; no cure potion found.
+- I will not attack that target.
+
+Bad examples:
+- giant paragraphs
+- vague action-lane deferred responses for monster hunting after this patch
+- claiming success without real action
+
+Part 13 — Report.
+Create:
+docs\PHASE58A_DEV_PARITY_MONSTER_AUTONOMY_REPORT.md
+Report must include:
+1. Branch and HEAD before patch
+2. Old Dev evidence inspected
+3. Files changed
+4. Commands implemented
+5. Valid monster target rules
+6. Movement/pathing method used
+7. Door opening method used
+8. Attack method used
+9. Self-bandage method used
+10. Cure potion method used or blocker
+11. Skills/resources used
+12. UMG/capability gate integration
+13. Safety boundaries
+14. Forbidden-reference check
+15. Build result
+16. Runtime proof checklist
+17. Recommended commit message
+
+Part 14 — Forbidden-reference and safety checks.
+Run:
+Select-String -Path .\Scripts\Custom\AIGM\*.cs,.\Scripts\Mobiles\NPCs\AIGMCompanion*.cs -Pattern 'ActionExecutor|DirectActionPolicy|TravelController|AutoPathNavigator|MoveToWorld|Combatant\s*=|ControlTarget\s*=|TargetLocation|Attack\(|BandageContext|CurePotion|CurePoison|BaseDoor|Door|Open|OnDoubleClick|Potion|Poisoned|Hits\s*=|Hits\s+\+=' 
+Report:
+- which references are old/pre-existing
+- which are newly introduced
+- why each newly introduced reference is allowed
+Direct HP mutation:
+- no new Hits equals
+- no new Hits plus equals unless confirmed unrelated
+
+Part 15 — Build.
+Run:
+dotnet build .\ServUO.sln -v:minimal
+If build is blocked by live ServUO:
+- report PID and path
+- do not kill automatically unless instructed
+If build fails:
+- stop
+- report first compiler/build error only
+- include code, project, file, line if available, exact message
+- do not attempt broad fixes
+If build succeeds:
+Commit only intended files and report.
+Recommended commit message:
+feat: restore bounded monster autonomy for AIGM companions
+Do not tag.
+Do not start ServUO after build.
+
+When completely finished, run this command to notify me:
+openclaw system event --text "Done: Phase58A bounded monster autonomy patch finished with build/report status" --mode now
