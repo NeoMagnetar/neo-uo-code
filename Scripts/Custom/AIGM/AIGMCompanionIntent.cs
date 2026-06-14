@@ -25,7 +25,10 @@ namespace Server.Custom.AIGM
         public const string TrackAnimals = "track_animals";
         public const string TrackMonsters = "track_monsters";
         public const string TrackHumanNPCs = "track_human_npcs";
+        public const string TrackNPCs = "track_npcs";
         public const string TrackPlayers = "track_players";
+        public const string TrackAll = "track_all";
+        public const string HuntAnimals = "hunt_animals";
         public const string ReportThreats = "report_threats";
         public const string ShareAwareness = "share_awareness";
         public const string TravelToDestination = "travel_to_destination";

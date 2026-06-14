@@ -7,6 +7,7 @@ namespace Server.Custom.AIGM
         Monsters,
         Players,
         HumanNPCs,
+        NPCs,
         Threats,
         General,
         All

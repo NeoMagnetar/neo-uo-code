@@ -44,6 +44,26 @@ namespace Server.Custom.AIGM
                     decision.RequiresFutureExecutor = false;
                     decision.Reason = "phase58a_monster_hunt_live";
                     break;
+                case AIGMCompanionCapabilityKind.TrackingAnimals:
+                case AIGMCompanionCapabilityKind.TrackingMonsters:
+                case AIGMCompanionCapabilityKind.TrackingNPCs:
+                case AIGMCompanionCapabilityKind.TrackingHumanNPCs:
+                case AIGMCompanionCapabilityKind.TrackingPlayers:
+                case AIGMCompanionCapabilityKind.TrackingAll:
+                case AIGMCompanionCapabilityKind.TrackingStatus:
+                case AIGMCompanionCapabilityKind.TrackingStop:
+                    decision.Allowed = true;
+                    decision.Deferred = false;
+                    decision.RequiresFutureExecutor = false;
+                    decision.Reason = "phase58b_tracking_live";
+                    break;
+                case AIGMCompanionCapabilityKind.HuntAnimals:
+                    decision.Allowed = false;
+                    decision.Deferred = true;
+                    decision.RequiresFutureExecutor = true;
+                    decision.Reason = "animal_hunt_gate_closed";
+                    decision.VisibleResponse = "Animal hunting is not enabled in this lane yet.";
+                    break;
                 case AIGMCompanionCapabilityKind.None:
                     decision.Allowed = false;
                     decision.Deferred = false;

@@ -114,7 +114,14 @@ namespace Server.Custom.AIGM
                 return true;
             }
 
-            if (speech.Equals("track npcs") || speech.Equals("track npc") || speech.Equals("track human npcs") || speech.Equals("track human npc") || speech.Equals("track humans") || speech.Equals("track human") || speech.Equals("track people") || speech.Equals("scan npcs") || speech.Equals("scan npc") || speech.Equals("track townsfolk") || speech.Equals("scan for npcs") || speech.Equals("track for npcs") || speech.Equals("scan for npc") || speech.Equals("track for npc") || speech.Equals("scan humans") || speech.Equals("scan human") || speech.Equals("scan for humans") || speech.Equals("scan for human"))
+            if (speech.Equals("track npcs") || speech.Equals("track npc") || speech.Equals("scan npcs") || speech.Equals("scan npc") || speech.Equals("track townsfolk") || speech.Equals("scan for npcs") || speech.Equals("track for npcs") || speech.Equals("scan for npc") || speech.Equals("track for npc"))
+            {
+                Make(AIGMCompanionIntentKind.TrackNPCs, rawSpeech, out intent);
+                intent.ExplicitlyAddressed = explicitlyAddressed;
+                return true;
+            }
+
+            if (speech.Equals("track human npcs") || speech.Equals("track human npc") || speech.Equals("track humans") || speech.Equals("track human") || speech.Equals("track people") || speech.Equals("scan humans") || speech.Equals("scan human") || speech.Equals("scan for humans") || speech.Equals("scan for human"))
             {
                 Make(AIGMCompanionIntentKind.TrackHumanNPCs, rawSpeech, out intent);
                 intent.ExplicitlyAddressed = explicitlyAddressed;
@@ -124,6 +131,20 @@ namespace Server.Custom.AIGM
             if (speech.Equals("track players") || speech.Equals("scan players") || speech.Equals("track traveler") || speech.Equals("track travelers") || speech.Equals("scan for players") || speech.Equals("track for players") || speech.Equals("scan for player") || speech.Equals("track for player"))
             {
                 Make(AIGMCompanionIntentKind.TrackPlayers, rawSpeech, out intent);
+                intent.ExplicitlyAddressed = explicitlyAddressed;
+                return true;
+            }
+
+            if (speech.Equals("track all") || speech.Equals("scan all") || speech.Equals("track everything") || speech.Equals("scan everything"))
+            {
+                Make(AIGMCompanionIntentKind.TrackAll, rawSpeech, out intent);
+                intent.ExplicitlyAddressed = explicitlyAddressed;
+                return true;
+            }
+
+            if (speech.Equals("hunt animals") || speech.Equals("track and hunt animals"))
+            {
+                Make(AIGMCompanionIntentKind.HuntAnimals, rawSpeech, out intent);
                 intent.ExplicitlyAddressed = explicitlyAddressed;
                 return true;
             }
@@ -612,7 +633,7 @@ namespace Server.Custom.AIGM
                 return null;
 
             string normalized = speech.Trim();
-            if (normalized.Equals("hunt monsters") || normalized.Equals("attack monsters") || normalized.Equals("clear monsters") || normalized.Equals("start hunting") || normalized.Equals("start monster tracking") || normalized.Equals("track monsters") || normalized.Equals("start tracking monsters"))
+            if (normalized.Equals("hunt monsters") || normalized.Equals("attack monsters") || normalized.Equals("clear monsters") || normalized.Equals("start hunting") || normalized.Equals("start monster tracking") || normalized.Equals("track monsters") || normalized.Equals("start tracking monsters") || normalized.Equals("hunt closest monster"))
                 return "start_monster_hunt";
 
             if (normalized.Equals("stop hunting") || normalized.Equals("stop tracking") || normalized.Equals("stop tracking monsters") || normalized.Equals("stop monster tracking"))

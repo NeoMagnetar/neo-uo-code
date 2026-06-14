@@ -454,8 +454,20 @@ namespace Server.Mobiles
                 case AIGMCompanionCapabilityKind.TrackReadOnly:
                     text = BuildTrackReadOnlyReport(intent, speaker);
                     break;
+                case AIGMCompanionCapabilityKind.TrackingAnimals:
+                case AIGMCompanionCapabilityKind.TrackingMonsters:
+                case AIGMCompanionCapabilityKind.TrackingNPCs:
+                case AIGMCompanionCapabilityKind.TrackingHumanNPCs:
+                case AIGMCompanionCapabilityKind.TrackingPlayers:
+                case AIGMCompanionCapabilityKind.TrackingAll:
+                    text = BuildCategoryTrackingReport(intent, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TrackingStop:
+                    text = AIGMCompanionTrackingService.StopTracking(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TrackingStatus:
                 case AIGMCompanionCapabilityKind.ReportTrackingStatus:
-                    text = AIGMCompanionReadOnlyAwareness.BuildTrackingStatusReport(this, speaker);
+                    text = AIGMCompanionTrackingService.GetTrackingStatus(this, speaker);
                     break;
                 case AIGMCompanionCapabilityKind.TravelReadOnly:
                     text = AIGMCompanionReadOnlyAwareness.BuildTravelStatusReport(this, speaker);
@@ -494,6 +506,12 @@ namespace Server.Mobiles
             return AIGMCompanionReadOnlyAwareness.BuildTrackingDeferredReport(this, speaker);
         }
 
+        private string BuildCategoryTrackingReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(intent != null ? intent.Kind : String.Empty);
+            return AIGMCompanionTrackingService.StartTracking(this, speaker, mode);
+        }
+
         private AIGMCompanionCapabilityKind ResolveCapability(AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent)
         {
             string kind = intent != null ? intent.Kind : String.Empty;
@@ -505,6 +523,24 @@ namespace Server.Mobiles
                     return AIGMCompanionCapabilityKind.MonsterHuntStop;
                 case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
                     return AIGMCompanionCapabilityKind.MonsterHuntStatus;
+                case AIGMCompanionIntentKind.TrackAnimals:
+                    return AIGMCompanionCapabilityKind.TrackingAnimals;
+                case AIGMCompanionIntentKind.TrackMonsters:
+                    return AIGMCompanionCapabilityKind.TrackingMonsters;
+                case AIGMCompanionIntentKind.TrackNPCs:
+                    return AIGMCompanionCapabilityKind.TrackingNPCs;
+                case AIGMCompanionIntentKind.TrackHumanNPCs:
+                    return AIGMCompanionCapabilityKind.TrackingHumanNPCs;
+                case AIGMCompanionIntentKind.TrackPlayers:
+                    return AIGMCompanionCapabilityKind.TrackingPlayers;
+                case AIGMCompanionIntentKind.TrackAll:
+                    return AIGMCompanionCapabilityKind.TrackingAll;
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                    return AIGMCompanionCapabilityKind.TrackingStatus;
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                    return AIGMCompanionCapabilityKind.TrackingStop;
+                case AIGMCompanionIntentKind.HuntAnimals:
+                    return AIGMCompanionCapabilityKind.HuntAnimals;
                 default:
                     return decision != null ? decision.Capability : AIGMCompanionCapabilityKind.None;
             }

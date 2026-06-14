@@ -130,6 +130,10 @@ namespace Server.Custom.AIGM
                     return AIGMCompanionTrackingMode.Players;
                 case AIGMCompanionIntentKind.TrackHumanNPCs:
                     return AIGMCompanionTrackingMode.HumanNPCs;
+                case AIGMCompanionIntentKind.TrackNPCs:
+                    return AIGMCompanionTrackingMode.NPCs;
+                case AIGMCompanionIntentKind.TrackAll:
+                    return AIGMCompanionTrackingMode.All;
                 case AIGMCompanionIntentKind.ReportThreats:
                     return AIGMCompanionTrackingMode.Threats;
                 case AIGMCompanionIntentKind.TrackMonsters:
@@ -167,11 +171,18 @@ namespace Server.Custom.AIGM
                 return AIGMCompanionTrackingMode.Monsters;
             if (normalized.Contains("track players") || normalized.Contains("track player"))
                 return AIGMCompanionTrackingMode.Players;
-            if (normalized.Contains("track npcs") || normalized.Contains("track npc") || normalized.Contains("track humans") || normalized.Contains("track human") || normalized.Contains("track human npcs") || normalized.Contains("track people"))
+            if (normalized.Contains("track npcs") || normalized.Contains("track npc"))
+                return AIGMCompanionTrackingMode.NPCs;
+            if (normalized.Contains("track humans") || normalized.Contains("track human") || normalized.Contains("track human npcs") || normalized.Contains("track people"))
                 return AIGMCompanionTrackingMode.HumanNPCs;
-            if (normalized.Contains("start tracking all") || normalized.Contains("all start tracking") || normalized.Contains("companions start tracking") || normalized.Contains("everyone start tracking"))
+            if (normalized.Contains("track all") || normalized.Contains("start tracking all") || normalized.Contains("all start tracking") || normalized.Contains("companions start tracking") || normalized.Contains("everyone start tracking"))
                 return AIGMCompanionTrackingMode.All;
             return AIGMCompanionTrackingMode.General;
+        }
+
+        public static AIGMCompanionTrackingState GetState(BaseHire companion)
+        {
+            return companion == null ? null : GetOrCreateState(companion);
         }
 
         private static bool IsValidCompanion(BaseHire companion)
@@ -211,6 +222,7 @@ namespace Server.Custom.AIGM
                 case AIGMCompanionTrackingMode.Monsters: return "monsters";
                 case AIGMCompanionTrackingMode.Players: return "players";
                 case AIGMCompanionTrackingMode.HumanNPCs: return "human NPCs";
+                case AIGMCompanionTrackingMode.NPCs: return "NPCs";
                 case AIGMCompanionTrackingMode.Threats: return "threats";
                 case AIGMCompanionTrackingMode.All: return "all signs";
                 default: return "the nearby ground";
@@ -225,6 +237,7 @@ namespace Server.Custom.AIGM
                 case AIGMCompanionTrackingMode.Monsters: return "monster";
                 case AIGMCompanionTrackingMode.Players: return "player";
                 case AIGMCompanionTrackingMode.HumanNPCs: return "human NPC";
+                case AIGMCompanionTrackingMode.NPCs: return IsHumanNPC(summary) ? "human NPC" : "NPC";
                 case AIGMCompanionTrackingMode.Threats: return "threat";
                 default:
                     return IsHumanNPC(summary) ? "human NPC" : IsPlayer(summary) ? "player" : IsAnimal(summary) ? "animal" : IsMonster(summary) ? "monster" : "sign";
@@ -252,6 +265,8 @@ namespace Server.Custom.AIGM
                 case AIGMCompanionTrackingMode.Players:
                     return IsPlayer(mob);
                 case AIGMCompanionTrackingMode.HumanNPCs:
+                    return IsHumanNPC(mob);
+                case AIGMCompanionTrackingMode.NPCs:
                     return IsHumanNPC(mob);
                 case AIGMCompanionTrackingMode.Threats:
                     return IsMonster(mob);
