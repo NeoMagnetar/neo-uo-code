@@ -1,10 +1,11 @@
 # Phase58B Tracking Category Runtime Report
 
 ## status
-Current canonical status after metadata consolidation and attempted runtime pass:
-- Branch at proof-attempt time: `neo/phase56t-clean-speech-recovery`
-- HEAD at proof-attempt time: `5266f370f0d0fedf9b019812e675040d57954fc8`
-- Runtime label for the latest pass: `PHASE58B-BLOCKED`
+Current canonical status after proof-surface stabilization:
+- Branch at stabilization time: `neo/phase56t-clean-speech-recovery`
+- HEAD before stabilization commit: `d2873ad641e56b93060f03f10946745d370bbd30`
+- Current lane result: deterministic server-side proof surface added
+- Latest recommended invocation: `[p58b]` or `[tproof]`
 
 ## old Dev methods inspected
 - `Tracking.cs` category split:
@@ -29,9 +30,8 @@ Current canonical status after metadata consolidation and attempted runtime pass
 - `Scripts\Custom\AIGM\AIGMCompanionCapabilityKind.cs`
 - `Scripts\Custom\AIGM\AIGMCompanionIntentParser.cs`
 - `Scripts\Custom\AIGM\AIGMCompanionIntent.cs`
-- `Scripts\Commands\AIGMScenarioCommand.cs`
-- `Scripts\Commands\AIGMDumpCommand.cs`
 - `Scripts\Commands\AIGMTrackingCommand.cs`
+- `Scripts\Commands\AIGMPhase58BProofCommand.cs`
 
 ## required gameplay split
 Tracking categories to support distinctly:
@@ -51,6 +51,7 @@ Action gate direction:
 - All: report only for now
 
 ## current surfaced commands
+Normal live commands remain unchanged:
 - `[tm]`
 - `[ta]`
 - `[tn]`
@@ -63,78 +64,98 @@ Action gate direction:
 - `[ts]`
 - `[td]`
 
+Deterministic proof-only commands added:
+- `[p58b]`
+- `[tproof]`
+
+## proof-surface design
+The new proof command:
+- runs server-side without OCR or desktop capture
+- writes directly to `docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_<timestamp>.md`
+- prints one compact client-facing line with proof path and final label
+- may create **proof-only** local fixtures for animal/monster category checks
+- does **not** change normal tracking command behavior
+- does **not** enable player attack, NPC attack, human NPC attack, or animal hunting
+
+Proof output includes:
+- branch
+- HEAD
+- command used
+- selected companion
+- category tested
+- accepted target
+- rejected candidates and reasons
+- pursuit allowed true/false
+- attack allowed true/false
+- movement result if applicable
+- combat result if applicable
+- final label
+
 ## latest proof attempt
-Latest proof artifact:
+Latest runtime attempt remains the blocked one:
 - `docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_20260614_142316.md`
+- label: `PHASE58B-BLOCKED`
 
-### commands tested
-Intended live sequence:
-- `[ta]`, `[td]`
-- `[tm]`, `[td]`
-- `[tp]`, `[td]`
-- `[tall]`, `[td]`
-- `[hm]`, `[md]`, `[ma]`
-- `[ha]`, `[td]`
+That artifact remains the honest record of the prior desktop/OCR failure.
 
-### runtime outputs summarized
-A direct desktop/UI-driven runtime pass was attempted, but the visible client surface could not be trusted.
-Desktop capture/OCR repeatedly resolved to an overlapping poker/UO scene instead of a clean in-game command/journal surface.
+## proof stabilization result
+This stabilization pass does **not** claim category proof completion by itself.
+It establishes the deterministic proof surface required to run the next honest Phase58B category matrix without screenshot ambiguity.
 
-Therefore this pass does **not** claim fresh per-command runtime output for the category commands.
+## category behavior policy targets
+### animals
+- track/report yes
+- pursuit no
+- attack no
 
-## category behavior results
-### `[ta]` result
-- **Not freshly proven in this pass**
-- Expected behavior remains: `Mode=Animals`, report-only, no pursuit, no attack
+### monsters
+- track/report yes
+- hunt/pursue/attack yes through MonsterHunt lane
 
-### `[tm]` result
-- **Not freshly proven in this pass**
-- Existing indirect evidence supports monster/animal separation because older runtime artifacts show `LastReject: animal_target` in hostile-monster proof lanes
+### players
+- track/report yes
+- pursuit no
+- attack no
 
-### `[tp]` result
-- **Not freshly proven in this pass**
-- Documented intended behavior remains: players report-only, no pursuit, no attack
+### NPCs / human NPCs
+- track/report yes
+- pursuit no
+- attack no
 
-### `[tall]` result
-- **Not freshly proven in this pass**
-- Documented intended behavior remains: report-only, no pursuit, no attack
+### all
+- report only
+- pursuit no
+- attack no
 
-### `[hm]` result
-- **Not freshly proven in this pass as a new live run**
-- Existing runtime artifacts already support the narrower statement that hostile monster hunt rejects animals:
+### HuntAnimals
+- blocked/gated
+
+## whether animals are rejected from MonsterHunt
+- Existing runtime artifacts already support this:
   - `docs/runtime/PHASE58A_CLOSEST_MONSTER_HUNT_PROOF_20260613_232244.md`
   - `docs/runtime/PHASE58A_MONSTERHUNT_RUNTIME_PROOF_20260613_232239.md`
   - `docs/runtime/PHASE58A_MONSTERHUNT_RUNTIME_PROOF_20260614_052044.md`
-- Those artifacts include `LastReject: animal_target`
-
-### `[ha]` gate result
-- **Not freshly proven in this pass**
-- Documented surfaced behavior remains explicit deny gate / placeholder lane
-
-## whether animals are rejected from MonsterHunt
-- **Yes, supported by existing runtime artifacts**
-- Existing proof artifacts include `LastReject: animal_target`, which supports the statement that animals are rejected from the hostile monster hunt lane
-- This was not re-captured live in the latest blocked pass
-
-## whether players/NPCs remain report-only
-- **Documented intent says yes**
-- Current runtime pass did not freshly prove those lanes with reliable live command output
-
-## proof artifact path
-- `docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_20260614_142316.md`
+- Those include `LastReject: animal_target`
 
 ## build result
-- No code changed in this pass
-- No build run required
+Build command run because code changed:
+- `dotnet build .\ServUO.sln -c Release`
+
+Outcome:
+- `0 Error(s)`
+- `15 Warning(s)`
+
+Warnings were pre-existing unreachable-code warnings in unrelated files.
 
 ## remaining blockers
-- no reliable visible command/journal surface for honest desktop-driven proof capture
-- category runtime matrix still lacks one canonical direct proof packet for `[ta]`, `[tm]`, `[tp]`, `[tall]`, `[hm]`, `[ha]`
+- the new proof command still needs to be executed live to generate a fresh deterministic Phase58B proof artifact
+- player proof remains limited to nearby real player observation unless a safe native proof pattern exists; no fake player creation was added
 
 ## next recommended lane
-- restore a deterministic visible dev-client proof surface
-- rerun the full Phase58B command matrix
-- once direct outputs are captured, upgrade the label from `PHASE58B-BLOCKED` to one of:
-  - `PHASE58B-CATEGORY-PROOF`
-  - `PHASE58B-ACTION-GATE-PROOF`
-  - `PHASE58B-HM-PROOF`
+1. run `[p58b]` or `[tproof]` in the dev shard
+2. inspect the generated `docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_<timestamp>.md`
+3. update canonical metadata from that artifact
+4. only then promote the label to one of:
+   - `PHASE58B-CATEGORY-PROOF`
+   - `PHASE58B-ACTION-GATE-PROOF`
+   - `PHASE58B-HM-PROOF`
