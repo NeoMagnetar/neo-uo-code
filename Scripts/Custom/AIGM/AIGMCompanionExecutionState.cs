@@ -46,6 +46,7 @@ namespace Server.Custom.AIGM
         public string LastCombatResult { get; set; }
         public string LastTargetRejectionReason { get; set; }
         public string LastCandidateSummary { get; set; }
+        public string LastRejectedCandidates { get; set; }
         public Point3D LastMoveFrom { get; set; }
         public Point3D LastMoveTo { get; set; }
         public string LastMoveDirection { get; set; }
@@ -71,6 +72,7 @@ namespace Server.Custom.AIGM
             LastCombatResult = String.Empty;
             LastTargetRejectionReason = String.Empty;
             LastCandidateSummary = String.Empty;
+            LastRejectedCandidates = String.Empty;
             LastMoveFrom = Point3D.Zero;
             LastMoveTo = Point3D.Zero;
             LastMoveDirection = String.Empty;

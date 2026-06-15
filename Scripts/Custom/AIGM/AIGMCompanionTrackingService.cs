@@ -214,7 +214,79 @@ namespace Server.Custom.AIGM
             if (mob == null)
                 return false;
 
-            return !IsPlayer(mob) && !IsAnimal(mob) && !IsHumanNPC(mob) && IsMonster(mob);
+            Mobile target = ResolveMobile(mob);
+            if (target == null)
+                return !IsPlayer(mob) && !IsAnimal(mob) && !IsHumanNPC(mob) && IsMonster(mob);
+
+            return IsHostileMonsterMobile(null, target, out _);
+        }
+
+        public static Mobile FindClosestHostileMonster(BaseHire companion, out string acceptedSummary, out string rejectedSummary)
+        {
+            acceptedSummary = "accepted=none";
+            rejectedSummary = "none";
+
+            if (!IsValidCompanion(companion))
+                return null;
+
+            AIGMCompanionTrackingState state = GetOrCreateState(companion);
+            double tracking = AIGMCompanionSkillReadiness.GetSkillValue(companion, SkillName.Tracking);
+            state.SkillValue = tracking;
+            state.SkillTier = AIGMCompanionSkillReadiness.BuildTier(tracking);
+            state.LastConfidence = BuildConfidence(companion, AIGMCompanionTrackingMode.Monsters);
+
+            AIGMSceneContext scene = AIGMSceneScanner.Capture(companion, GetTrackingRange(companion));
+            if (scene == null || scene.NearbyMobiles == null || scene.NearbyMobiles.Count == 0)
+            {
+                state.LastCandidateSummary = acceptedSummary;
+                state.LastRejectedCandidates = rejectedSummary;
+                return null;
+            }
+
+            List<AIGMSceneEntitySummary> accepted = new List<AIGMSceneEntitySummary>();
+            List<string> rejected = new List<string>();
+
+            for (int i = 0; i < scene.NearbyMobiles.Count; i++)
+            {
+                AIGMSceneEntitySummary summary = scene.NearbyMobiles[i];
+                if (summary == null)
+                    continue;
+
+                Mobile target = ResolveMobile(summary);
+                string rejectReason;
+                if (!IsHostileMonsterMobile(companion, target, out rejectReason))
+                {
+                    if (rejected.Count < 12)
+                        rejected.Add(DescribeSummary(summary) + "=" + rejectReason);
+                    continue;
+                }
+
+                if (!CanTrack(companion, summary, out rejectReason))
+                {
+                    if (rejected.Count < 12)
+                        rejected.Add(DescribeSummary(summary) + "=" + rejectReason);
+                    continue;
+                }
+
+                accepted.Add(summary);
+            }
+
+            accepted.Sort((a, b) => GetDistance(companion, a).CompareTo(GetDistance(companion, b)));
+            acceptedSummary = BuildCandidateSummary(companion, accepted);
+            rejectedSummary = rejected.Count > 0 ? String.Join(", ", rejected.ToArray()) : "none";
+            state.LastCandidateSummary = acceptedSummary;
+            state.LastRejectedCandidates = rejectedSummary;
+            state.LastScanUtc = DateTime.UtcNow;
+
+            if (accepted.Count == 0)
+                return null;
+
+            AIGMSceneEntitySummary first = accepted[0];
+            state.LastKnownTargetDescription = DescribeSummary(first);
+            state.LastKnownDirectionText = DescribeDirection(companion, first);
+            state.LastKnownDistanceText = DescribeDistance(companion, first);
+            state.LastKnownTileText = DescribeTile(first);
+            return ResolveMobile(first);
         }
 
         private static bool IsValidCompanion(BaseHire companion)
@@ -410,6 +482,46 @@ namespace Server.Custom.AIGM
 
             int chance = divisor > 0 ? 50 * (tracking * 2 + detectHidden) / divisor : 100;
             return chance > Utility.Random(100);
+        }
+
+        private static bool IsHostileMonsterMobile(BaseHire companion, Mobile target, out string rejectReason)
+        {
+            rejectReason = String.Empty;
+
+            if (target == null)
+            {
+                rejectReason = "missing_target";
+                return false;
+            }
+
+            if (companion != null)
+                return AIGMCompanionTargetValidator.IsHostileMonsterCandidate(companion, target, out rejectReason);
+
+            if (target.Player)
+            {
+                rejectReason = "player";
+                return false;
+            }
+
+            if (target.Body != null && target.Body.IsAnimal)
+            {
+                rejectReason = "animal";
+                return false;
+            }
+
+            if (target.Body != null && target.Body.IsHuman)
+            {
+                rejectReason = "human_npc";
+                return false;
+            }
+
+            if (target.Body == null || !target.Body.IsMonster)
+            {
+                rejectReason = "not_monster_body";
+                return false;
+            }
+
+            return true;
         }
 
         private static bool IsAnimal(AIGMSceneEntitySummary mob)

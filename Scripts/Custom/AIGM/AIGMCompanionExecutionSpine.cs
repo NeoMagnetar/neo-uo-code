@@ -48,11 +48,13 @@ namespace Server.Custom.AIGM
 
             AIGMCompanionExecutionState state = GetOrCreateState(companion);
             string target = String.IsNullOrWhiteSpace(state.CurrentTargetName) ? "none" : state.CurrentTargetName;
-            return String.Format("{0}: huntActive={1}, phase={2}, target={3}, lastMove={4}, lastDoor={5}, lastCombat={6}, lastReject={7}, trace={8}",
+            return String.Format("{0}: huntActive={1}, phase={2}, target={3}, accepted={4}, rejected={5}, lastMove={6}, lastDoor={7}, lastCombat={8}, lastReject={9}, trace={10}",
                 companion.Name,
                 state.HuntActive,
                 state.Phase,
                 target,
+                String.IsNullOrWhiteSpace(state.LastCandidateSummary) ? "none" : state.LastCandidateSummary,
+                String.IsNullOrWhiteSpace(state.LastRejectedCandidates) ? "none" : state.LastRejectedCandidates,
                 String.IsNullOrWhiteSpace(state.LastMovementResult) ? "none" : state.LastMovementResult,
                 String.IsNullOrWhiteSpace(state.LastDoor) ? "none" : state.LastDoor,
                 String.IsNullOrWhiteSpace(state.LastCombatResult) ? "none" : state.LastCombatResult,
@@ -285,43 +287,39 @@ namespace Server.Custom.AIGM
 
         private static Mobile AcquireNearestMonsterTarget(BaseHire companion, AIGMCompanionExecutionState state)
         {
-            Mobile best = null;
-            int bestDistance = Int32.MaxValue;
-            List<string> notes = new List<string>();
+            string acceptedSummary;
+            string rejectedSummary;
+            Mobile target = AIGMCompanionTrackingSensor.FindClosestTrackableMonster(companion, state.ScanRange, out acceptedSummary, out rejectedSummary);
+            state.LastCandidateSummary = acceptedSummary;
+            state.LastRejectedCandidates = rejectedSummary;
 
-            foreach (Mobile mobile in World.Mobiles.Values)
+            if (target == null)
             {
-                string categoryReason;
-                if (!AIGMCompanionTargetValidator.IsHostileMonsterCandidate(companion, mobile, out categoryReason))
-                {
-                    if (notes.Count < 8)
-                        notes.Add(DescribeCandidate(mobile) + "=" + categoryReason);
-                    state.LastTargetRejectionReason = categoryReason;
-                    continue;
-                }
-
-                AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, mobile, state.ScanRange);
-                if (!validation.Allowed)
-                {
-                    if (notes.Count < 8)
-                        notes.Add(DescribeCandidate(mobile) + "=" + validation.Reason);
-                    state.LastTargetRejectionReason = validation.Reason;
-                    continue;
-                }
-
-                int distance = (int)companion.GetDistanceToSqrt(mobile);
-                if (distance < bestDistance)
-                {
-                    best = mobile;
-                    bestDistance = distance;
-                }
+                state.LastTargetRejectionReason = rejectedSummary == "none" ? "no_trackable_monsters" : rejectedSummary;
+                return null;
             }
 
-            state.LastCandidateSummary = best != null
-                ? "accepted=" + DescribeCandidate(best) + " dist=" + bestDistance + (notes.Count > 0 ? " rejected=" + String.Join(",", notes.ToArray()) : String.Empty)
-                : (notes.Count > 0 ? "accepted=none rejected=" + String.Join(",", notes.ToArray()) : "accepted=none rejected=none");
+            AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, state.ScanRange);
+            if (!validation.Allowed)
+            {
+                state.LastTargetRejectionReason = validation.Reason;
+                return null;
+            }
 
-            return best;
+            AIGMCompanionTrackingState trackingState = AIGMCompanionTrackingService.GetState(companion);
+            if (trackingState != null)
+            {
+                trackingState.LastCandidateSummary = acceptedSummary;
+                trackingState.LastRejectedCandidates = rejectedSummary;
+                trackingState.LastKnownTargetDescription = String.IsNullOrWhiteSpace(target.Name) ? target.GetType().Name : target.Name;
+                trackingState.LastKnownDirectionText = companion.GetDirectionTo(target).ToString();
+                trackingState.LastKnownDistanceText = ((int)Math.Round(companion.GetDistanceToSqrt(target))) + " tiles";
+                trackingState.LastKnownTileText = String.Format("{0},{1},{2}", target.X, target.Y, target.Z);
+                trackingState.LastScanUtc = DateTime.UtcNow;
+            }
+
+            state.LastTargetRejectionReason = String.Empty;
+            return target;
         }
 
         private static bool IsValidCompanion(BaseHire companion)
@@ -363,15 +361,6 @@ namespace Server.Custom.AIGM
         private static string FormatPoint(Point3D point)
         {
             return String.Format("({0},{1},{2})", point.X, point.Y, point.Z);
-        }
-
-        private static string DescribeCandidate(Mobile mobile)
-        {
-            if (mobile == null)
-                return "null";
-
-            string name = String.IsNullOrWhiteSpace(mobile.Name) ? mobile.GetType().Name : mobile.Name;
-            return name.Replace(",", String.Empty);
         }
     }
 }
