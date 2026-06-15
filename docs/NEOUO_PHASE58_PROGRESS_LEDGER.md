@@ -239,7 +239,7 @@ Live proof observations:
 - `[sdump]` showed mode, owner, text, listener set, selected set, suppressed set, reasons, chain depth, and state
 
 ## 18. Phase58D useful-hardening recovery checkpoint
-**Status: useful live-speech hardening diff inspected, built, pending post-commit live proof**
+**Status: useful live-speech hardening diff inspected, built, committed, and post-commit live-proofed**
 
 Classification:
 - `USEFUL-HARDENING`
@@ -267,4 +267,11 @@ Recovery notes:
 - ServUO PID `4696` was stopped before the build.
 - Coordinate movement WIP files remain intentionally unstaged and untouched.
 - Save-backup folders remain intentionally unstaged and untouched.
-- Live proof after this hardening commit is still pending until ServUO is restarted and `[p58speech]` / `[sdump]` are run again.
+- Hardening commit: `0d222f621ec8c22fa3640fe9433b5e49091e78d9`
+- ServUO was restarted from the FullIntegration repo after the hardening commit.
+- Live proof after this hardening commit completed through `[p58speech]` and `[sdump]`.
+- Fresh proof artifact: `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_223822.md`
+- Fresh proof found Dakeyras, Danyal, and Dardalion.
+- Fresh proof selected Dakeyras only for direct named routing.
+- Fresh proof selected all three companions for group owner speech.
+- Fresh proof selected one companion follow-up and blocked second-hop echo dialogue.

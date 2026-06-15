@@ -1,10 +1,10 @@
 {
   "project": "NeoUO AIGM UMG Companion Recovery",
   "branch": "neo/phase56t-clean-speech-recovery",
-  "head": "0464db7ee9a4740ba828870b3e03b3fa94b2c63b",
-  "repoStatus": "useful_hardening_build_passed_pending_commit_and_live_proof_with_intentionally_untracked_wip",
+  "head": "0d222f621ec8c22fa3640fe9433b5e49091e78d9",
+  "repoStatus": "useful_hardening_committed_and_live_proofed_with_intentionally_untracked_wip",
   "phase": "Phase58D",
-  "lastStableCommit": "0464db7ee9a4740ba828870b3e03b3fa94b2c63b",
+  "lastStableCommit": "0d222f621ec8c22fa3640fe9433b5e49091e78d9",
   "completed": [
     "Phase56/57 speech lane restoration baseline is present",
     "Read-only tracking and awareness baseline is present",
@@ -27,7 +27,9 @@
     "Live [sdump] command registered and displayed the latest party speech context",
     "Live proof covered Dakeyras, Danyal, and Dardalion after Dardalion was spawned and claimed through existing command paths",
     "Phase58D dirty-repo recovery classified the partial live-speech diff as USEFUL-HARDENING",
-    "Phase58D useful-hardening preflight build passed with 0 errors and 0 warnings"
+    "Phase58D useful-hardening preflight build passed with 0 errors and 0 warnings",
+    "Phase58D useful-hardening commit 0d222f621ec8c22fa3640fe9433b5e49091e78d9 was live-proofed after ServUO restart",
+    "Post-hardening [p58speech] wrote docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_223822.md"
   ],
   "verifiedRuntime": [
     "Existing hostile-monster proof artifacts include LastReject: animal_target",
@@ -37,11 +39,9 @@
     "Phase58D live proof blocked second-hop companion dialogue with PHASE58D-ECHO-BLOCKED",
     "Phase58D live proof included tracking, hunt, guard, health, bandage, and movement availability context"
   ],
-  "pendingRuntimeProof": [
-    "Restart ServUO after the useful-hardening commit and rerun [p58speech] plus [sdump] to capture a fresh hardening proof artifact"
-  ],
+  "pendingRuntimeProof": [],
   "blocked": [],
-  "nextAction": "Commit the useful Phase58D live-speech hardening diff, restart ServUO, then run [p58speech] and [sdump] for a fresh post-hardening proof artifact.",
+  "nextAction": "Use the post-hardening live proof artifact as the Phase58D runtime baseline; do not move to coordinate movement until requested.",
   "build": {
     "command": "dotnet build .\\ServUO.sln -c Release",
     "result": "succeeded",
@@ -52,7 +52,8 @@
   "proofArtifacts": [
     "docs/PHASE58D_PARTY_SPEECH_RESTORATION_REPORT.md",
     "docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_112637.md",
-    "docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_205353.md"
+    "docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_205353.md",
+    "docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_223822.md"
   ],
   "usefulHardeningRecovery": {
     "classification": "USEFUL-HARDENING",
@@ -60,7 +61,9 @@
     "buildResult": "succeeded",
     "errors": 0,
     "warnings": 0,
-    "liveProofAfterCommit": "pending",
+    "commit": "0d222f621ec8c22fa3640fe9433b5e49091e78d9",
+    "liveProofAfterCommit": "completed",
+    "proofFile": "docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_223822.md",
     "changedFiles": [
       "Scripts/Custom/AIGM/AIGMBridgeClient.cs",
       "Scripts/Custom/AIGM/AIGMCompanionCommandBoundary.cs",
@@ -79,7 +82,7 @@
   "liveProof": {
     "commandRun": "[p58speech",
     "dumpCommandRun": "[sdump",
-    "proofFile": "docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_205353.md",
+    "proofFile": "docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_223822.md",
     "p58speechRegistered": true,
     "sdumpWorked": true,
     "companionsFound": [
@@ -93,7 +96,9 @@
       "PHASE58D-COMPANION-DIALOGUE-PROOF",
       "PHASE58D-ECHO-BLOCKED"
     ],
-    "codeChangedDuringLiveProof": false
+    "codeChangedDuringLiveProof": false,
+    "postHardeningProof": true,
+    "hardeningCommit": "0d222f621ec8c22fa3640fe9433b5e49091e78d9"
   },
   "safetyBoundaries": [
     "Monster-only attack lane",

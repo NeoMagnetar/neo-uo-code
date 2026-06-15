@@ -82,7 +82,18 @@ Hardening build result:
 - Result: succeeded
 - Errors: 0
 - Warnings: 0
-- Live proof after this hardening commit: pending restart and `[p58speech]` / `[sdump]` run.
+- Live proof after this hardening commit: completed after restart with `[p58speech]` / `[sdump]`.
+
+Post-hardening live proof artifact:
+
+- `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_223822.md`
+- HEAD: `0d222f621ec8c22fa3640fe9433b5e49091e78d9`
+- Companions found: Dakeyras, Danyal, and Dardalion.
+- Direct named command selected Dakeyras only and suppressed Danyal/Dardalion as context-only.
+- Group owner speech selected Dakeyras, Danyal, and Dardalion with no suppressed responders.
+- Companion-to-companion exchange selected one follow-up responder and suppressed the source plus extra responder.
+- State context included tracking, hunt, guard, health, bandage, and movement availability summaries.
+- Echo-loop prevention blocked second-hop companion dialogue with `PHASE58D-ECHO-BLOCKED`.
 
 ## Proof
 
@@ -110,7 +121,7 @@ Live shard proof pass:
 
 Canonical live proof artifact:
 
-- `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_205353.md`
+- `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_223822.md`
 
 Live proof result:
 
