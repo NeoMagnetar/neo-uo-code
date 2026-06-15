@@ -509,7 +509,7 @@ namespace Server.Mobiles
         private string BuildCategoryTrackingReport(AIGMCompanionIntent intent, Mobile speaker)
         {
             AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(intent != null ? intent.Kind : String.Empty);
-            return AIGMCompanionTrackingService.StartTracking(this, speaker, mode);
+            return AIGMCompanionTrackingService.BuildTrackingSweepReport(this, speaker, mode);
         }
 
         private AIGMCompanionCapabilityKind ResolveCapability(AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent)
@@ -652,3 +652,4 @@ namespace Server.Mobiles
         }
     }
 }
+
