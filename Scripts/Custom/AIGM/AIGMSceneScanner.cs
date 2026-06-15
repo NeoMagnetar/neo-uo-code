@@ -23,11 +23,12 @@ namespace Server.Custom.AIGM
             IPooledEnumerable mobiles = from.Map.GetMobilesInRange(from.Location, range);
             foreach (Mobile mob in mobiles)
             {
-                if (mob == null || mob == from)
+                if (mob == null || mob == from || mob.Deleted)
                     continue;
 
                 scene.NearbyMobiles.Add(new AIGMSceneEntitySummary
                 {
+                    Serial = mob.Serial.Value,
                     Kind = "Mobile",
                     Name = mob.Name,
                     TypeName = mob.GetType().Name,
@@ -36,7 +37,7 @@ namespace Server.Custom.AIGM
                     Z = mob.Location.Z
                 });
 
-                if (scene.NearbyMobiles.Count >= 8)
+                if (scene.NearbyMobiles.Count >= 32)
                     break;
             }
             mobiles.Free();
@@ -44,11 +45,12 @@ namespace Server.Custom.AIGM
             IPooledEnumerable items = from.Map.GetItemsInRange(from.Location, range);
             foreach (Item item in items)
             {
-                if (item == null)
+                if (item == null || item.Deleted)
                     continue;
 
                 scene.NearbyItems.Add(new AIGMSceneEntitySummary
                 {
+                    Serial = item.Serial.Value,
                     Kind = "Item",
                     Name = item.Name,
                     TypeName = item.GetType().Name,
@@ -57,7 +59,7 @@ namespace Server.Custom.AIGM
                     Z = item.Location.Z
                 });
 
-                if (scene.NearbyItems.Count >= 10)
+                if (scene.NearbyItems.Count >= 16)
                     break;
             }
             items.Free();

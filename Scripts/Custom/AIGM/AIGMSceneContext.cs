@@ -5,6 +5,7 @@ namespace Server.Custom.AIGM
 {
     public class AIGMSceneEntitySummary
     {
+        public int Serial { get; set; }
         public string Kind { get; set; }
         public string Name { get; set; }
         public string TypeName { get; set; }

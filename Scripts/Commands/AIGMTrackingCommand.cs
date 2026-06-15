@@ -112,7 +112,7 @@ namespace Server.Commands
                 return;
             }
 
-            e.Mobile.SendMessage(String.Format("Companion={0}; Active={1}; Mode={2}; Target={3}; Direction={4}; Distance={5}; Tile={6}; Last={7}",
+            e.Mobile.SendMessage(String.Format("Companion={0}; Active={1}; Mode={2}; Target={3}; Direction={4}; Distance={5}; Tile={6}; Accepted={7}; Rejected={8}; Last={9}",
                 companion.Name,
                 state.IsActive,
                 state.Mode,
@@ -120,6 +120,8 @@ namespace Server.Commands
                 String.IsNullOrWhiteSpace(state.LastKnownDirectionText) ? "none" : state.LastKnownDirectionText,
                 String.IsNullOrWhiteSpace(state.LastKnownDistanceText) ? "none" : state.LastKnownDistanceText,
                 String.IsNullOrWhiteSpace(state.LastKnownTileText) ? "none" : state.LastKnownTileText,
+                String.IsNullOrWhiteSpace(state.LastCandidateSummary) ? "none" : state.LastCandidateSummary,
+                String.IsNullOrWhiteSpace(state.LastRejectedCandidates) ? "none" : state.LastRejectedCandidates,
                 String.IsNullOrWhiteSpace(state.LastReport) ? "none" : state.LastReport));
         }
 

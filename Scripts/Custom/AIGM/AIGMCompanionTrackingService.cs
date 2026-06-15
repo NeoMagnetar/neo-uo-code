@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Server;
 using Server.Mobiles;
+using Server.Spells;
+using Server.Spells.Necromancy;
 
 namespace Server.Custom.AIGM
 {
@@ -81,23 +83,44 @@ namespace Server.Custom.AIGM
             if (scene == null || scene.NearbyMobiles == null || scene.NearbyMobiles.Count == 0)
             {
                 ClearLastTarget(state);
+                state.LastCandidateSummary = "accepted=none";
+                state.LastRejectedCandidates = "none";
                 return String.Format("{0}: Tracking {1:0.0}, {2}. I do not find a clear {3} trail nearby.", companion.Name, tracking, tier, DescribeMode(mode));
             }
 
             List<AIGMSceneEntitySummary> matches = new List<AIGMSceneEntitySummary>();
+            List<string> rejects = new List<string>();
+
             for (int i = 0; i < scene.NearbyMobiles.Count; i++)
             {
                 AIGMSceneEntitySummary mob = scene.NearbyMobiles[i];
                 if (mob == null)
                     continue;
 
-                if (MatchesCategory(mob, mode))
-                    matches.Add(mob);
+                string rejectReason;
+                if (!MatchesCategory(mob, mode, out rejectReason))
+                {
+                    if (rejects.Count < 12)
+                        rejects.Add(DescribeSummary(mob) + "=" + rejectReason);
+                    continue;
+                }
+
+                if (!CanTrack(companion, mob, out rejectReason))
+                {
+                    if (rejects.Count < 12)
+                        rejects.Add(DescribeSummary(mob) + "=" + rejectReason);
+                    continue;
+                }
+
+                matches.Add(mob);
             }
+
+            state.LastRejectedCandidates = rejects.Count > 0 ? String.Join(", ", rejects.ToArray()) : "none";
 
             if (matches.Count == 0)
             {
                 ClearLastTarget(state);
+                state.LastCandidateSummary = "accepted=none";
                 return String.Format("{0}: Tracking {1:0.0}, {2}. I do not find a clear {3} trail nearby.", companion.Name, tracking, tier, DescribeMode(mode));
             }
 
@@ -113,6 +136,7 @@ namespace Server.Custom.AIGM
             state.LastKnownDirectionText = direction;
             state.LastKnownDistanceText = distance;
             state.LastKnownTileText = tile;
+            state.LastCandidateSummary = BuildCandidateSummary(companion, matches);
 
             if (matches.Count == 1)
                 return String.Format("{0}: Tracking {1:0.0}, {2}. I find 1 {3} sign: {4} at tile {5}, {6}, {7}. Pursuit remains gated.", companion.Name, tracking, tier, category, targetName, tile, direction, distance);
@@ -185,6 +209,14 @@ namespace Server.Custom.AIGM
             return companion == null ? null : GetOrCreateState(companion);
         }
 
+        public static bool IsHostileMonsterSummary(AIGMSceneEntitySummary mob)
+        {
+            if (mob == null)
+                return false;
+
+            return !IsPlayer(mob) && !IsAnimal(mob) && !IsHumanNPC(mob) && IsMonster(mob);
+        }
+
         private static bool IsValidCompanion(BaseHire companion)
         {
             return companion != null && !companion.Deleted && companion.Alive && companion.Map != null;
@@ -254,54 +286,172 @@ namespace Server.Custom.AIGM
             return AIGMCompanionSkillReadiness.BuildTier(tracking);
         }
 
-        private static bool MatchesCategory(AIGMSceneEntitySummary mob, AIGMCompanionTrackingMode mode)
+        private static bool MatchesCategory(AIGMSceneEntitySummary mob, AIGMCompanionTrackingMode mode, out string rejectReason)
         {
+            rejectReason = String.Empty;
+
             switch (mode)
             {
                 case AIGMCompanionTrackingMode.Animals:
-                    return IsAnimal(mob);
+                    if (IsAnimal(mob))
+                        return true;
+                    rejectReason = DescribeClass(mob);
+                    return false;
                 case AIGMCompanionTrackingMode.Monsters:
-                    return IsMonster(mob);
+                    if (IsHostileMonsterSummary(mob))
+                        return true;
+                    rejectReason = DescribeClass(mob);
+                    return false;
                 case AIGMCompanionTrackingMode.Players:
-                    return IsPlayer(mob);
+                    if (IsPlayer(mob))
+                        return true;
+                    rejectReason = DescribeClass(mob);
+                    return false;
                 case AIGMCompanionTrackingMode.HumanNPCs:
-                    return IsHumanNPC(mob);
+                    if (IsHumanNPC(mob))
+                        return true;
+                    rejectReason = DescribeClass(mob);
+                    return false;
                 case AIGMCompanionTrackingMode.NPCs:
-                    return IsHumanNPC(mob);
+                    if (IsHumanNPC(mob) || IsNonHumanNPC(mob))
+                        return true;
+                    rejectReason = DescribeClass(mob);
+                    return false;
                 case AIGMCompanionTrackingMode.Threats:
-                    return IsMonster(mob);
+                    if (IsHostileMonsterSummary(mob))
+                        return true;
+                    rejectReason = DescribeClass(mob);
+                    return false;
                 case AIGMCompanionTrackingMode.All:
                 case AIGMCompanionTrackingMode.General:
-                    return IsAnimal(mob) || IsMonster(mob) || IsPlayer(mob) || IsHumanNPC(mob);
+                    if (IsAnimal(mob) || IsMonster(mob) || IsPlayer(mob) || IsHumanNPC(mob) || IsNonHumanNPC(mob))
+                        return true;
+                    rejectReason = "other";
+                    return false;
                 default:
+                    rejectReason = "unsupported_mode";
                     return false;
             }
         }
 
+        private static bool CanTrack(BaseHire companion, AIGMSceneEntitySummary mob, out string rejectReason)
+        {
+            rejectReason = String.Empty;
+
+            if (companion == null || mob == null)
+            {
+                rejectReason = "invalid_candidate";
+                return false;
+            }
+
+            Mobile target = ResolveMobile(mob);
+            if (target == null)
+                return true;
+
+            if (target == companion)
+            {
+                rejectReason = "self_target";
+                return false;
+            }
+
+            if (Core.AOS && !target.Alive)
+            {
+                rejectReason = "dead_target";
+                return false;
+            }
+
+            if (target.Hidden && !target.Player && companion.AccessLevel <= target.AccessLevel)
+            {
+                rejectReason = "hidden_target";
+                return false;
+            }
+
+            if (!CheckDifficulty(companion, target))
+            {
+                rejectReason = "tracking_difficulty_failed";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static Mobile ResolveMobile(AIGMSceneEntitySummary summary)
+        {
+            if (summary == null || summary.Serial == 0)
+                return null;
+
+            return World.FindMobile(summary.Serial);
+        }
+
+        private static bool CheckDifficulty(Mobile from, Mobile target)
+        {
+            if (from == null || target == null)
+                return false;
+
+            if (!Core.AOS || !target.Player)
+                return true;
+
+            int tracking = from.Skills[SkillName.Tracking].Fixed;
+            int detectHidden = from.Skills[SkillName.DetectHidden].Fixed;
+
+            if (Core.ML && target.Race == Race.Elf)
+                tracking /= 2;
+
+            int hiding = target.Skills[SkillName.Hiding].Fixed;
+            int stealth = target.Skills[SkillName.Stealth].Fixed;
+            int divisor = hiding + stealth;
+
+            if (TransformationSpellHelper.UnderTransformation(target, typeof(HorrificBeastSpell)))
+                divisor -= 200;
+            else if (TransformationSpellHelper.UnderTransformation(target, typeof(VampiricEmbraceSpell)) && divisor < 500)
+                divisor = 500;
+            else if (TransformationSpellHelper.UnderTransformation(target, typeof(WraithFormSpell)) && divisor <= 2000)
+                divisor += 200;
+
+            int chance = divisor > 0 ? 50 * (tracking * 2 + detectHidden) / divisor : 100;
+            return chance > Utility.Random(100);
+        }
+
         private static bool IsAnimal(AIGMSceneEntitySummary mob)
         {
+            Mobile target = ResolveMobile(mob);
+            if (target != null)
+                return !target.Player && target.Body != null && target.Body.IsAnimal;
+
             string typeName = (mob.TypeName ?? String.Empty).ToLowerInvariant();
             string name = (mob.Name ?? String.Empty).ToLowerInvariant();
-            return ContainsAny(typeName, "horse", "ostard", "cat", "dog", "wolf", "bear", "boar", "eagle", "hind", "hart")
-                || ContainsAny(name, "horse", "ostard", "cat", "dog", "wolf", "bear", "boar", "eagle", "hind", "hart");
+            return ContainsAny(typeName, "horse", "ostard", "cat", "dog", "wolf", "bear", "boar", "eagle", "hind", "hart", "cow", "bull")
+                || ContainsAny(name, "horse", "ostard", "cat", "dog", "wolf", "bear", "boar", "eagle", "hind", "hart", "cow", "bull");
         }
 
         private static bool IsMonster(AIGMSceneEntitySummary mob)
         {
+            Mobile target = ResolveMobile(mob);
+            if (target != null)
+                return !target.Player && target.Body != null && target.Body.IsMonster;
+
             string typeName = (mob.TypeName ?? String.Empty).ToLowerInvariant();
             string name = (mob.Name ?? String.Empty).ToLowerInvariant();
-            return ContainsAny(typeName, "dragon", "daemon", "lich", "orc", "troll", "ogre", "ettin", "ratman", "mongbat", "headless", "reaper", "elemental")
-                || ContainsAny(name, "orc", "daemon", "lich", "brigand", "pirate", "troll", "ogre", "ratman", "headless");
+            return ContainsAny(typeName, "dragon", "daemon", "lich", "orc", "troll", "ogre", "ettin", "ratman", "mongbat", "headless", "reaper", "elemental", "skeleton")
+                || ContainsAny(name, "orc", "daemon", "lich", "brigand", "pirate", "troll", "ogre", "ratman", "headless", "skeleton");
         }
 
         private static bool IsPlayer(AIGMSceneEntitySummary mob)
         {
+            Mobile target = ResolveMobile(mob);
+            if (target != null)
+                return target.Player;
+
             string typeName = (mob.TypeName ?? String.Empty).ToLowerInvariant();
-            return typeName.Contains("playermobile") || typeName.Equals("player") || typeName.Contains("playermobile");
+            return typeName.Contains("playermobile") || typeName.Equals("player");
         }
 
         private static bool IsHumanNPC(AIGMSceneEntitySummary mob)
         {
+            Mobile target = ResolveMobile(mob);
+            if (target != null)
+                return !target.Player && target.Body != null && target.Body.IsHuman;
+
             string typeName = (mob.TypeName ?? String.Empty).ToLowerInvariant();
             string name = (mob.Name ?? String.Empty).ToLowerInvariant();
             if (IsPlayer(mob))
@@ -309,6 +459,48 @@ namespace Server.Custom.AIGM
 
             return ContainsAny(typeName, "vendor", "healer", "seer", "human", "banker", "provisioner", "mage", "warrior")
                 || ContainsAny(name, "healer", "banker", "vendor", "mage", "guard", "innkeeper", "provisioner");
+        }
+
+        private static bool IsNonHumanNPC(AIGMSceneEntitySummary mob)
+        {
+            Mobile target = ResolveMobile(mob);
+            if (target == null)
+                return false;
+
+            if (target.Player)
+                return false;
+
+            if (target is BaseHire || target is IAIGMCompanionActor)
+                return false;
+
+            if (target is BaseVendor || target is BaseEscortable)
+                return true;
+
+            if (target.Body != null && target.Body.IsHuman)
+                return false;
+
+            if (target.Body != null && target.Body.IsAnimal)
+                return false;
+
+            if (target.Body != null && target.Body.IsMonster)
+                return false;
+
+            return true;
+        }
+
+        private static string DescribeClass(AIGMSceneEntitySummary mob)
+        {
+            if (IsPlayer(mob))
+                return "player";
+            if (IsHumanNPC(mob))
+                return "human_npc";
+            if (IsNonHumanNPC(mob))
+                return "npc";
+            if (IsAnimal(mob))
+                return "animal";
+            if (IsMonster(mob))
+                return "monster";
+            return "other";
         }
 
         private static string DescribeDirection(BaseHire companion, AIGMSceneEntitySummary summary)
@@ -366,6 +558,26 @@ namespace Server.Custom.AIGM
                 return "unknown";
 
             return String.Format("{0},{1},{2}", summary.X, summary.Y, summary.Z);
+        }
+
+        private static string BuildCandidateSummary(BaseHire companion, List<AIGMSceneEntitySummary> matches)
+        {
+            if (companion == null || matches == null || matches.Count == 0)
+                return "accepted=none";
+
+            List<string> parts = new List<string>();
+            for (int i = 0; i < matches.Count && i < 12; i++)
+                parts.Add(DescribeSummary(matches[i]) + "@" + GetDistance(companion, matches[i]));
+
+            return "accepted=" + String.Join(", ", parts.ToArray());
+        }
+
+        private static string DescribeSummary(AIGMSceneEntitySummary summary)
+        {
+            if (summary == null)
+                return "none";
+
+            return String.IsNullOrWhiteSpace(summary.Name) ? (!String.IsNullOrWhiteSpace(summary.TypeName) ? summary.TypeName : "unknown") : summary.Name;
         }
 
         private static void ClearLastTarget(AIGMCompanionTrackingState state)
