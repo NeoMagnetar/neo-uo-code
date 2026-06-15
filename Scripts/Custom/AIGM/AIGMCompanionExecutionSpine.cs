@@ -48,7 +48,16 @@ namespace Server.Custom.AIGM
 
             AIGMCompanionExecutionState state = GetOrCreateState(companion);
             string target = String.IsNullOrWhiteSpace(state.CurrentTargetName) ? "none" : state.CurrentTargetName;
-            return String.Format("{0}: huntActive={1}, phase={2}, target={3}, trace={4}", companion.Name, state.HuntActive, state.Phase, target, String.IsNullOrWhiteSpace(state.LastTrace) ? "none" : state.LastTrace);
+            return String.Format("{0}: huntActive={1}, phase={2}, target={3}, lastMove={4}, lastDoor={5}, lastCombat={6}, lastReject={7}, trace={8}",
+                companion.Name,
+                state.HuntActive,
+                state.Phase,
+                target,
+                String.IsNullOrWhiteSpace(state.LastMovementResult) ? "none" : state.LastMovementResult,
+                String.IsNullOrWhiteSpace(state.LastDoor) ? "none" : state.LastDoor,
+                String.IsNullOrWhiteSpace(state.LastCombatResult) ? "none" : state.LastCombatResult,
+                String.IsNullOrWhiteSpace(state.LastTargetRejectionReason) ? "none" : state.LastTargetRejectionReason,
+                String.IsNullOrWhiteSpace(state.LastTrace) ? "none" : state.LastTrace);
         }
 
         public static AIGMCompanionExecutionState GetState(BaseHire companion)
@@ -111,54 +120,34 @@ namespace Server.Custom.AIGM
             state.CurrentTargetName = target.Name ?? target.GetType().Name;
             state.CurrentTargetPoint = target.Location;
 
-            state.LastDoorOpenAttempted = true;
-            state.LastDoorOpenSucceeded = false;
             if (!companion.InRange(target, 1))
             {
-                AIGMCompanionTargetValidationResult preDoorValidation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, state.ScanRange);
-                if (!preDoorValidation.Allowed)
+                AIGMCompanionTargetValidationResult preMoveValidation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, state.ScanRange);
+                if (!preMoveValidation.Allowed)
                 {
-                    state.LastTargetRejectionReason = preDoorValidation.Reason;
+                    state.LastTargetRejectionReason = preMoveValidation.Reason;
                     state.CurrentTargetSerial = 0;
                     state.CurrentTargetName = String.Empty;
                     state.CurrentTargetPoint = Point3D.Zero;
-                    SetPhase(state, AIGMCompanionExecutionPhase.Reacquiring, preDoorValidation.Reason);
-                    Trace(state, preDoorValidation.Reason);
+                    SetPhase(state, AIGMCompanionExecutionPhase.Reacquiring, preMoveValidation.Reason);
+                    Trace(state, preMoveValidation.Reason);
                     return companion.Name + ": I will not pursue an invalid target.";
                 }
 
-                state.LastDoorOpenSucceeded = AIGMCompanionDoorService.TryOpenNearbyDoor(companion);
-                if (state.LastDoorOpenSucceeded)
-                {
-                    SetPhase(state, AIGMCompanionExecutionPhase.OpeningDoor, "door_opened_for_pursuit");
-                    Trace(state, "door_opened_for_pursuit");
-                }
-
-                SetPhase(state, AIGMCompanionExecutionPhase.PursuingMonster, "pursuing_target");
                 Point3D before = companion.Location;
                 int distanceBefore = (int)companion.GetDistanceToSqrt(target);
-                Direction direction = companion.GetDirectionTo(target);
-                state.LastMoveFrom = before;
-                state.LastMoveDirection = (direction & Direction.Mask).ToString();
-                state.LastMoveDistanceBefore = distanceBefore;
-
-                bool moved = false;
-                bool turnedFirst = false;
-                if ((companion.Direction & Direction.Mask) != (direction & Direction.Mask))
-                {
-                    companion.Direction = direction;
-                    turnedFirst = true;
-                }
-
-                moved = companion.Move(direction);
+                bool moved = TryStepTowardTarget(companion, target, state);
                 Point3D after = companion.Location;
                 int distanceAfter = (int)companion.GetDistanceToSqrt(target);
+                state.LastMoveFrom = before;
                 state.LastMoveTo = after;
+                state.LastMoveDistanceBefore = distanceBefore;
                 state.LastMoveDistanceAfter = distanceAfter;
 
-                if (after != before)
+                if (moved)
                 {
-                    state.LastMovementResult = "moved_one_step from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter + (turnedFirst ? " turnedFirst=true" : String.Empty);
+                    SetPhase(state, AIGMCompanionExecutionPhase.PursuingMonster, "pursuing_target");
+                    state.LastMovementResult = "moved_one_step from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter;
                     Trace(state, "step_toward_target_moved");
 
                     if (companion.InRange(target, 1))
@@ -178,13 +167,9 @@ namespace Server.Custom.AIGM
                     return companion.Name + ": I move toward " + state.CurrentTargetName + ".";
                 }
 
-                state.LastMovementResult = moved
-                    ? "step_toward_target_no_location_change from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter + (turnedFirst ? " turnedFirst=true" : String.Empty)
-                    : (turnedFirst
-                        ? "turned_toward_target_only from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter
-                        : "movement_blocked from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " dir=" + state.LastMoveDirection + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter);
-                Trace(state, moved ? "step_toward_target_no_location_change" : (turnedFirst ? "turned_toward_target_only" : "movement_blocked"));
-                SetPhase(state, AIGMCompanionExecutionPhase.Blocked, moved ? "no_location_change" : (turnedFirst ? "turned_only" : "movement_blocked"));
+                SetPhase(state, AIGMCompanionExecutionPhase.Blocked, "movement_blocked");
+                state.LastMovementResult = "movement_blocked from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter;
+                Trace(state, "movement_blocked");
                 return companion.Name + ": I could not close the distance to " + state.CurrentTargetName + ".";
             }
 
@@ -205,6 +190,78 @@ namespace Server.Custom.AIGM
             SetPhase(state, AIGMCompanionExecutionPhase.Reacquiring, combatResult);
             Trace(state, combatResult);
             return companion.Name + ": I lost my mark and will reacquire.";
+        }
+
+        private static bool TryStepTowardTarget(BaseHire companion, Mobile target, AIGMCompanionExecutionState state)
+        {
+            if (companion == null || target == null || state == null || companion.Map == null || target.Map != companion.Map)
+                return false;
+
+            Point3D[] candidates = BuildStepCandidates(companion, target.Location);
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                Point3D candidate = candidates[i];
+                Direction direction = companion.GetDirectionTo(candidate);
+                state.LastMoveDirection = (direction & Direction.Mask).ToString();
+
+                if (candidate == companion.Location)
+                    continue;
+
+                if (TryMove(companion, direction))
+                {
+                    state.LastDoorOpenAttempted = false;
+                    state.LastDoorOpenSucceeded = false;
+                    state.LastDoor = "none";
+                    state.LastDoorTarget = String.Empty;
+                    return true;
+                }
+
+                AIGMCompanionDoorResult door = AIGMCompanionDoorService.TryOpenNearbyDoorDetailed(companion);
+                state.LastDoorOpenAttempted = door.Attempted;
+                state.LastDoorOpenSucceeded = door.Opened;
+                state.LastDoor = door.Status;
+                state.LastDoorTarget = door.Target;
+
+                if (door.Opened)
+                {
+                    SetPhase(state, AIGMCompanionExecutionPhase.OpeningDoor, "door_opened_for_pursuit");
+                    Trace(state, "door_opened_for_pursuit");
+                    if (TryMove(companion, direction))
+                        return true;
+                }
+            }
+
+            if (String.IsNullOrWhiteSpace(state.LastDoor))
+                state.LastDoor = "blocked";
+
+            return false;
+        }
+
+        private static Point3D[] BuildStepCandidates(BaseHire companion, Point3D destination)
+        {
+            int dx = Math.Sign(destination.X - companion.X);
+            int dy = Math.Sign(destination.Y - companion.Y);
+
+            return new Point3D[]
+            {
+                new Point3D(companion.X + dx, companion.Y + dy, companion.Z),
+                new Point3D(companion.X + dx, companion.Y, companion.Z),
+                new Point3D(companion.X, companion.Y + dy, companion.Z),
+                new Point3D(companion.X + dx, companion.Y - dy, companion.Z),
+                new Point3D(companion.X - dx, companion.Y + dy, companion.Z)
+            };
+        }
+
+        private static bool TryMove(BaseHire companion, Direction direction)
+        {
+            if (companion == null)
+                return false;
+
+            Direction masked = direction & Direction.Mask;
+            if ((companion.Direction & Direction.Mask) != masked)
+                companion.Direction = masked;
+
+            return companion.Move(masked);
         }
 
         private static Mobile ResolveCurrentTarget(BaseHire companion, AIGMCompanionExecutionState state)

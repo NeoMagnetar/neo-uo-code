@@ -36,6 +36,8 @@ namespace Server.Custom.AIGM
         public string LastError { get; set; }
         public bool LastDoorOpenAttempted { get; set; }
         public bool LastDoorOpenSucceeded { get; set; }
+        public string LastDoor { get; set; }
+        public string LastDoorTarget { get; set; }
         public bool LastBandageAttempted { get; set; }
         public bool LastBandageStarted { get; set; }
         public bool LastCureAttempted { get; set; }
@@ -63,6 +65,8 @@ namespace Server.Custom.AIGM
             CurrentTargetPoint = Point3D.Zero;
             LastTrace = String.Empty;
             LastError = String.Empty;
+            LastDoor = String.Empty;
+            LastDoorTarget = String.Empty;
             LastMovementResult = String.Empty;
             LastCombatResult = String.Empty;
             LastTargetRejectionReason = String.Empty;
