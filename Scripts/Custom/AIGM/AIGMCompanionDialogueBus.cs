@@ -14,6 +14,11 @@ namespace Server.Custom.AIGM
 
         public static void PublishDialogue(BaseHire sourceCompanion, string speech)
         {
+            PublishDialogue(sourceCompanion, speech, null);
+        }
+
+        public static void PublishDialogue(BaseHire sourceCompanion, string speech, string preferredTargetCompanionId)
+        {
             if (sourceCompanion == null || sourceCompanion.Deleted || sourceCompanion.Map == null || String.IsNullOrWhiteSpace(speech))
                 return;
 
@@ -25,7 +30,11 @@ namespace Server.Custom.AIGM
             for (int i = 0; i < linkedCompanions.Count; i++)
             {
                 BaseHire target = linkedCompanions[i];
-                AIGMCompanionDialogueEvent dialogueEvent = new AIGMCompanionDialogueEvent(sourceCompanion.Serial, target.Serial, sourceCompanion.Name ?? sourceCompanion.GetType().Name, target.Name ?? target.GetType().Name, speech, 0);
+                IAIGMCompanionActor targetActor = target as IAIGMCompanionActor;
+                if (!String.IsNullOrWhiteSpace(preferredTargetCompanionId) && (targetActor == null || !String.Equals(targetActor.CompanionId, preferredTargetCompanionId, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                AIGMCompanionDialogueEvent dialogueEvent = new AIGMCompanionDialogueEvent(sourceCompanion.Serial, target.Serial, sourceCompanion.Name ?? sourceCompanion.GetType().Name, target.Name ?? target.GetType().Name, preferredTargetCompanionId, speech, 0);
                 if (!TryMarkRecent(dialogueEvent))
                     continue;
 

@@ -53,7 +53,7 @@ namespace Server.Custom.AIGM
             Create(AIGMCompanionCommandVerbKind.Come, AIGMCompanionCapabilityKind.Follow, "come", true, false, false,
                 exactMatches: new[] { "come", "come here", "come to me" }),
             Create(AIGMCompanionCommandVerbKind.Guard, AIGMCompanionCapabilityKind.Guard, "guard", true, false, false,
-                exactMatches: new[] { "guard me", "protect me", "defend me" }),
+                exactMatches: new[] { "guard me", "protect me", "defend me", "stand guard" }),
             Create(AIGMCompanionCommandVerbKind.Stay, AIGMCompanionCapabilityKind.Stay, "stay", true, false, false,
                 exactMatches: new[] { "stay", "stay here" }),
             Create(AIGMCompanionCommandVerbKind.Hold, AIGMCompanionCapabilityKind.Stay, "hold", true, false, false,

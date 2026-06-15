@@ -42,6 +42,7 @@ namespace Server.Custom.AIGM
         public int Z { get; private set; }
         public Guid? EventId { get; private set; }
         public string OriginCompanionId { get; private set; }
+        public string DialogueTargetCompanionId { get; private set; }
         public int HopCount { get; private set; }
         public bool AllowRemoteRelay { get; private set; }
         public bool IsPrimaryVisibleTurn { get; private set; }
@@ -54,6 +55,11 @@ namespace Server.Custom.AIGM
         }
 
         public AIGMCompanionSpeechRequest(IAIGMCompanionActor companion, Mobile speaker, string speech, string dialogueMode, Guid? eventId, string originCompanionId, int hopCount, bool allowRemoteRelay, bool isPrimaryVisibleTurn, bool isContextOnly)
+            : this(companion, speaker, speech, dialogueMode, eventId, originCompanionId, hopCount, allowRemoteRelay, isPrimaryVisibleTurn, isContextOnly, null)
+        {
+        }
+
+        public AIGMCompanionSpeechRequest(IAIGMCompanionActor companion, Mobile speaker, string speech, string dialogueMode, Guid? eventId, string originCompanionId, int hopCount, bool allowRemoteRelay, bool isPrimaryVisibleTurn, bool isContextOnly, string dialogueTargetCompanionId)
         {
             RequestId = Guid.NewGuid().ToString("N");
             Companion = companion;
@@ -72,8 +78,8 @@ namespace Server.Custom.AIGM
             CompanionCapabilityBoundary = persona != null ? persona.CapabilityBoundary : null;
             CompanionSiblingContext = persona != null ? persona.SiblingFraming : null;
             CompanionPartyRoster = persona != null ? persona.PartyRoster : null;
-            AIGMCompanionPartySpeechContext partyContext = AIGMCompanionTurnCoordinator.BuildContext(companion, speaker, speech, DialogueMode, originCompanionId, hopCount);
-            OwnerGroupContext = partyContext != null ? String.Format("mode={0}; owner={1}; groupAddressed={2}; addressed={3}", partyContext.DialogueMode, partyContext.OwnerSpeaker, partyContext.GroupAddressed, partyContext.AddressedCompanionId) : String.Empty;
+            AIGMCompanionPartySpeechContext partyContext = AIGMCompanionTurnCoordinator.BuildContext(companion, speaker, speech, DialogueMode, originCompanionId, hopCount, dialogueTargetCompanionId);
+            OwnerGroupContext = partyContext != null ? String.Format("mode={0}; owner={1}; groupAddressed={2}; addressed={3}; dialogueTarget={4}", partyContext.DialogueMode, partyContext.OwnerSpeaker, partyContext.GroupAddressed, partyContext.AddressedCompanionId, partyContext.DialogueTargetCompanionId) : String.Empty;
             PartyListenerSet = partyContext != null ? partyContext.FormatListenerSet() : String.Empty;
             PartySelectedResponderSet = partyContext != null ? partyContext.FormatSelectedResponders() : String.Empty;
             PartySuppressedResponderSet = partyContext != null ? partyContext.FormatSuppressedResponders() : String.Empty;
@@ -96,6 +102,7 @@ namespace Server.Custom.AIGM
             Z = speaker != null ? speaker.Z : 0;
             EventId = eventId;
             OriginCompanionId = originCompanionId;
+            DialogueTargetCompanionId = dialogueTargetCompanionId ?? String.Empty;
             HopCount = hopCount;
             AllowRemoteRelay = allowRemoteRelay;
             IsPrimaryVisibleTurn = isPrimaryVisibleTurn;

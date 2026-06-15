@@ -332,7 +332,7 @@ namespace Server.Custom.AIGM
                 return true;
             }
 
-            if (speech.Contains("guard me") || speech.Contains("protect me") || speech.Contains("defend me"))
+            if (speech.Contains("guard me") || speech.Contains("protect me") || speech.Contains("defend me") || speech.Contains("stand guard"))
             {
                 Make(AIGMCompanionIntentKind.GuardOwner, rawSpeech, out intent);
                 intent.ExplicitlyAddressed = explicitlyAddressed;

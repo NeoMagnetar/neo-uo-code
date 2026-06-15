@@ -54,7 +54,9 @@ namespace Server.Custom.AIGM
 
         public static bool TryEnqueue(IAIGMCompanionActor companion, Mobile speaker, string text, bool shouldSpeak, out string rejection)
         {
-            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(companion, speaker, text, "owner_or_world_speech", null, null, 0, false, shouldSpeak, !shouldSpeak);
+            string dialogueTargetCompanionId = AIGMCompanionTurnCoordinator.ResolveOwnerDirectedDialogueTarget(text);
+            bool allowRemoteRelay = AIGMCompanionTurnCoordinator.ShouldRelayOwnerSpeechAsCompanionDialogue(text);
+            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(companion, speaker, text, "owner_or_world_speech", null, null, 0, allowRemoteRelay, shouldSpeak, !shouldSpeak, dialogueTargetCompanionId);
             return TryEnqueue(request, shouldSpeak, out rejection);
         }
 
@@ -63,7 +65,10 @@ namespace Server.Custom.AIGM
             bool isPrimaryVisibleTurn = !String.Equals(dialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase)
                 && !String.Equals(dialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase);
             bool isContextOnly = !isPrimaryVisibleTurn;
-            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(companion, speaker, text, dialogueMode, null, null, 0, String.Equals(dialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase), isPrimaryVisibleTurn, isContextOnly);
+            string dialogueTargetCompanionId = AIGMCompanionTurnCoordinator.ResolveOwnerDirectedDialogueTarget(text);
+            bool allowRemoteRelay = String.Equals(dialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase)
+                || AIGMCompanionTurnCoordinator.ShouldRelayOwnerSpeechAsCompanionDialogue(text);
+            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(companion, speaker, text, dialogueMode, null, null, 0, allowRemoteRelay, isPrimaryVisibleTurn, isContextOnly, dialogueTargetCompanionId);
             return TryEnqueue(request, isPrimaryVisibleTurn, out rejection);
         }
 
@@ -134,7 +139,7 @@ namespace Server.Custom.AIGM
                     {
                         string recentContext = AIGMCompanionPerceptionBuffer.BuildRecentContext(request.Companion);
                         if (!String.IsNullOrWhiteSpace(recentContext))
-                            request = new AIGMCompanionSpeechRequest(request.Companion, request.Speaker, request.RawSpeech + "\n[dialogue_history]\n" + recentContext, request.DialogueMode, request.EventId, request.OriginCompanionId, request.HopCount, request.AllowRemoteRelay, request.IsPrimaryVisibleTurn, request.IsContextOnly);
+                            request = new AIGMCompanionSpeechRequest(request.Companion, request.Speaker, request.RawSpeech + "\n[dialogue_history]\n" + recentContext, request.DialogueMode, request.EventId, request.OriginCompanionId, request.HopCount, request.AllowRemoteRelay, request.IsPrimaryVisibleTurn, request.IsContextOnly, request.DialogueTargetCompanionId);
 
                         AIGMResponse response = AIGMBridgeClient.AskCompanionSpeechRequest(request);
                         DispatchToShardThread(request, response);
@@ -187,7 +192,7 @@ namespace Server.Custom.AIGM
                 return;
 
             if (request.AllowRemoteRelay && request.HopCount == 0)
-                PublishDialogueReply(request.Companion.Shell as BaseHire, reply);
+                PublishDialogueReply(request.Companion.Shell as BaseHire, reply, request.DialogueTargetCompanionId);
         }
 
         private static string BuildVisibleTimeoutFallback(IAIGMCompanionActor companion)
@@ -204,7 +209,7 @@ namespace Server.Custom.AIGM
             return String.Format("{0} seems distracted for a moment.", companion.CompanionDisplayName);
         }
 
-        private static void PublishDialogueReply(BaseHire trustedCompanion, string reply)
+        private static void PublishDialogueReply(BaseHire trustedCompanion, string reply, string dialogueTargetCompanionId)
         {
             if (trustedCompanion == null || trustedCompanion.Deleted || String.IsNullOrWhiteSpace(reply))
                 return;
@@ -214,7 +219,7 @@ namespace Server.Custom.AIGM
                 if (trustedCompanion == null || trustedCompanion.Deleted)
                     return;
 
-                AIGMCompanionDialogueBus.PublishDialogue(trustedCompanion, reply);
+                AIGMCompanionDialogueBus.PublishDialogue(trustedCompanion, reply, dialogueTargetCompanionId);
             });
         }
 

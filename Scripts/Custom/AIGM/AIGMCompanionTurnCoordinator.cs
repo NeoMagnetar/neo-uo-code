@@ -26,12 +26,24 @@ namespace Server.Custom.AIGM
             return context != null && context.IsSelected(companion != null ? companion.CompanionId : null);
         }
 
+        public static bool ShouldCompanionTakeVisibleTurn(IAIGMCompanionActor companion, Mobile speaker, string rawSpeech, string dialogueMode, string originCompanionId, int hopCount, string dialogueTargetCompanionId)
+        {
+            AIGMCompanionPartySpeechContext context = BuildContext(companion, speaker, rawSpeech, dialogueMode, originCompanionId, hopCount, dialogueTargetCompanionId);
+            return context != null && context.IsSelected(companion != null ? companion.CompanionId : null);
+        }
+
         public static AIGMCompanionPartySpeechContext BuildContext(IAIGMCompanionActor companion, Mobile speaker, string rawSpeech, string dialogueMode, string originCompanionId, int hopCount)
+        {
+            return BuildContext(companion, speaker, rawSpeech, dialogueMode, originCompanionId, hopCount, null);
+        }
+
+        public static AIGMCompanionPartySpeechContext BuildContext(IAIGMCompanionActor companion, Mobile speaker, string rawSpeech, string dialogueMode, string originCompanionId, int hopCount, string dialogueTargetCompanionId)
         {
             AIGMCompanionPartySpeechContext context = new AIGMCompanionPartySpeechContext();
             context.OwnerSpeaker = speaker != null ? speaker.Name ?? speaker.GetType().Name : "unknown";
             context.RawMessage = rawSpeech ?? String.Empty;
             context.CompanionDialogueChainDepth = hopCount;
+            context.DialogueTargetCompanionId = dialogueTargetCompanionId ?? String.Empty;
 
             BaseHire self = companion != null ? companion.Shell as BaseHire : null;
             Mobile owner = ResolveOwner(self, speaker);
@@ -51,11 +63,15 @@ namespace Server.Custom.AIGM
                 context.AddressedCompanionId = route.CompanionKey ?? String.Empty;
             else if (addressed != null && addressed.Count == 1)
                 context.AddressedCompanionId = addressed[0];
+            if (String.IsNullOrWhiteSpace(context.DialogueTargetCompanionId))
+                context.DialogueTargetCompanionId = ResolveOwnerDirectedDialogueTarget(rawSpeech);
 
             context.DialogueMode = ResolveDialogueMode(route, rawSpeech, dialogueMode, speaker, groupAddressed);
             context.StateContextSummary = BuildStateContextSummary(listeners);
+            context.LastStateSummaryUsed = context.StateContextSummary;
 
             SelectResponders(context, listeners, route, originCompanionId, speaker);
+            context.LastPersonaProfileUsed = BuildSelectedPersonaSummary(listeners, context.SelectedResponders);
             Remember(owner, context);
             return context;
         }
@@ -76,17 +92,22 @@ namespace Server.Custom.AIGM
                 return "No Phase58D party speech context has been recorded yet.";
 
             return String.Format(
-                "mode={0}; owner={1}; text={2}; listeners={3}; selected={4}; suppressed={5}; reasons={6}; intent={7}; chainDepth={8}; state={9}",
-                context.DialogueMode,
-                context.OwnerSpeaker,
+                "LastOwnerSpeech={0}; ListenerSet={1}; AddressedCompanion={2}; DialogueTargetCompanion={3}; GroupAddressed={4}; DialogueMode={5}; SelectedResponders={6}; SuppressedResponders={7}; SuppressionReasons={8}; LastPersonaProfileUsed={9}; LastStateSummaryUsed={10}; CompanionReplyChainDepth={11}; EchoSuppressionReason={12}; ParsedIntent={13}; TurnCoordinatorDecision={14}; UMGContext=active",
                 context.RawMessage,
                 context.FormatListenerSet(),
+                String.IsNullOrWhiteSpace(context.AddressedCompanionId) ? "none" : context.AddressedCompanionId,
+                String.IsNullOrWhiteSpace(context.DialogueTargetCompanionId) ? "none" : context.DialogueTargetCompanionId,
+                context.GroupAddressed,
+                context.DialogueMode,
                 context.FormatSelectedResponders(),
                 context.FormatSuppressedResponders(),
                 context.FormatSuppressedReasons(),
-                context.ParsedIntent,
+                String.IsNullOrWhiteSpace(context.LastPersonaProfileUsed) ? "none" : context.LastPersonaProfileUsed,
+                context.LastStateSummaryUsed,
                 context.CompanionDialogueChainDepth,
-                context.StateContextSummary);
+                String.IsNullOrWhiteSpace(context.EchoSuppressionReason) ? "none" : context.EchoSuppressionReason,
+                context.ParsedIntent,
+                context.TurnCoordinatorDecision);
         }
 
         private static void SelectResponders(AIGMCompanionPartySpeechContext context, List<IAIGMCompanionActor> listeners, AIGMCompanionCommandRouteDecision route, string originCompanionId, Mobile speaker)
@@ -104,6 +125,12 @@ namespace Server.Custom.AIGM
             if (context.DialogueMode == AIGMCompanionDialogueMode.CompanionToCompanion)
             {
                 SelectCompanionDialogueResponder(context, listeners, originCompanionId, speaker);
+                return;
+            }
+
+            if (context.DialogueMode == AIGMCompanionDialogueMode.OwnerDirectedCompanionDialogue)
+            {
+                SelectOwnerDirectedDialogueStarter(context, listeners, context.AddressedCompanionId);
                 return;
             }
 
@@ -159,6 +186,30 @@ namespace Server.Custom.AIGM
             }
         }
 
+        private static void SelectOwnerDirectedDialogueStarter(AIGMCompanionPartySpeechContext context, List<IAIGMCompanionActor> listeners, string starterCompanionId)
+        {
+            bool selected = false;
+            for (int i = 0; i < listeners.Count; i++)
+            {
+                IAIGMCompanionActor actor = listeners[i];
+                if (!selected && String.Equals(actor.CompanionId, starterCompanionId, StringComparison.OrdinalIgnoreCase))
+                {
+                    context.SelectedResponders.Add(actor.CompanionId);
+                    selected = true;
+                }
+                else if (String.Equals(actor.CompanionId, context.DialogueTargetCompanionId, StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Suppress(actor.CompanionId, "awaiting_companion_dialogue_reply");
+                }
+                else
+                {
+                    context.Suppress(actor.CompanionId, "owner_directed_dialogue_not_initial");
+                }
+            }
+
+            context.TurnCoordinatorDecision = selected ? "owner_directed_companion_dialogue_starter" : "PHASE58D-LIVE-ROUTING-BLOCKED";
+        }
+
         private static void SelectCompanionDialogueResponder(AIGMCompanionPartySpeechContext context, List<IAIGMCompanionActor> listeners, string originCompanionId, Mobile speaker)
         {
             if (context.CompanionDialogueChainDepth > 0)
@@ -167,6 +218,7 @@ namespace Server.Custom.AIGM
                     context.Suppress(listeners[i].CompanionId, "PHASE58D-ECHO-BLOCKED chain_depth");
 
                 context.TurnCoordinatorDecision = "PHASE58D-ECHO-BLOCKED";
+                context.EchoSuppressionReason = "chain_depth";
                 return;
             }
 
@@ -174,6 +226,45 @@ namespace Server.Custom.AIGM
             DateTime now = DateTime.UtcNow;
             bool selected = false;
             string speakerId = ResolveSpeakerCompanionId(speaker, originCompanionId);
+            string preferredTargetId = context.DialogueTargetCompanionId;
+
+            if (!String.IsNullOrWhiteSpace(preferredTargetId))
+            {
+                for (int i = 0; i < listeners.Count; i++)
+                {
+                    IAIGMCompanionActor actor = listeners[i];
+                    if (String.Equals(actor.CompanionId, speakerId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Suppress(actor.CompanionId, "PHASE58D-ECHO-BLOCKED own_generated_speech");
+                        context.EchoSuppressionReason = "own_generated_speech";
+                        continue;
+                    }
+
+                    if (String.Equals(actor.CompanionId, preferredTargetId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        string cooldownKey = speakerId + ">" + actor.CompanionId;
+                        DateTime targetNext;
+                        if (NextCompanionDialogueUtc.TryGetValue(cooldownKey, out targetNext) && now < targetNext)
+                        {
+                            context.Suppress(actor.CompanionId, "companion_dialogue_cooldown");
+                            continue;
+                        }
+
+                        context.SelectedResponders.Add(actor.CompanionId);
+                        NextCompanionDialogueUtc[cooldownKey] = now + CompanionDialogueCooldown;
+                        selected = true;
+                    }
+                    else
+                    {
+                        context.Suppress(actor.CompanionId, "companion_dialogue_target_only");
+                    }
+                }
+
+                context.TurnCoordinatorDecision = selected ? "companion_dialogue_targeted_followup" : "PHASE58D-ECHO-BLOCKED";
+                if (!selected && String.IsNullOrWhiteSpace(context.EchoSuppressionReason))
+                    context.EchoSuppressionReason = "target_unavailable_or_cooldown";
+                return;
+            }
 
             for (int i = 0; i < listeners.Count; i++)
             {
@@ -181,6 +272,7 @@ namespace Server.Custom.AIGM
                 if (String.Equals(actor.CompanionId, speakerId, StringComparison.OrdinalIgnoreCase))
                 {
                     context.Suppress(actor.CompanionId, "PHASE58D-ECHO-BLOCKED own_generated_speech");
+                    context.EchoSuppressionReason = "own_generated_speech";
                     continue;
                 }
 
@@ -205,6 +297,8 @@ namespace Server.Custom.AIGM
             }
 
             context.TurnCoordinatorDecision = selected ? "companion_dialogue_one_followup" : "PHASE58D-ECHO-BLOCKED";
+            if (!selected && String.IsNullOrWhiteSpace(context.EchoSuppressionReason))
+                context.EchoSuppressionReason = "no_followup_selected";
         }
 
         private static AIGMCompanionDialogueMode ResolveDialogueMode(AIGMCompanionCommandRouteDecision route, string rawSpeech, string dialogueMode, Mobile speaker, bool groupAddressed)
@@ -213,6 +307,13 @@ namespace Server.Custom.AIGM
                 return AIGMCompanionDialogueMode.CompanionToCompanion;
 
             if (route != null && route.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
+                return AIGMCompanionDialogueMode.DirectNamedCommand;
+
+            if (IsOwnerDirectedCompanionDialogue(rawSpeech))
+                return AIGMCompanionDialogueMode.OwnerDirectedCompanionDialogue;
+
+            List<string> addressed = AIGMCompanionCommandBoundary.GetAddressedCompanionIds(rawSpeech);
+            if (!groupAddressed && addressed != null && addressed.Count == 1)
                 return AIGMCompanionDialogueMode.DirectNamedCommand;
 
             string normalized = Normalize(rawSpeech);
@@ -226,6 +327,37 @@ namespace Server.Custom.AIGM
                 return groupAddressed ? AIGMCompanionDialogueMode.GroupCommand : AIGMCompanionDialogueMode.StateCommentary;
 
             return groupAddressed ? AIGMCompanionDialogueMode.GroupConversation : AIGMCompanionDialogueMode.StateCommentary;
+        }
+
+        public static bool ShouldRelayOwnerSpeechAsCompanionDialogue(string rawSpeech)
+        {
+            return IsOwnerDirectedCompanionDialogue(rawSpeech) && !String.IsNullOrWhiteSpace(ResolveOwnerDirectedDialogueTarget(rawSpeech));
+        }
+
+        public static string ResolveOwnerDirectedDialogueTarget(string rawSpeech)
+        {
+            List<string> addressed = AIGMCompanionCommandBoundary.GetAddressedCompanionIds(rawSpeech);
+            if (addressed == null || addressed.Count < 2)
+                return String.Empty;
+
+            return addressed[1];
+        }
+
+        private static bool IsOwnerDirectedCompanionDialogue(string rawSpeech)
+        {
+            string speech = Normalize(rawSpeech);
+            if (String.IsNullOrWhiteSpace(speech))
+                return false;
+
+            List<string> addressed = AIGMCompanionCommandBoundary.GetAddressedCompanionIds(rawSpeech);
+            if (addressed == null || addressed.Count < 2)
+                return false;
+
+            return speech.Contains(" tell ")
+                || speech.StartsWith("tell ", StringComparison.Ordinal)
+                || speech.Contains(" respond")
+                || speech.Contains(" answer")
+                || speech.Contains(" ask ");
         }
 
         private static bool IsGroupAddressed(string rawSpeech)
@@ -339,6 +471,30 @@ namespace Server.Custom.AIGM
 
             IAIGMCompanionActor actor = speaker as IAIGMCompanionActor;
             return actor != null ? actor.CompanionId : String.Empty;
+        }
+
+        private static string BuildSelectedPersonaSummary(List<IAIGMCompanionActor> listeners, List<string> selectedResponders)
+        {
+            if (listeners == null || selectedResponders == null || selectedResponders.Count == 0)
+                return String.Empty;
+
+            List<string> parts = new List<string>();
+            for (int i = 0; i < selectedResponders.Count; i++)
+            {
+                string selected = selectedResponders[i];
+                for (int j = 0; j < listeners.Count; j++)
+                {
+                    IAIGMCompanionActor actor = listeners[j];
+                    if (actor == null || !String.Equals(actor.CompanionId, selected, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    AIGMCompanionPersonaContext persona = AIGMCompanionProfileLibrary.BuildPersonaContext(actor);
+                    parts.Add(actor.CompanionId + ":" + actor.CompanionProfileKey + ":" + (persona != null ? persona.RoleSummary : actor.CompanionRole));
+                    break;
+                }
+            }
+
+            return parts.Count == 0 ? String.Empty : String.Join(" | ", parts.ToArray());
         }
 
         private static void Remember(Mobile owner, AIGMCompanionPartySpeechContext context)

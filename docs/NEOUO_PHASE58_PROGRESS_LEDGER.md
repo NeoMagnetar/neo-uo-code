@@ -237,3 +237,34 @@ Live proof observations:
 - companion-to-companion exchange selected one follow-up responder and suppressed the source/extra responder
 - chain-depth echo test selected no responders and returned `PHASE58D-ECHO-BLOCKED`
 - `[sdump]` showed mode, owner, text, listener set, selected set, suppressed set, reasons, chain depth, and state
+
+## 18. Phase58D useful-hardening recovery checkpoint
+**Status: useful live-speech hardening diff inspected, built, pending post-commit live proof**
+
+Classification:
+- `USEFUL-HARDENING`
+
+Files changed:
+- `Scripts/Custom/AIGM/AIGMBridgeClient.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionCommandBoundary.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionDialogueBus.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionDialogueEvent.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionIntentParser.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionPartySpeechContext.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionSpeechQueue.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionSpeechRequest.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionTurnCoordinator.cs`
+- `Scripts/Mobiles/NPCs/AIGMCompanionDakeyras.cs`
+- `Scripts/Mobiles/NPCs/AIGMCompanionDanyal.cs`
+- `Scripts/Mobiles/NPCs/AIGMCompanionDardalion.cs`
+
+Build result:
+- `dotnet build .\ServUO.sln -c Release`
+- 0 errors
+- 0 warnings
+
+Recovery notes:
+- ServUO PID `4696` was stopped before the build.
+- Coordinate movement WIP files remain intentionally unstaged and untouched.
+- Save-backup folders remain intentionally unstaged and untouched.
+- Live proof after this hardening commit is still pending until ServUO is restarted and `[p58speech]` / `[sdump]` are run again.

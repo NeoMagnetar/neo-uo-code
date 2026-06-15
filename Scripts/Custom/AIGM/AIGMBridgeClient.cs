@@ -39,6 +39,7 @@ namespace Server.Custom.AIGM
             sb.AppendLine("allow_remote_relay: " + (request.AllowRemoteRelay ? "true" : "false"));
             sb.AppendLine("event_id: " + (request.EventId.HasValue ? request.EventId.Value.ToString() : String.Empty));
             sb.AppendLine("origin_companion_id: " + (request.OriginCompanionId ?? String.Empty));
+            sb.AppendLine("dialogue_target_companion_id: " + (request.DialogueTargetCompanionId ?? String.Empty));
             sb.AppendLine("hop_count: " + request.HopCount);
             sb.AppendLine("speech: " + (request.RawSpeech ?? String.Empty));
             sb.AppendLine("owner_group_context: " + (request.OwnerGroupContext ?? String.Empty));

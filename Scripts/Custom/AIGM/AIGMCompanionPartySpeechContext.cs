@@ -9,6 +9,7 @@ namespace Server.Custom.AIGM
         GroupCommand,
         GroupConversation,
         CompanionToCompanion,
+        OwnerDirectedCompanionDialogue,
         StateCommentary,
         SystemStatus
     }
@@ -19,6 +20,7 @@ namespace Server.Custom.AIGM
         public string OwnerSpeaker { get; set; }
         public string RawMessage { get; set; }
         public string AddressedCompanionId { get; set; }
+        public string DialogueTargetCompanionId { get; set; }
         public bool GroupAddressed { get; set; }
         public List<string> ListenerCompanions { get; private set; }
         public List<string> SelectedResponders { get; private set; }
@@ -27,8 +29,11 @@ namespace Server.Custom.AIGM
         public AIGMCompanionDialogueMode DialogueMode { get; set; }
         public string ParsedIntent { get; set; }
         public string StateContextSummary { get; set; }
+        public string LastPersonaProfileUsed { get; set; }
+        public string LastStateSummaryUsed { get; set; }
         public string TurnCoordinatorDecision { get; set; }
         public string CapabilitySafetyPosture { get; set; }
+        public string EchoSuppressionReason { get; set; }
         public int CompanionDialogueChainDepth { get; set; }
         public DateTime CreatedUtc { get; set; }
 
@@ -38,6 +43,7 @@ namespace Server.Custom.AIGM
             OwnerSpeaker = String.Empty;
             RawMessage = String.Empty;
             AddressedCompanionId = String.Empty;
+            DialogueTargetCompanionId = String.Empty;
             ListenerCompanions = new List<string>();
             SelectedResponders = new List<string>();
             SuppressedResponders = new List<string>();
@@ -45,8 +51,11 @@ namespace Server.Custom.AIGM
             DialogueMode = AIGMCompanionDialogueMode.GroupConversation;
             ParsedIntent = String.Empty;
             StateContextSummary = String.Empty;
+            LastPersonaProfileUsed = String.Empty;
+            LastStateSummaryUsed = String.Empty;
             TurnCoordinatorDecision = String.Empty;
             CapabilitySafetyPosture = "UMG/capability gates remain authoritative; speech context never executes actions by itself.";
+            EchoSuppressionReason = String.Empty;
             CreatedUtc = DateTime.UtcNow;
         }
 

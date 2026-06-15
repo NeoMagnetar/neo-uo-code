@@ -47,7 +47,42 @@ Result:
 
 - Build succeeded.
 - 0 errors.
-- 15 warnings, all unreachable-code warnings from existing AIGM UI/bridge/counselor surfaces.
+- 0 warnings from the explicit hardening preflight build.
+
+## Useful-Hardening Recovery Checkpoint
+
+Current classification: `USEFUL-HARDENING`.
+
+The dirty recovery diff was inspected before finalization and was kept because it is coherent Phase58D live-speech hardening:
+
+- Targeted companion dialogue metadata now flows through speech requests, bridge prompts, and companion dialogue events.
+- Owner-directed companion-to-companion phrases can select a starter and bounded target follow-up.
+- Direct named action commands remain single-target through the existing parsing and capability gates.
+- Group speech remains bounded and can select Dakeyras, Danyal, and Dardalion together.
+- `[sdump]` now exposes listener set, addressed companion, dialogue target, responder/suppression details, persona profile evidence, state summary, chain depth, and echo suppression reason.
+
+Changed speech hardening files:
+
+- `Scripts/Custom/AIGM/AIGMBridgeClient.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionCommandBoundary.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionDialogueBus.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionDialogueEvent.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionIntentParser.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionPartySpeechContext.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionSpeechQueue.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionSpeechRequest.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionTurnCoordinator.cs`
+- `Scripts/Mobiles/NPCs/AIGMCompanionDakeyras.cs`
+- `Scripts/Mobiles/NPCs/AIGMCompanionDanyal.cs`
+- `Scripts/Mobiles/NPCs/AIGMCompanionDardalion.cs`
+
+Hardening build result:
+
+- Command: `dotnet build .\ServUO.sln -c Release`
+- Result: succeeded
+- Errors: 0
+- Warnings: 0
+- Live proof after this hardening commit: pending restart and `[p58speech]` / `[sdump]` run.
 
 ## Proof
 
