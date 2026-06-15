@@ -41,6 +41,15 @@ namespace Server.Custom.AIGM
             sb.AppendLine("origin_companion_id: " + (request.OriginCompanionId ?? String.Empty));
             sb.AppendLine("hop_count: " + request.HopCount);
             sb.AppendLine("speech: " + (request.RawSpeech ?? String.Empty));
+            sb.AppendLine("owner_group_context: " + (request.OwnerGroupContext ?? String.Empty));
+            sb.AppendLine("listener_set: " + (request.PartyListenerSet ?? String.Empty));
+            sb.AppendLine("selected_responders: " + (request.PartySelectedResponderSet ?? String.Empty));
+            sb.AppendLine("suppressed_responders: " + (request.PartySuppressedResponderSet ?? String.Empty));
+            sb.AppendLine("suppressed_reasons: " + (request.PartySuppressedResponderReasons ?? String.Empty));
+            sb.AppendLine("turn_coordinator_decision: " + (request.TurnCoordinatorDecision ?? String.Empty));
+            sb.AppendLine("parsed_intent: " + (request.ParsedIntentSummary ?? String.Empty));
+            sb.AppendLine("state_context: " + (request.StateContextSummary ?? String.Empty));
+            sb.AppendLine("capability_safety_posture: " + (request.CapabilitySafetyPosture ?? String.Empty));
             sb.AppendLine();
             sb.AppendLine("[active_companion_identity]");
             sb.AppendLine(request.CompanionDescription ?? String.Empty);
@@ -55,6 +64,8 @@ namespace Server.Custom.AIGM
             sb.AppendLine("[behavior_rules]");
             sb.AppendLine("Speak as the active companion only.");
             sb.AppendLine("Do not speak as another companion.");
+            sb.AppendLine("Use listener_set, selected_responders, suppressed_reasons, and state_context as live party context.");
+            sb.AppendLine("If this companion is selected, answer in character using its role and current state.");
             sb.AppendLine("Treat sibling companions as real companions, not scenery.");
             sb.AppendLine("If asked about another companion, use dialogue context if present.");
             sb.AppendLine("If no relevant linked dialogue context exists, say so naturally in character.");
@@ -62,6 +73,9 @@ namespace Server.Custom.AIGM
             sb.AppendLine("Do not claim to execute gated actions.");
             sb.AppendLine("Do not fake healing, cure, bandage, travel, tracking pursuit, movement, attack, or combat execution.");
             sb.AppendLine("For gated actions, give a brief in-character deferral matching this companion's role.");
+            sb.AppendLine("For direct named commands, only the addressed companion may visibly answer or execute; others are context-only.");
+            sb.AppendLine("For group conversation, keep the answer short and distinct from sibling companions.");
+            sb.AppendLine("For companion_dialogue, allow one natural follow-up only and do not continue the chain.");
             sb.AppendLine("Keep the reply short, clear, and suitable for Ultima Online journal readability.");
             sb.AppendLine("If visible_turn is false, this request should not produce visible speech.");
             sb.AppendLine("[/behavior_rules]");

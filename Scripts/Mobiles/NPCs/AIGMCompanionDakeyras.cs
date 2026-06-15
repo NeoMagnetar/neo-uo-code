@@ -239,7 +239,7 @@ namespace Server.Mobiles
 
             if (allowTrustedOwnerFallback || ShouldUseCompanionChat(e.Mobile, e.Speech, decision, intent, parsedIntent))
             {
-                if (e.Mobile == owner && (allowTrustedOwnerFallback || decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion))
+                if (e.Mobile == owner && (allowTrustedOwnerFallback || decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion || decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion))
                     AIGMCompanionSpeechBus.PublishOwnerSpeech(this, e.Mobile, e.Speech);
 
                 string rejection;
@@ -256,6 +256,9 @@ namespace Server.Mobiles
                 e.Handled = true;
                 return;
             }
+
+            if (e.Mobile == owner && decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
+                AIGMCompanionSpeechBus.PublishOwnerSpeech(this, e.Mobile, e.Speech);
 
             if (!parsedIntent)
             {
@@ -632,10 +635,12 @@ namespace Server.Mobiles
             if (allowRemoteRelay)
                 relayIntent.AllowRemoteRelay = true;
 
+            string originCompanionId = sourceCompanion is IAIGMCompanionActor ? ((IAIGMCompanionActor)sourceCompanion).CompanionId : null;
             string mode = companionOrigin ? "companion_dialogue" : "owner_relay_dialogue";
-            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(this, effectiveSpeaker, speech, mode, null, sourceCompanion is IAIGMCompanionActor ? ((IAIGMCompanionActor)sourceCompanion).CompanionId : null, 0, allowRemoteRelay);
+            bool shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, effectiveSpeaker, speech, mode, originCompanionId, 0);
+            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(this, effectiveSpeaker, speech, mode, null, originCompanionId, 0, allowRemoteRelay, shouldSpeak, !shouldSpeak);
             string rejection;
-            AIGMCompanionSpeechQueue.TryEnqueue(request, true, out rejection);
+            AIGMCompanionSpeechQueue.TryEnqueue(request, shouldSpeak, out rejection);
         }
 
         public void ReceiveCompanionDialogue(BaseHire sourceCompanion, AIGMCompanionDialogueEvent dialogueEvent)
@@ -643,9 +648,11 @@ namespace Server.Mobiles
             if (sourceCompanion == null || sourceCompanion.Deleted || dialogueEvent == null || String.IsNullOrWhiteSpace(dialogueEvent.Text))
                 return;
 
-            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(this, sourceCompanion, dialogueEvent.Text, "companion_dialogue", dialogueEvent.EventId, sourceCompanion is IAIGMCompanionActor ? ((IAIGMCompanionActor)sourceCompanion).CompanionId : null, dialogueEvent.HopCount, true);
+            string originCompanionId = sourceCompanion is IAIGMCompanionActor ? ((IAIGMCompanionActor)sourceCompanion).CompanionId : null;
+            bool shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, sourceCompanion, dialogueEvent.Text, "companion_dialogue", originCompanionId, dialogueEvent.HopCount);
+            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(this, sourceCompanion, dialogueEvent.Text, "companion_dialogue", dialogueEvent.EventId, originCompanionId, dialogueEvent.HopCount, true, shouldSpeak, !shouldSpeak);
             string rejection;
-            AIGMCompanionSpeechQueue.TryEnqueue(request, true, out rejection);
+            AIGMCompanionSpeechQueue.TryEnqueue(request, shouldSpeak, out rejection);
         }
 
         public override void Serialize(GenericWriter writer)

@@ -45,7 +45,6 @@ namespace Server.Custom.AIGM
         }
         private static readonly ConcurrentDictionary<int, DateTime> NextAllowedRequestUtc = new ConcurrentDictionary<int, DateTime>();
         private static readonly ConcurrentDictionary<Serial, byte> CompanionInFlight = new ConcurrentDictionary<Serial, byte>();
-        private static readonly ConcurrentDictionary<int, int> SharedOwnerTurnIndex = new ConcurrentDictionary<int, int>();
         private static readonly ConcurrentDictionary<Serial, DateTime> NextVisibleTimeoutFallbackUtc = new ConcurrentDictionary<Serial, DateTime>();
         private static readonly SemaphoreSlim WorkerGate = new SemaphoreSlim(2, 2);
         private static readonly TimeSpan PlayerCooldown = TimeSpan.FromSeconds(3.0);
@@ -101,19 +100,10 @@ namespace Server.Custom.AIGM
                 || String.Equals(request.DialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase)
                 || String.Equals(request.DialogueMode, "owner_direct_dialogue", StringComparison.OrdinalIgnoreCase);
             bool companionDialogue = String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase);
-            bool ownerDialogueReply = sharedOwnerDialogue && !(request.Speaker is BaseHire);
-
-            if (ownerDialogueReply)
-            {
-                if (!ShouldCompanionTakeOwnerTurn(request.Companion, request.Speaker, request.RawSpeech))
-                {
-                    rejection = "yield_turn";
-                    return false;
-                }
-            }
-
             TimeSpan cooldown = sharedOwnerDialogue ? SharedOwnerDialogueCooldown : PlayerCooldown;
-            int cooldownKey = (request.Speaker.Serial.Value * 397) ^ (sharedOwnerDialogue ? 1 : 0);
+            int cooldownKey = sharedOwnerDialogue
+                ? ((request.Speaker.Serial.Value * 397) ^ request.CompanionSerial.Value)
+                : ((request.Speaker.Serial.Value * 397) ^ 0);
             if (!companionDialogue && NextAllowedRequestUtc.TryGetValue(cooldownKey, out nextAllowed) && now < nextAllowed)
             {
                 rejection = request.IsPrimaryVisibleTurn ? "Please give me a moment." : "yield_turn";
@@ -196,7 +186,8 @@ namespace Server.Custom.AIGM
             if (String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase))
                 return;
 
-            PublishDialogueReply(request.Companion.Shell as BaseHire, reply);
+            if (request.AllowRemoteRelay && request.HopCount == 0)
+                PublishDialogueReply(request.Companion.Shell as BaseHire, reply);
         }
 
         private static string BuildVisibleTimeoutFallback(IAIGMCompanionActor companion)
@@ -227,32 +218,5 @@ namespace Server.Custom.AIGM
             });
         }
 
-        private static bool ShouldCompanionTakeOwnerTurn(IAIGMCompanionActor companion, Mobile speaker, string rawSpeech)
-        {
-            if (companion == null || companion.Shell == null || companion.Shell.Deleted || speaker == null || speaker.Deleted)
-                return false;
-
-            BaseHire self = companion.Shell as BaseHire;
-            if (self == null)
-                return false;
-
-            Mobile owner = self.GetOwner();
-            if (owner == null || owner != speaker)
-                return false;
-
-            List<IAIGMCompanionActor> linked = AIGMCompanionSpeechBus.GetLinkedCompanionsIncludingSource(companion, owner);
-            if (linked.Count <= 1)
-                return true;
-
-            linked.Sort((a, b) => a.Shell.Serial.Value.CompareTo(b.Shell.Serial.Value));
-            int ownerKey = owner.Serial.Value;
-
-            List<string> addressedIds = AIGMCompanionCommandBoundary.GetAddressedCompanionIds(rawSpeech);
-            if (addressedIds != null && addressedIds.Count == 1)
-                return String.Equals(companion.CompanionId, addressedIds[0], StringComparison.OrdinalIgnoreCase);
-
-            int turn = SharedOwnerTurnIndex.AddOrUpdate(ownerKey, 0, (key, current) => (current + 1) % linked.Count);
-            return linked[turn].Shell.Serial == self.Serial;
-        }
     }
 }

@@ -21,6 +21,17 @@ namespace Server.Custom.AIGM
         public string CompanionCapabilityBoundary { get; private set; }
         public string CompanionSiblingContext { get; private set; }
         public string CompanionPartyRoster { get; private set; }
+        public string OwnerGroupContext { get; private set; }
+        public string PartyListenerSet { get; private set; }
+        public string PartySelectedResponderSet { get; private set; }
+        public string PartySuppressedResponderSet { get; private set; }
+        public string PartySuppressedResponderReasons { get; private set; }
+        public string TurnCoordinatorDecision { get; private set; }
+        public string ParsedIntentSummary { get; private set; }
+        public string StateContextSummary { get; private set; }
+        public string CapabilitySafetyPosture { get; private set; }
+        public bool GroupAddressed { get; private set; }
+        public string AddressedCompanionId { get; private set; }
         public Serial CompanionSerial { get; private set; }
         public Serial SpeakerSerial { get; private set; }
         public Serial OwnerSerial { get; private set; }
@@ -61,6 +72,18 @@ namespace Server.Custom.AIGM
             CompanionCapabilityBoundary = persona != null ? persona.CapabilityBoundary : null;
             CompanionSiblingContext = persona != null ? persona.SiblingFraming : null;
             CompanionPartyRoster = persona != null ? persona.PartyRoster : null;
+            AIGMCompanionPartySpeechContext partyContext = AIGMCompanionTurnCoordinator.BuildContext(companion, speaker, speech, DialogueMode, originCompanionId, hopCount);
+            OwnerGroupContext = partyContext != null ? String.Format("mode={0}; owner={1}; groupAddressed={2}; addressed={3}", partyContext.DialogueMode, partyContext.OwnerSpeaker, partyContext.GroupAddressed, partyContext.AddressedCompanionId) : String.Empty;
+            PartyListenerSet = partyContext != null ? partyContext.FormatListenerSet() : String.Empty;
+            PartySelectedResponderSet = partyContext != null ? partyContext.FormatSelectedResponders() : String.Empty;
+            PartySuppressedResponderSet = partyContext != null ? partyContext.FormatSuppressedResponders() : String.Empty;
+            PartySuppressedResponderReasons = partyContext != null ? partyContext.FormatSuppressedReasons() : String.Empty;
+            TurnCoordinatorDecision = partyContext != null ? partyContext.TurnCoordinatorDecision : String.Empty;
+            ParsedIntentSummary = partyContext != null ? partyContext.ParsedIntent : String.Empty;
+            StateContextSummary = partyContext != null ? partyContext.StateContextSummary : String.Empty;
+            CapabilitySafetyPosture = partyContext != null ? partyContext.CapabilitySafetyPosture : String.Empty;
+            GroupAddressed = partyContext != null && partyContext.GroupAddressed;
+            AddressedCompanionId = partyContext != null ? partyContext.AddressedCompanionId : String.Empty;
             CompanionSerial = companion != null && companion.Shell != null ? companion.Shell.Serial : Serial.MinusOne;
             SpeakerSerial = speaker != null ? speaker.Serial : Serial.MinusOne;
             BaseHire baseHire = companion != null ? companion.Shell as BaseHire : null;

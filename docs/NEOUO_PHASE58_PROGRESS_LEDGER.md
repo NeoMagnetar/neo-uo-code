@@ -178,3 +178,41 @@ Safety boundaries still enforced by repo truth:
 ## 15. Files/folders that are intentionally untracked
 - `Saves_BACKUP_before_AIGMCounselor_delete_20260610-115356/`
 - `Saves_BLOCKED_AIGMCounselor_20260610-115749/`
+
+## 16. Phase58C status
+**Status: implemented in-tree, built, pending commit/proof consolidation**
+
+Current untracked coordinate movement WIP intentionally remains untouched by Phase58D:
+- `Scripts/Commands/AIGMCoordinateMovementCommand.cs`
+- `Scripts/Custom/AIGM/AIGMCompanionCoordinateMovementService.cs`
+
+## 17. Phase58D status
+**Status: implemented in-tree, built, source-proofed; live GM proof pending shard runtime**
+
+Canonical report:
+- `docs/PHASE58D_PARTY_SPEECH_RESTORATION_REPORT.md`
+
+Proof command surface:
+- `[p58speech]`
+- `[pspeech]`
+- `[sdump]`
+
+Source-generated proof packet:
+- `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_112637.md`
+
+Implemented behavior:
+- owner group speech builds a party listener context instead of selecting only the closest companion
+- direct named commands select one primary companion and relay context silently to siblings
+- group conversation can select up to three in-character responders
+- companion-to-companion dialogue allows one bounded follow-up
+- second-hop companion dialogue is blocked with `PHASE58D-ECHO-BLOCKED`
+- UMG bridge requests include listener set, selected responders, suppressed reasons, state context, parsed intent, and safety posture
+
+Build result:
+- `dotnet build .\ServUO.sln -c Release`
+- 0 errors
+- 15 pre-existing unreachable-code warnings
+
+Live runtime proof status:
+- blocked only because ServUO was not running during this implementation pass
+- next runtime action is to start/restart the dev shard and run `[p58speech]` or `[pspeech]`
