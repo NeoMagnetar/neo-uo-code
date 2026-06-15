@@ -81,6 +81,9 @@ namespace Server.Custom.AIGM
                 return companion.Name + ": no monster hunt is active.";
             }
 
+            Mobile target = ResolveCurrentTarget(companion, state);
+            CapturePreSustainSnapshot(companion, state, target);
+
             string sustainResponse;
             state.LastBandageAttempted = false;
             state.LastBandageStarted = false;
@@ -88,6 +91,7 @@ namespace Server.Custom.AIGM
             {
                 state.LastBandageAttempted = true;
                 state.LastBandageStarted = true;
+                state.SustainPreemptedAction = true;
                 SetPhase(state, AIGMCompanionExecutionPhase.SelfBandaging, sustainResponse);
                 Trace(state, sustainResponse);
                 return companion.Name + ": I begin bandaging my wounds.";
@@ -99,12 +103,13 @@ namespace Server.Custom.AIGM
             {
                 state.LastCureAttempted = true;
                 state.LastCureSucceeded = true;
+                state.SustainPreemptedAction = true;
                 SetPhase(state, AIGMCompanionExecutionPhase.SelfCuring, sustainResponse);
                 Trace(state, sustainResponse);
                 return companion.Name + ": I use a cure potion on myself.";
             }
 
-            Mobile target = ResolveCurrentTarget(companion, state);
+            state.SustainPreemptedAction = false;
             if (target == null)
             {
                 SetPhase(state, AIGMCompanionExecutionPhase.SelectingMonsterTarget, "selecting_target");
@@ -289,7 +294,7 @@ namespace Server.Custom.AIGM
         {
             string acceptedSummary;
             string rejectedSummary;
-            Mobile target = AIGMCompanionTrackingSensor.FindClosestTrackableMonster(companion, state.ScanRange, out acceptedSummary, out rejectedSummary);
+            Mobile target = AIGMCompanionTrackingService.FindClosestHostileMonster(companion, out acceptedSummary, out rejectedSummary);
             state.LastCandidateSummary = acceptedSummary;
             state.LastRejectedCandidates = rejectedSummary;
 
@@ -320,6 +325,40 @@ namespace Server.Custom.AIGM
 
             state.LastTargetRejectionReason = String.Empty;
             return target;
+        }
+
+        private static void CapturePreSustainSnapshot(BaseHire companion, AIGMCompanionExecutionState state, Mobile existingTarget)
+        {
+            if (companion == null || state == null)
+                return;
+
+            state.PreSustainMode = "Monsters";
+
+            string acceptedSummary = "accepted=none";
+            string rejectedSummary = "none";
+            Mobile snapshotTarget;
+
+            if (existingTarget != null)
+            {
+                snapshotTarget = existingTarget;
+                acceptedSummary = String.IsNullOrWhiteSpace(state.LastCandidateSummary)
+                    ? "accepted=" + (String.IsNullOrWhiteSpace(existingTarget.Name) ? existingTarget.GetType().Name : existingTarget.Name) + "@" + (int)Math.Round(companion.GetDistanceToSqrt(existingTarget))
+                    : state.LastCandidateSummary;
+                rejectedSummary = String.IsNullOrWhiteSpace(state.LastRejectedCandidates) ? "none" : state.LastRejectedCandidates;
+            }
+            else
+            {
+                snapshotTarget = AIGMCompanionTrackingService.FindClosestHostileMonster(companion, out acceptedSummary, out rejectedSummary);
+            }
+
+            state.PreSustainAcceptedCandidates = acceptedSummary;
+            state.PreSustainRejectedCandidates = rejectedSummary;
+            state.PreSustainTarget = snapshotTarget != null ? (String.IsNullOrWhiteSpace(snapshotTarget.Name) ? snapshotTarget.GetType().Name : snapshotTarget.Name) : "none";
+            state.PreSustainNearestCandidate = state.PreSustainTarget;
+            state.PreSustainAcquisitionReason = snapshotTarget != null ? "target_available" : "no_valid_monsters";
+
+            if (snapshotTarget == null && String.IsNullOrWhiteSpace(state.LastTargetRejectionReason) && rejectedSummary != "none")
+                state.LastTargetRejectionReason = rejectedSummary;
         }
 
         private static bool IsValidCompanion(BaseHire companion)

@@ -513,7 +513,7 @@ namespace Server.Mobiles
         private string BuildCategoryTrackingReport(AIGMCompanionIntent intent, Mobile speaker)
         {
             AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(intent != null ? intent.Kind : String.Empty);
-            return AIGMCompanionTrackingService.StartTracking(this, speaker, mode);
+            return AIGMCompanionTrackingService.BuildTrackingSweepReport(this, speaker, mode);
         }
 
         private string BuildTrackingCycleReport(AIGMCompanionIntent intent, Mobile speaker)
@@ -538,17 +538,20 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
                     return AIGMCompanionCapabilityKind.MonsterHuntStatus;
                 case AIGMCompanionIntentKind.TrackAnimals:
-                    return AIGMCompanionCapabilityKind.TrackingAnimals;
                 case AIGMCompanionIntentKind.TrackMonsters:
-                    return AIGMCompanionCapabilityKind.TrackingMonsters;
                 case AIGMCompanionIntentKind.TrackNPCs:
-                    return AIGMCompanionCapabilityKind.TrackingNPCs;
                 case AIGMCompanionIntentKind.TrackHumanNPCs:
-                    return AIGMCompanionCapabilityKind.TrackingHumanNPCs;
                 case AIGMCompanionIntentKind.TrackPlayers:
-                    return AIGMCompanionCapabilityKind.TrackingPlayers;
                 case AIGMCompanionIntentKind.TrackAll:
-                    return AIGMCompanionCapabilityKind.TrackingAll;
+                    return AIGMCompanionCapabilityKind.TrackReadOnly;
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingAnimals:
+                case AIGMCompanionIntentKind.StartTrackingMonsters:
+                case AIGMCompanionIntentKind.StartTrackingNPCs:
+                case AIGMCompanionIntentKind.StartTrackingHumanNPCs:
+                case AIGMCompanionIntentKind.StartTrackingPlayers:
+                case AIGMCompanionIntentKind.StartTrackingAll:
+                    return AIGMCompanionCapabilityKind.TrackingCycle;
                 case AIGMCompanionIntentKind.ReportTrackingStatus:
                     return AIGMCompanionCapabilityKind.TrackingStatus;
                 case AIGMCompanionIntentKind.StopTrackingCycle:

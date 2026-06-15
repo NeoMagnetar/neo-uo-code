@@ -60,7 +60,7 @@ namespace Server.Commands
                 }
 
                 StringBuilder sb = new StringBuilder();
-                sb.AppendFormat("Companion={0}; HuntActive={1}; Phase={2}; Reason={3}; Target={4}; Trace={5}; LastMove={6}; LastMoveFrom={7}; LastMoveTo={8}; LastMoveDirection={9}; LastMoveDistanceBefore={10}; LastMoveDistanceAfter={11}; LastCombat={12}; LastReject={13}; Candidates={14}",
+                sb.AppendFormat("Companion={0}; HuntActive={1}; Phase={2}; Reason={3}; Target={4}; Trace={5}; LastMove={6}; LastMoveFrom={7}; LastMoveTo={8}; LastMoveDirection={9}; LastMoveDistanceBefore={10}; LastMoveDistanceAfter={11}; LastCombat={12}; LastReject={13}; Candidates={14}; PreSustain=mode={15}|accepted={16}|rejected={17}|nearest={18}|reason={19}; SustainPreemptedAction={20}",
                     companion.Name,
                     state.HuntActive,
                     state.Phase,
@@ -75,7 +75,13 @@ namespace Server.Commands
                     state.LastMoveDistanceAfter,
                     String.IsNullOrWhiteSpace(state.LastCombatResult) ? "none" : state.LastCombatResult,
                     String.IsNullOrWhiteSpace(state.LastTargetRejectionReason) ? "none" : state.LastTargetRejectionReason,
-                    String.IsNullOrWhiteSpace(state.LastCandidateSummary) ? "none" : state.LastCandidateSummary);
+                    String.IsNullOrWhiteSpace(state.LastCandidateSummary) ? "none" : state.LastCandidateSummary,
+                    String.IsNullOrWhiteSpace(state.PreSustainMode) ? "none" : state.PreSustainMode,
+                    String.IsNullOrWhiteSpace(state.PreSustainAcceptedCandidates) ? "none" : state.PreSustainAcceptedCandidates,
+                    String.IsNullOrWhiteSpace(state.PreSustainRejectedCandidates) ? "none" : state.PreSustainRejectedCandidates,
+                    String.IsNullOrWhiteSpace(state.PreSustainNearestCandidate) ? "none" : state.PreSustainNearestCandidate,
+                    String.IsNullOrWhiteSpace(state.PreSustainAcquisitionReason) ? "none" : state.PreSustainAcquisitionReason,
+                    state.SustainPreemptedAction);
                 e.Mobile.SendMessage(sb.ToString());
                 return;
             }

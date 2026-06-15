@@ -54,6 +54,13 @@ namespace Server.Custom.AIGM
         public int LastMoveDistanceAfter { get; set; }
         public int ScanRange { get; set; }
         public int ReacquireCount { get; set; }
+        public string PreSustainMode { get; set; }
+        public string PreSustainTarget { get; set; }
+        public string PreSustainAcceptedCandidates { get; set; }
+        public string PreSustainRejectedCandidates { get; set; }
+        public string PreSustainNearestCandidate { get; set; }
+        public string PreSustainAcquisitionReason { get; set; }
+        public bool SustainPreemptedAction { get; set; }
 
         public AIGMCompanionExecutionState()
         {
@@ -79,6 +86,13 @@ namespace Server.Custom.AIGM
             LastMoveDistanceBefore = -1;
             LastMoveDistanceAfter = -1;
             ScanRange = 12;
+            PreSustainMode = String.Empty;
+            PreSustainTarget = String.Empty;
+            PreSustainAcceptedCandidates = String.Empty;
+            PreSustainRejectedCandidates = String.Empty;
+            PreSustainNearestCandidate = String.Empty;
+            PreSustainAcquisitionReason = String.Empty;
+            SustainPreemptedAction = false;
         }
     }
 }

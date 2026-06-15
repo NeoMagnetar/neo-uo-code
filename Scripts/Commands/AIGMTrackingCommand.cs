@@ -34,7 +34,7 @@ namespace Server.Commands
                 return;
             }
 
-            e.Mobile.SendMessage(AIGMCompanionTrackingService.StartTracking(companion, e.Mobile, mode));
+            e.Mobile.SendMessage(AIGMCompanionTrackingService.BuildTrackingSweepReport(companion, e.Mobile, mode));
         }
 
         private static void OnHuntMonsters(CommandEventArgs e)
