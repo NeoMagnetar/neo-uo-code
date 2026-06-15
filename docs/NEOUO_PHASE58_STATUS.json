@@ -1,7 +1,7 @@
 {
   "project": "NeoUO AIGM UMG Companion Recovery",
   "branch": "neo/phase56t-clean-speech-recovery",
-  "head": "d2873ad641e56b93060f03f10946745d370bbd30",
+  "head": "a4e8211f09cc861edd478d76928b0fa1c0991a09",
   "repoStatus": "dirty_intentionally_untracked_only",
   "phase": "Phase58B",
   "lastStableCommit": "0ea1f9c5c",
@@ -10,27 +10,13 @@
     "Read-only tracking and awareness baseline is present",
     "Bandage-based healing routing baseline is present",
     "Phase58A bounded monster autonomy is implemented in-tree",
-    "Phase58A execution spine exists",
-    "Phase58A target validator exists",
-    "Phase58A combat controller exists",
-    "Phase58A door service exists",
-    "Phase58A self-sustain service exists",
-    "Phase58A cure potion path was verified against native BaseCurePotion.Drink",
     "Phase58A build passed",
     "Phase58A committed as 0ea1f9c5c",
-    "Precleanup report clutter archived under archive/reports/2026-06-14-phase58a-precleanup/",
     "Phase58B tracking category command surfaces are present in-tree",
-    "Phase58B blocked proof artifact recorded as docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_20260614_142316.md",
     "Deterministic server-side Phase58B proof surface added via [p58b] / [tproof]",
     "Release build passed after proof-surface implementation"
   ],
   "verifiedRuntime": [
-    "Phase58A monster hunt scenario key recognized",
-    "Phase58A valid nearby hostile monster selection documented",
-    "Phase58A pursuit phase entry documented",
-    "Phase58A movement trace documented",
-    "Phase58A hostile-target validator behavior documented",
-    "Closest hostile monster proof artifacts exist under docs/runtime",
     "Existing hostile-monster proof artifacts include LastReject: animal_target"
   ],
   "pendingRuntimeProof": [
@@ -42,14 +28,14 @@
     "Phase58B category proof for HumanNPCs tracking lane",
     "Phase58B category proof for TrackAll report-only lane",
     "Phase58B hunt proof for MonsterHunt lane",
-    "Phase58B denied-lane proof for HuntAnimals",
-    "Direct runtime confirmation that players/NPCs remain report-only"
+    "Phase58B denied-lane proof for HuntAnimals"
   ],
   "blocked": [
-    "Latest direct Phase58B runtime artifact is still the old blocked OCR-era pass",
+    "Direct [p58b] execution did not produce a new proof artifact",
+    "Live shard/server likely was not restarted or reloaded onto commit a4e8211f0",
     "Player proof remains dependent on nearby real player observation unless a safe native proof pattern is later introduced"
   ],
-  "nextAction": "Run [p58b] or [tproof] inside the dev shard, inspect the generated proof artifact, then update canonical Phase58 metadata from that direct server-side report.",
+  "nextAction": "Ensure the live dev shard/server is actually running commit a4e8211f0, restart or reload if needed, then rerun [p58b] or [tproof] and classify the newly generated proof artifact.",
   "safetyBoundaries": [
     "Monster-only attack lane",
     "No player pursuit or attack",

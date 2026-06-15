@@ -14,15 +14,15 @@ Repo truth is:
 - `neo/phase56t-clean-speech-recovery`
 
 ## 2. Current HEAD
-- `d2873ad641e56b93060f03f10946745d370bbd30`
-- HEAD subject at stabilization pass start: `test: capture Phase58B category tracking runtime proof`
+- `a4e8211f09cc861edd478d76928b0fa1c0991a09`
+- HEAD subject at direct proof attempt start: `fix: add deterministic Phase58B tracking proof surface`
 
 ## 3. Clean/dirty repo status
-- Repo status at proof-surface stabilization start: **dirty / intentionally untracked only**
+- Repo status at direct proof attempt start: **dirty / intentionally untracked only**
 - `git status --short` at preflight showed:
   - `?? Saves_BACKUP_before_AIGMCounselor_delete_20260610-115356/`
   - `?? Saves_BLOCKED_AIGMCounselor_20260610-115749/`
-- No tracked file modifications were pending before this code/report pass.
+- No tracked file modifications were pending before this documentation-only update.
 
 ## 4. Important commits in order
 Recent relevant commits, oldest to newest within current visible recovery line:
@@ -41,6 +41,7 @@ Recent relevant commits, oldest to newest within current visible recovery line:
 - `e32bc99a3` — `chore: archive precleanup Phase58A report clutter`
 - `5266f370f` — `docs: add Phase58 progress ledger and status metadata`
 - `d2873ad64` — `test: capture Phase58B category tracking runtime proof`
+- `a4e8211f0` — `fix: add deterministic Phase58B tracking proof surface`
 
 ## 5. Phase56/57 inherited status summary
 Inherited baseline from earlier recovery work:
@@ -52,10 +53,6 @@ Inherited baseline from earlier recovery work:
 - bandage-based healing command routing restored and normalized
 - pre-Phase58 documentation/report clutter archived but preserved
 
-Practical meaning:
-- By the start of stable Phase58 work, the repo already had speech, read-only tracking, and explicit healing-routing foundations.
-- Phase58 builds on those surfaces rather than reintroducing the entire old Dev freeform lane.
-
 ## 6. Phase58A status
 **Status: implemented in-tree, built, committed, partially runtime-proven**
 
@@ -65,48 +62,30 @@ Canonical commit:
 Canonical report:
 - `docs/PHASE58A_DEV_PARITY_MONSTER_AUTONOMY_REPORT.md`
 
-Phase58A verified implementation surfaces:
-- bounded execution spine exists
-- target validator exists
-- combat controller exists
-- door service exists
-- self-sustain service exists
-- monster-only pursuit/engagement lane exists
-- cure potion path was verified against native `BaseCurePotion.Drink(...)`
-- build passed after clearing a live file lock
-
 ## 7. Phase58B status
-**Status: surfaced commands present; deterministic server-side proof surface now added; fresh direct proof artifact still pending**
+**Status: deterministic proof surface exists in code, but direct proof execution is still blocked because the live shard/server context did not generate a new proof artifact**
 
 Canonical report currently present:
 - `docs/PHASE58B_TRACKING_CATEGORY_RUNTIME_REPORT.md`
 
 Verified from repo/docs:
-- tracking categories identified as target split:
-  - Animals
-  - Monsters
-  - NPCs
-  - HumanNPCs
-  - Players
-  - All
 - surfaced short commands documented/present:
   - `[tm]`, `[ta]`, `[tn]`, `[th]`, `[tp]`, `[tall]`
   - `[hm]`, `[ha]`, `[stoptrack]`, `[ts]`, `[td]`
-- proof-only deterministic commands added:
+- proof-only deterministic commands added in code:
   - `[p58b]`
   - `[tproof]`
-- action gate direction documented:
-  - Monsters: track/report + pursue/attack lane
-  - Animals: track/report only unless explicit animal-hunt lane
-  - NPCs/HumanNPCs/Players/All: report-only for now
 
-Latest direct runtime artifact remains:
-- `docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_20260614_142316.md`
-- label: `PHASE58B-BLOCKED`
+Direct proof attempt result:
+- command run: `[p58b]`
+- no new proof artifact created
+- newest matching artifact remained:
+  - `docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_20260614_142316.md`
+- most accurate current label:
+  - `PHASE58B-PROOF-SURFACE-BLOCKED`
 
-Stabilization result:
-- the repo now has a deterministic server-side proof writer for the next Phase58B runtime pass
-- proof no longer has to rely on OCR/journal capture ambiguity
+Most likely cause supported by current checks:
+- live shard/server was not actually running the newly loaded command surface from commit `a4e8211f0`
 
 ## 8. Runtime proof artifacts list
 Known proof/report artifacts currently present:
@@ -131,9 +110,6 @@ Representative runtime artifacts observed in `docs/runtime/`:
 - `PHASE58A_MONSTERHUNTENTER[AIGMDUMP COMPANIONSTATE_RUNTIME_PROOF_20260613_155955.md`
 - `PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_20260614_142316.md`
 
-Archived supporting reports:
-- `archive/reports/2026-06-14-phase58a-precleanup/`
-
 ## 9. Commands currently available
 Verified from current repo/docs:
 - Tracking/category/status GM helpers:
@@ -149,61 +125,41 @@ Verified from current repo/docs:
 - Hunt helpers:
   - `[hm]` — start monster hunt
   - `[ha]` — animal hunt placeholder / denied lane
-- Proof helpers:
+- Proof helpers present in code:
   - `[p58b]` — deterministic Phase58B category proof writer
   - `[tproof]` — alias for deterministic Phase58B category proof writer
 
 ## 10. What is proven
 Proven by repo docs/commits/build state:
 - Phase58A bounded monster autonomy is present in-tree.
-- Execution spine, target validator, combat controller, door service, and self-sustain service exist.
-- Cure potion lane was verified against native ServUO potion mechanics (`BaseCurePotion.Drink`).
-- Build succeeded for the committed Phase58A lane.
 - Tracking categories and short tracking commands exist in-tree.
-- Deterministic server-side Phase58B proof surface now exists via `[p58b]` / `[tproof]`.
-- Release build passed after proof-surface implementation with `0 Error(s)`.
+- Deterministic server-side Phase58B proof surface exists in code via `[p58b]` / `[tproof]`.
+- Release build passed for the proof-surface implementation with `0 Error(s)`.
 
-Proven by runtime artifacts explicitly referenced in docs:
-- monster hunt scenario key recognized
-- valid nearby monster selected
-- pursuit phase entered
-- movement trace present
-- hostile-monster validator behavior present
-- closest-hostile targeting proof artifacts exist
-- older hostile-monster proof artifacts include `LastReject: animal_target`, supporting that animals are rejected from the hostile MonsterHunt lane
+Proven by existing runtime artifacts explicitly referenced in docs:
+- hostile MonsterHunt rejects animals via `animal_target` in older runtime proofs
 
 ## 11. What is not proven
 Not yet canonical/proven broadly enough for source-of-truth status:
 - fresh direct Phase58B deterministic proof artifact generated through `[p58b]` or `[tproof]`
 - full category runtime matrix for all surfaced commands consolidated into one success-state proof packet
 - direct fresh runtime proof that players/NPCs remain report-only during the current surfaced command matrix
-- full long-running autonomous hunt loop under varied live conditions
-- broad reacquire/clear-completion proof across multiple monster sequences
-- robust door-open proof in multiple door/pathing scenes
-- self-bandage proof under sustained live combat conditions as a completed end-to-end behavior packet
-- self-cure proof under live poisoned hunt conditions as a completed end-to-end behavior packet
+- direct fresh runtime proof that TrackAll remains report-only
+- direct fresh runtime proof that HuntAnimals remains blocked through the deterministic proof command path
 
 ## 12. What is blocked
 Current explicit blockers:
-- latest direct Phase58B runtime artifact is still the old blocked OCR-era pass
+- live shard/server context did not generate a new deterministic proof artifact after `[p58b]` execution attempt
+- proof command exists in source, but the running shard likely was not restarted/reloaded onto commit `a4e8211f0`
 - player proof remains dependent on nearby real player observation unless a safe native test pattern is later introduced
-- repo truth is centralized, but older docs still reflect intermediate checkpoints and may not all agree on final wording
-
-Historical blocker cleared in this pass:
-- proof capture no longer depends on OCR/journal ambiguity once `[p58b]` / `[tproof]` is used
 
 ## 13. What is next
 Immediate next action:
-- run `[p58b]` or `[tproof]` inside the dev shard
-- inspect the generated `docs/runtime/PHASE58B_TRACKING_CATEGORY_RUNTIME_PROOF_<timestamp>.md`
-- update canonical Phase58 metadata from that direct server-side artifact
-
-After that:
-- decide whether the correct final label is:
-  - `PHASE58B-CATEGORY-PROOF`
-  - `PHASE58B-ACTION-GATE-PROOF`
-  - `PHASE58B-HM-PROOF`
-  - or a narrower blocked state if any category lane still fails
+- ensure the dev shard/server is actually running the code from commit `a4e8211f0`
+- restart/reload the server if needed
+- rerun `[p58b]` or `[tproof]`
+- read the newly generated proof artifact
+- then update canonical Phase58 metadata from that direct server-side report
 
 ## 14. Safety gates still enforced
 Safety boundaries still enforced by repo truth:
