@@ -187,7 +187,7 @@ Current untracked coordinate movement WIP intentionally remains untouched by Pha
 - `Scripts/Custom/AIGM/AIGMCompanionCoordinateMovementService.cs`
 
 ## 17. Phase58D status
-**Status: implemented in-tree, built, source-proofed; live GM proof pending shard runtime**
+**Status: implemented in-tree, built, source-proofed, live-proofed on the dev shard**
 
 Canonical report:
 - `docs/PHASE58D_PARTY_SPEECH_RESTORATION_REPORT.md`
@@ -200,6 +200,9 @@ Proof command surface:
 Source-generated proof packet:
 - `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_112637.md`
 
+Canonical live proof packet:
+- `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_205353.md`
+
 Implemented behavior:
 - owner group speech builds a party listener context instead of selecting only the closest companion
 - direct named commands select one primary companion and relay context silently to siblings
@@ -211,8 +214,26 @@ Implemented behavior:
 Build result:
 - `dotnet build .\ServUO.sln -c Release`
 - 0 errors
-- 15 pre-existing unreachable-code warnings
+- 0 warnings from the explicit preflight build
+- server startup script compilation still reported the known unreachable-code warnings
 
 Live runtime proof status:
-- blocked only because ServUO was not running during this implementation pass
-- next runtime action is to start/restart the dev shard and run `[p58speech]` or `[pspeech]`
+- ServUO started from the Phase58D repo and listened on `127.0.0.1:2595`
+- ClassicUO dev login entered world as `NeoMagnetar`
+- `[p58speech]` registered and wrote a runtime proof artifact
+- `[sdump]` registered and displayed the latest context dump in-game
+- first proof run found Dakeyras and Danyal only
+- Dardalion was spawned and claimed through existing live command paths (`[Dardalion`, then `dardalion follow me`)
+- final proof run found Dakeyras, Danyal, and Dardalion
+- final proof labels:
+  - `PHASE58D-PARTY-HEARING-PROOF`
+  - `PHASE58D-GROUP-DIALOGUE-PROOF`
+  - `PHASE58D-COMPANION-DIALOGUE-PROOF`
+  - `PHASE58D-ECHO-BLOCKED`
+
+Live proof observations:
+- direct named command `dak track monsters` selected Dakeyras only and suppressed Danyal/Dardalion as context-only
+- group owner message selected Dakeyras, Danyal, and Dardalion
+- companion-to-companion exchange selected one follow-up responder and suppressed the source/extra responder
+- chain-depth echo test selected no responders and returned `PHASE58D-ECHO-BLOCKED`
+- `[sdump]` showed mode, owner, text, listener set, selected set, suppressed set, reasons, chain depth, and state

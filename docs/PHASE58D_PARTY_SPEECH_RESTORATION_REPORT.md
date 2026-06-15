@@ -64,7 +64,27 @@ Source-generated proof packet:
 
 - `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_112637.md`
 
-Live command execution remains pending because ServUO was not running during this pass.
+Live shard proof pass:
+
+- ServUO started from this repo and listened on `127.0.0.1:2595`.
+- ClassicUO dev login entered the world as `NeoMagnetar`.
+- `[p58speech]` registered and wrote a runtime proof artifact.
+- `[sdump]` registered and displayed the latest party speech context in-game.
+- A first live run found Dakeyras and Danyal only.
+- Dardalion was then spawned and claimed through the existing live command path (`[Dardalion`, then `dardalion follow me`) so the final proof covered all three companion roles.
+
+Canonical live proof artifact:
+
+- `docs/runtime/PHASE58D_PARTY_SPEECH_RUNTIME_PROOF_20260615_205353.md`
+
+Live proof result:
+
+- Dakeyras, Danyal, and Dardalion were all present in the listener set.
+- Direct named command routing selected only the named companion.
+- Group speech selected all three bounded responders.
+- Companion-to-companion dialogue selected one follow-up and suppressed the rest.
+- Echo-loop prevention blocked second-hop companion dialogue.
+- State context included tracking, hunt, guard, health, bandage, and movement availability summaries.
 
 ## Final Labels
 
@@ -72,4 +92,3 @@ Live command execution remains pending because ServUO was not running during thi
 - `PHASE58D-GROUP-DIALOGUE-PROOF`
 - `PHASE58D-COMPANION-DIALOGUE-PROOF`
 - `PHASE58D-ECHO-BLOCKED`
-- `PHASE58D-BLOCKED` for live proof execution only
