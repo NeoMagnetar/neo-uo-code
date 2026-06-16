@@ -27,6 +27,8 @@ namespace Server.Custom.AIGM
                 return;
 
             List<BaseHire> linkedCompanions = GetLinkedCompanions(sourceCompanion, owner);
+            RecordDialogueForParty(sourceCompanion, linkedCompanions, speech);
+
             for (int i = 0; i < linkedCompanions.Count; i++)
             {
                 BaseHire target = linkedCompanions[i];
@@ -39,6 +41,23 @@ namespace Server.Custom.AIGM
                     continue;
 
                 Deliver(target, sourceCompanion, dialogueEvent);
+            }
+        }
+
+        private static void RecordDialogueForParty(BaseHire sourceCompanion, List<BaseHire> linkedCompanions, string speech)
+        {
+            IAIGMCompanionActor sourceActor = sourceCompanion as IAIGMCompanionActor;
+            if (sourceActor != null)
+                AIGMCompanionPerceptionBuffer.Record(sourceActor, "companion_dialogue", sourceCompanion, speech);
+
+            if (linkedCompanions == null)
+                return;
+
+            for (int i = 0; i < linkedCompanions.Count; i++)
+            {
+                IAIGMCompanionActor actor = linkedCompanions[i] as IAIGMCompanionActor;
+                if (actor != null)
+                    AIGMCompanionPerceptionBuffer.Record(actor, "companion_dialogue", sourceCompanion, speech);
             }
         }
 

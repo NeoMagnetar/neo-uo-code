@@ -139,14 +139,29 @@ namespace Server.Custom.AIGM
                 context.DialogueMode == AIGMCompanionDialogueMode.StateCommentary ||
                 context.DialogueMode == AIGMCompanionDialogueMode.SystemStatus)
             {
-                int max = context.GroupAddressed ? 3 : 1;
+                int max = context.GroupAddressed || IsPlayerPartyBroadcast(context, speaker) ? 3 : 1;
                 SelectGroup(context, listeners, max);
-                context.TurnCoordinatorDecision = max > 1 ? "group_bounded_multi_responder" : "single_default_responder";
+                context.TurnCoordinatorDecision = max > 1
+                    ? (context.GroupAddressed ? "group_bounded_multi_responder" : "party_broadcast_multi_responder")
+                    : "single_default_responder";
                 return;
             }
 
             SelectGroup(context, listeners, 1);
             context.TurnCoordinatorDecision = "fallback_single_responder";
+        }
+
+        private static bool IsPlayerPartyBroadcast(AIGMCompanionPartySpeechContext context, Mobile speaker)
+        {
+            if (context == null || speaker is BaseHire)
+                return false;
+
+            if (!String.IsNullOrWhiteSpace(context.AddressedCompanionId))
+                return false;
+
+            return context.DialogueMode == AIGMCompanionDialogueMode.GroupConversation
+                || context.DialogueMode == AIGMCompanionDialogueMode.StateCommentary
+                || context.DialogueMode == AIGMCompanionDialogueMode.SystemStatus;
         }
 
         private static void SelectNamed(AIGMCompanionPartySpeechContext context, List<IAIGMCompanionActor> listeners, string addressedCompanionId)
@@ -367,13 +382,23 @@ namespace Server.Custom.AIGM
                 return false;
 
             return speech.Contains("companions")
+                || speech.Contains("all companions")
                 || speech.Contains("all of you")
+                || speech.Contains("you all")
                 || speech.Contains("you three")
                 || speech.Contains("three of you")
                 || speech.Contains("everyone")
+                || speech.Contains("everybody")
+                || speech.Contains("can you all hear me")
+                || speech.Contains("do you all hear me")
+                || speech.Contains("can all of you hear me")
+                || speech.Contains("can everyone hear me")
+                || speech.Contains("can everybody hear me")
+                || speech.Contains("are you all hearing me")
+                || speech.Contains("can you both hear me")
+                || speech.Contains("can you all hear")
                 || speech.Contains("all report")
                 || speech.Contains("all stay")
-                || speech.Contains("all companions")
                 || speech.StartsWith("all ", StringComparison.Ordinal)
                 || speech.StartsWith("party ", StringComparison.Ordinal);
         }

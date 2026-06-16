@@ -1,0 +1,163 @@
+diff --git a/aigm-middleware-service.js b/aigm-middleware-service.js
+index 23e1c6b..94ae3d3 100644
+--- a/aigm-middleware-service.js
++++ b/aigm-middleware-service.js
+@@ -7,6 +7,7 @@ const os = require('os');
+ const PORT = 4876;
+ const LOG_DIR = 'C:\\.openclaw\\workspace-ultima-online\\logs';
+ const TIMEOUT_MS = 120000;
++const OPENCLAW_TIMEOUT_MS = 15000;
+ const OPENCLAW_CONFIG_PATH = 'C:\\Users\\Magne\\.openclaw\\openclaw.json';
+ const GATEWAY_BASE_URL = 'http://127.0.0.1:18789';
+ const OPENCLAW_SESSION_ID = 'aigm-counselor';
+@@ -44,7 +45,7 @@ function normalizeScene(scene) { if (!scene) return null; return { mapName: pick
+ function normalizeExecution(execution) { if (!execution) return null; return { mode: pick(execution,'mode','Mode'), lastActionDescription: pick(execution,'lastActionDescription','LastActionDescription'), lastActionResult: pick(execution,'lastActionResult','LastActionResult'), stepCount: pick(execution,'stepCount','StepCount') || 0 }; }
+ function normalizeConversationTurn(turn) { if (!turn) return null; return { role: pick(turn,'role','Role'), text: pick(turn,'text','Text') }; }
+ function normalizeConversation(conversation) { if (!conversation) return null; return { activeTaskSummary: pick(conversation,'activeTaskSummary','ActiveTaskSummary'), lastWorldSummary: pick(conversation,'lastWorldSummary','LastWorldSummary'), recentTurns: (pick(conversation,'recentTurns','RecentTurns') || []).map(normalizeConversationTurn).filter(Boolean) }; }
+-function normalizeRequest(input) { return { requestId: pick(input,'requestId','RequestId','requestID','RequestID'), timestampUtc: pick(input,'timestampUtc','TimestampUtc'), shardName: pick(input,'shardName','ShardName'), requesterName: pick(input,'requesterName','RequesterName'), accessLevel: pick(input,'accessLevel','AccessLevel'), mapName: pick(input,'mapName','MapName'), regionName: pick(input,'regionName','RegionName'), question: pick(input,'question','Question','message','Message','prompt','Prompt','text','Text'), target: normalizeTarget(pick(input,'target','Target')), scene: normalizeScene(pick(input,'scene','Scene')), execution: normalizeExecution(pick(input,'execution','Execution')), conversation: normalizeConversation(pick(input,'conversation','Conversation')) }; }
++function normalizeRequest(input) { return { requestId: pick(input,'requestId','RequestId','requestID','RequestID'), timestampUtc: pick(input,'timestampUtc','TimestampUtc'), shardName: pick(input,'shardName','ShardName'), requesterName: pick(input,'requesterName','RequesterName'), accessLevel: pick(input,'accessLevel','AccessLevel'), mapName: pick(input,'mapName','MapName'), regionName: pick(input,'regionName','RegionName'), mode: pick(input,'mode','Mode'), companionName: pick(input,'companionName','CompanionName'), companionTypeName: pick(input,'companionTypeName','CompanionTypeName'), companionProfileKey: pick(input,'companionProfileKey','CompanionProfileKey'), companionRuntimeIdentity: pick(input,'companionRuntimeIdentity','CompanionRuntimeIdentity'), companionMemory: pick(input,'companionMemory','CompanionMemory'), speakerName: pick(input,'speakerName','SpeakerName'), speakerTypeName: pick(input,'speakerTypeName','SpeakerTypeName'), speakerIsCompanion: pick(input,'speakerIsCompanion','SpeakerIsCompanion') || false, dialogueMode: pick(input,'dialogueMode','DialogueMode'), partyListenerSet: pick(input,'partyListenerSet','PartyListenerSet'), partySelectedResponderSet: pick(input,'partySelectedResponderSet','PartySelectedResponderSet'), partySuppressedResponderSet: pick(input,'partySuppressedResponderSet','PartySuppressedResponderSet'), turnCoordinatorDecision: pick(input,'turnCoordinatorDecision','TurnCoordinatorDecision'), stateContextSummary: pick(input,'stateContextSummary','StateContextSummary'), question: pick(input,'question','Question','message','Message','prompt','Prompt','text','Text'), target: normalizeTarget(pick(input,'target','Target')), scene: normalizeScene(pick(input,'scene','Scene')), execution: normalizeExecution(pick(input,'execution','Execution')), conversation: normalizeConversation(pick(input,'conversation','Conversation')) }; }
+
+ function parseJsonObject(text) { if (!text) return null; const trimmed = String(text).trim(); try { return JSON.parse(trimmed); } catch {} const start = trimmed.indexOf('{'); const end = trimmed.lastIndexOf('}'); if (start >= 0 && end > start) { try { return JSON.parse(trimmed.slice(start, end + 1)); } catch {} } return null; }
+
+@@ -63,6 +64,36 @@ function buildPrompt(normalized, fallback) {
+     confidence: 'low'
+   };
+
++  const mode = normalized && normalized.mode ? String(normalized.mode) : '';
++  const isCompanionSpeech = mode === 'companion_speech';
++  const companionName = normalized && normalized.companionName ? String(normalized.companionName) : 'the companion';
++  const companionTypeName = normalized && normalized.companionTypeName ? String(normalized.companionTypeName) : 'UnknownCompanion';
++  const companionProfileKey = normalized && normalized.companionProfileKey ? String(normalized.companionProfileKey) : 'default';
++  const companionRuntimeIdentity = normalized && normalized.companionRuntimeIdentity ? String(normalized.companionRuntimeIdentity) : companionName;
++  const companionMemory = normalized && normalized.companionMemory ? String(normalized.companionMemory) : '';
++
++  if (isCompanionSpeech) {
++    return [
++      `You are ${companionName}, an in-world AI companion on a ServUO shard.`,
++      `Your identity is fixed: name=${companionName}, type=${companionTypeName}, profile=${companionProfileKey}, runtimeIdentity=${companionRuntimeIdentity}.`,
++      `You must speak as ${companionName} and never identify yourself as any other companion.`,
++      `If asked who you are, answer as ${companionName}. Do not say you are Dakeyras unless your name is exactly Dakeyras.`,
++      'You are not the GM counselor and must never answer as the counselor.',
++      'Use the companion memory/profile below as authoritative identity context.',
++      companionMemory ? `Companion memory/profile:\n${companionMemory}` : 'No companion memory/profile was provided.',
++      'Respond in concise in-world companion speech.',
++      'Return only the companion spoken_text_only line inside replyText.',
++      'Do not describe completed actions. Do not say "I have greeted", "command recognized", "action lane", "deferred", "acknowledges stop", or "holds position".',
++      'Do not mention prompts, requests, mode, system, UMG, metadata, OpenClaw, middleware, JSON rules, or debug fields in replyText.',
++      'OUTPUT ONLY JSON and no markdown or commentary outside the JSON object.',
++      'Do not explain that you are an AI, do not mention OpenClaw, cron, middleware, files, prompts, repositories, or JSON rules.',
++      'Your entire response must be one single valid JSON object matching this shape exactly:',
++      JSON.stringify(schema),
++      'Use these request details and heuristic seed only as context:',
++      JSON.stringify({ request: normalized, heuristicSeed: fallback })
++    ].join('\n');
++  }
++
+   return [
+     'You are an in-world GM counselor agent for a ServUO shard.',
+     'Respond as a present counselor, but OUTPUT ONLY JSON and no markdown or commentary outside the JSON object.',
+@@ -76,16 +107,38 @@ function buildPrompt(normalized, fallback) {
+   ].join('\n');
+ }
+
++function detectCompanionId(normalized) {
++  const target = normalized && normalized.target ? normalized.target : {};
++  const tags = Array.isArray(target.tags) ? target.tags : [];
++  const haystack = [
++    normalized && normalized.companionName,
++    normalized && normalized.companionProfileKey,
++    normalized && normalized.companionTypeName,
++    normalized && normalized.question,
++    target.name,
++    ...tags
++  ].filter(Boolean).join(' ').toLowerCase();
++
++  if (haystack.includes('dardalion')) return 'dardalion';
++  if (haystack.includes('danyal')) return 'danyal';
++  if (haystack.includes('dakeyras') || haystack.includes('waylander') || /\bdak\b/.test(haystack)) return 'dakeyras';
++  return null;
++}
++
++function companionFallbackText(normalized) {
++  switch (detectCompanionId(normalized)) {
++    case 'dakeyras': return 'Say it plainly. I am listening.';
++    case 'danyal': return 'I am here. Tell me what needs protecting.';
++    case 'dardalion': return 'I stand ready. Speak and I will answer.';
++    default: return 'I am here. Speak freely.';
++  }
++}
++
+ function heuristicResponse(normalized) {
+-  const question = normalized.question || '';
+-  const target = normalized.target;
+-  const scene = normalized.scene;
+-  const targetSummary = target ? `${target.name || target.typeName || 'target'} [${target.typeName || 'Unknown'}]` : 'No target selected.';
+-  const sceneSummary = scene ? `Map ${scene.mapName || 'Unknown'}, region ${scene.regionName || 'Unknown'}, mobiles ${scene.nearbyMobiles.length}, items ${scene.nearbyItems.length}.` : 'No environment context was available.';
+   return {
+     ok: true,
+     investigationKind: 'general',
+-    replyText: `I can help with that. I understand your request as: ${question || '(empty)'}. Right now I see ${sceneSummary} Current focus: ${targetSummary}`,
++    replyText: companionFallbackText(normalized),
+     likelyFiles: [],
+     suggestedChecks: [],
+     warnings: ['Heuristic fallback active.'],
+@@ -244,16 +297,29 @@ function extractJson(stdout) {
+   return obj;
+ }
+
+-async function callOpenClaw(prompt) {
++function buildSessionId(normalized) {
++  const mode = normalized && normalized.mode ? String(normalized.mode) : '';
++  if (mode === 'companion_speech') {
++    const profile = normalized && normalized.companionProfileKey ? String(normalized.companionProfileKey).toLowerCase() : 'default';
++    const runtimeIdentity = normalized && normalized.companionRuntimeIdentity ? String(normalized.companionRuntimeIdentity).toLowerCase() : profile;
++    const safe = runtimeIdentity.replace(/[^a-z0-9:_-]+/g, '-');
++    return `aigm-companion-${safe}`;
++  }
++
++  return OPENCLAW_SESSION_ID;
++}
++
++async function callOpenClaw(prompt, normalized) {
+   const token = getGatewayToken();
++  const sessionId = buildSessionId(normalized);
+   const body = {
+     model: 'openclaw:ultima-online',
+-    user: OPENCLAW_SESSION_ID,
++    user: sessionId,
+     messages: [
+       { role: 'user', content: prompt }
+     ]
+   };
+-  const out = await postJson(`${GATEWAY_BASE_URL}/v1/chat/completions`, body, 130000, {
++  const out = await postJson(`${GATEWAY_BASE_URL}/v1/chat/completions`, body, OPENCLAW_TIMEOUT_MS, {
+     Authorization: `Bearer ${token}`,
+     'x-openclaw-agent-id': 'ultima-online'
+   });
+@@ -353,7 +419,7 @@ const server = http.createServer((req, res) => {
+   }
+   if (req.method === 'POST' && req.url === '/selftest') {
+     const prompt = 'Return ONLY valid JSON: {"ok":true,"replyText":"middleware selftest ok","investigationKind":"general","likelyFiles":[],"suggestedChecks":[],"warnings":[],"proposedActions":[],"plan":[],"nextAction":null,"stopReason":null,"confidence":"medium"}';
+-    callOpenClaw(prompt).then(result => {
++    callOpenClaw(prompt, null).then(result => {
+       state.lastMode = 'openclaw';
+       state.lastSuccessAt = new Date().toISOString();
+       state.lastError = null;
+@@ -390,8 +456,9 @@ const server = http.createServer((req, res) => {
+       log(`TRACE requestId=${traceId} parsedKeys=${Object.keys(parsed).join(',')}`);
+       log(`TRACE requestId=${traceId} normalizedQuestion=${JSON.stringify(normalized.question || '')}`);
+       log(`OPENCLAW_PROMPT requestId=${traceId} question=${JSON.stringify(normalized.question || '')}`);
++      const openClawStartMs = Date.now();
+       try {
+-        const result = await callOpenClaw(prompt);
++        const result = await callOpenClaw(prompt, normalized);
+         log(`OPENCLAW_RAW requestId=${traceId} ${result.raw.replace(/\r?\n/g, ' <NL> ')}`);
+         const parsedObj = parseJsonObject(result.raw);
+         const normalizedAgent = normalizeAgentResponse(parsedObj, fallback);
+@@ -415,6 +482,7 @@ const server = http.createServer((req, res) => {
+         state.lastMode = 'fallback';
+         state.lastErrorAt = new Date().toISOString();
+         state.lastError = err.message;
++        log(`OPENCLAW_ERROR requestId=${traceId} elapsedMs=${Date.now() - openClawStartMs} error=${JSON.stringify(err.message)} returning=heuristic_fallback`);
+         fallback.warnings = uniq([...(fallback.warnings || []), `OpenClaw-backed mode failed, using heuristic fallback: ${err.message}`]);
+       }

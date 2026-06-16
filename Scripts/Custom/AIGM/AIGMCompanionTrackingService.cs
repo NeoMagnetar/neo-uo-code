@@ -29,7 +29,7 @@ namespace Server.Custom.AIGM
             state.LastReport = sweep;
             state.LastScanUtc = DateTime.UtcNow;
 
-            return String.Format("{0}: I will keep a tracking watch for {1}. Tracking {2:0.0}, {3}. Pursuit remains gated.", companion.Name, DescribeMode(state.Mode), state.SkillValue, state.SkillTier);
+            return String.Format("{0}: I will begin tracking {1} and report what I sense.", companion.Name, DescribeMode(state.Mode));
         }
 
         public static string StopTracking(BaseHire companion, Mobile speaker)
@@ -54,7 +54,7 @@ namespace Server.Custom.AIGM
             state.LastConfidence = BuildConfidence(companion, state.Mode);
 
             if (!state.IsActive)
-                return String.Format("{0}: no tracking watch is active. Tracking {1:0.0}, {2}. I can begin a read-only watch if asked.", companion.Name, state.SkillValue, state.SkillTier);
+                return String.Format("{0}: no tracking watch is active. Tracking {1:0.0}, {2}. I can begin tracking if asked.", companion.Name, state.SkillValue, state.SkillTier);
 
             if (ShouldRefresh(state))
             {
@@ -64,7 +64,7 @@ namespace Server.Custom.AIGM
 
             string tile = String.IsNullOrWhiteSpace(state.LastKnownTileText) ? "no tile recorded" : state.LastKnownTileText;
             string last = String.IsNullOrWhiteSpace(state.LastReport) ? "No clear sweep yet." : state.LastReport;
-            return String.Format("{0}: tracking watch active for {1}. Tracking {2:0.0}, {3}. Last sweep: {4} Last tile: {5}. Pursuit remains gated.", companion.Name, DescribeMode(state.Mode), state.SkillValue, state.SkillTier, last, tile);
+            return String.Format("{0}: tracking watch active for {1}. Tracking {2:0.0}, {3}. Last sweep: {4} Last tile: {5}.", companion.Name, DescribeMode(state.Mode), state.SkillValue, state.SkillTier, last, tile);
         }
 
         public static string BuildTrackingSweepReport(BaseHire companion, Mobile speaker, AIGMCompanionTrackingMode mode)
@@ -99,7 +99,7 @@ namespace Server.Custom.AIGM
                     state.IsActive = false;
                     state.Mode = AIGMCompanionTrackingMode.None;
                 }
-                return String.Format("{0}: Tracking {1:0.0}, {2}. I find signs nearby: {3}. Pursuit remains gated.", companion.Name, tracking, tier, summary);
+                return String.Format("{0}: Tracking {1:0.0}, {2}. I find signs nearby: {3}.", companion.Name, tracking, tier, summary);
             }
 
             if (selection.SelectedTarget == null)
@@ -128,9 +128,27 @@ namespace Server.Custom.AIGM
             }
 
             if (count <= 1)
-                return String.Format("{0}: Tracking {1:0.0}, {2}. I find 1 {3} sign: {4} at tile {5}, {6}, {7}. Pursuit remains gated.", companion.Name, tracking, tier, category, selection.SelectedName, selection.SelectedTileText, selection.SelectedDirection, selection.SelectedDistanceText);
+                return String.Format("{0}: Tracking {1:0.0}, {2}. I find 1 {3} sign: {4} at tile {5}, {6}, {7}.", companion.Name, tracking, tier, category, selection.SelectedName, selection.SelectedTileText, selection.SelectedDirection, selection.SelectedDistanceText);
 
-            return String.Format("{0}: Tracking {1:0.0}, {2}. I find {3} {4} signs; nearest is {5} at tile {6}, {7}, {8}. Pursuit remains gated.", companion.Name, tracking, tier, count, category, selection.SelectedName, selection.SelectedTileText, selection.SelectedDirection, selection.SelectedDistanceText);
+            return String.Format("{0}: Tracking {1:0.0}, {2}. I find {3} {4} signs; nearest is {5} at tile {6}, {7}, {8}.", companion.Name, tracking, tier, count, category, selection.SelectedName, selection.SelectedTileText, selection.SelectedDirection, selection.SelectedDistanceText);
+        }
+
+        public static void Pulse(BaseHire companion)
+        {
+            if (!IsValidCompanion(companion))
+                return;
+
+            AIGMCompanionTrackingState state = GetOrCreateState(companion);
+            if (state == null || !state.IsActive)
+                return;
+
+            if (!ShouldRefresh(state))
+                return;
+
+            Mobile owner = companion.GetOwner();
+            state.LastReport = BuildTrackingSweepReport(companion, owner, state.Mode);
+            state.LastScanUtc = DateTime.UtcNow;
+            AIGMExecutionLog.Write("TRACKING_CYCLE_SWEEP companion={0} mode={1} report=\"{2}\"", companion.Serial.Value, state.Mode, SafeLog(state.LastReport));
         }
 
         public static AIGMCompanionTrackingMode GetModeFromIntentKind(string intentKind)
@@ -405,6 +423,18 @@ namespace Server.Custom.AIGM
             while (normalized.Contains("  "))
                 normalized = normalized.Replace("  ", " ");
             return normalized;
+        }
+
+        private static string SafeLog(string value)
+        {
+            if (String.IsNullOrEmpty(value))
+                return String.Empty;
+
+            value = value.Replace("\r", " ").Replace("\n", " ");
+            if (value.Length > 220)
+                value = value.Substring(0, 220) + "...";
+
+            return value;
         }
 
         private static bool ContainsAny(string value, params string[] needles)

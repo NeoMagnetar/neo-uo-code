@@ -301,7 +301,8 @@ namespace Server.Custom.AIGM
             string greetCompanionId;
             if (TryParseCompanionDirectedPhrase(speech, "greet ", profiles, out greetCompanionId)
                 || TryParseCompanionDirectedPhrase(speech, "hello ", profiles, out greetCompanionId)
-                || TryParseCompanionDirectedPhrase(speech, "say hello to ", profiles, out greetCompanionId))
+                || TryParseCompanionDirectedPhrase(speech, "say hello to ", profiles, out greetCompanionId)
+                || TryParseCompanionDirectedPhrase(speech, "speak to ", profiles, out greetCompanionId))
             {
                 intent = new AIGMCompanionIntent();
                 intent.Kind = AIGMCompanionIntentKind.GreetCompanion;

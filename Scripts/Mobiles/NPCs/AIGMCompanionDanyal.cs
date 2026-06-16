@@ -342,23 +342,27 @@ namespace Server.Mobiles
             {
                 ControlTarget = speaker;
                 ControlOrder = OrderType.Follow;
-                text = String.Format("{0} acknowledges {1} and follows.", CompanionDisplayName, decision.CommandVerb ?? "follow");
+                text = "I am with you.";
             }
             else if (intentKind == AIGMCompanionIntentKind.Stay)
             {
                 ControlTarget = null;
                 ControlOrder = OrderType.Stay;
-                text = String.Format("{0} acknowledges {1} and holds position.", CompanionDisplayName, decision.CommandVerb ?? "stay");
+                text = "I will hold here.";
             }
             else if (intentKind == AIGMCompanionIntentKind.GuardOwner)
             {
                 ControlTarget = speaker;
                 ControlOrder = OrderType.Guard;
-                text = String.Format("{0} acknowledges {1} and guards you.", CompanionDisplayName, decision.CommandVerb ?? "guard");
+                text = "I will keep you covered.";
+            }
+            else if (intentKind == AIGMCompanionIntentKind.GreetCompanion)
+            {
+                return TryExecuteGreetCompanion(speaker, intent, shouldSpeak);
             }
             else if (!String.IsNullOrWhiteSpace(intentKind) && IsExplicitDeferredActionIntent(intentKind))
             {
-                text = String.Format("{0} recognizes that request, but that action lane is deferred in this phase.", CompanionDisplayName);
+                text = "That is beyond my reach for now.";
             }
             else if (!String.IsNullOrWhiteSpace(intentKind))
             {
@@ -372,7 +376,7 @@ namespace Server.Mobiles
                     case AIGMCompanionCommandVerbKind.Come:
                         ControlTarget = speaker;
                         ControlOrder = OrderType.Follow;
-                        text = String.Format("{0} acknowledges {1} and follows.", CompanionDisplayName, decision.CommandVerb);
+                        text = "I am with you.";
                         break;
                     case AIGMCompanionCommandVerbKind.Stop:
                     case AIGMCompanionCommandVerbKind.Stay:
@@ -380,17 +384,15 @@ namespace Server.Mobiles
                     case AIGMCompanionCommandVerbKind.Wait:
                         ControlTarget = null;
                         ControlOrder = OrderType.Stay;
-                        text = String.Format("{0} acknowledges {1} and holds position.", CompanionDisplayName, decision.CommandVerb);
+                        text = "I will hold here.";
                         break;
                     case AIGMCompanionCommandVerbKind.Guard:
                         ControlTarget = speaker;
                         ControlOrder = OrderType.Guard;
-                        text = String.Format("{0} acknowledges {1} and guards you.", CompanionDisplayName, decision.CommandVerb);
+                        text = "I will keep you covered.";
                         break;
                     default:
-                        text = decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion
-                            ? String.Format("{0} recognizes {1}; advanced action deferred.", CompanionDisplayName, decision.CommandVerb ?? "command")
-                            : String.Format("Shared companion command recognized: {0}. Advanced action deferred.", decision.CommandVerb ?? "command");
+                        text = "I understand. I cannot do that yet.";
                         break;
                 }
             }
@@ -412,6 +414,9 @@ namespace Server.Mobiles
             if (parsedIntent)
             {
                 string kind = intent != null ? intent.Kind : null;
+                if (kind == AIGMCompanionIntentKind.GreetCompanion)
+                    return !IsGreetToLinkedCompanion(intent);
+
                 if (kind == AIGMCompanionIntentKind.FollowOwner || kind == AIGMCompanionIntentKind.Come || kind == AIGMCompanionIntentKind.Stay || kind == AIGMCompanionIntentKind.GuardOwner)
                     return false;
 
@@ -423,6 +428,65 @@ namespace Server.Mobiles
             }
 
             return true;
+        }
+
+        private bool TryExecuteGreetCompanion(Mobile speaker, AIGMCompanionIntent intent, bool shouldSpeak)
+        {
+            BaseHire target = FindLinkedCompanionByName(intent != null ? intent.DestinationName : null);
+            if (target == null)
+                return false;
+
+            string greeting = BuildCompanionGreeting(target);
+            Say(greeting);
+            IAIGMCompanionActor targetActor = target as IAIGMCompanionActor;
+            AIGMCompanionDialogueBus.PublishDialogue(this, greeting, targetActor != null ? targetActor.CompanionId : null);
+
+            return true;
+        }
+
+        private string BuildCompanionGreeting(BaseHire target)
+        {
+            string targetName = target != null && !String.IsNullOrWhiteSpace(target.Name) ? target.Name : "friend";
+            string normalized = targetName.ToLowerInvariant();
+
+            if (normalized.Contains("dakeyras"))
+                return "Dakeyras, keep your eyes sharp. I want to know what you see before the woods know we are here.";
+
+            if (normalized.Contains("dardalion"))
+                return "Dardalion, stand close. If danger comes, we meet it together.";
+
+            return targetName + ", stay near. I trust caution more than luck.";
+        }
+
+        private bool IsGreetToLinkedCompanion(AIGMCompanionIntent intent)
+        {
+            return FindLinkedCompanionByName(intent != null ? intent.DestinationName : null) != null;
+        }
+
+        private BaseHire FindLinkedCompanionByName(string companionName)
+        {
+            if (String.IsNullOrWhiteSpace(companionName) || Map == null)
+                return null;
+
+            Mobile owner = GetOwner();
+            if (owner == null)
+                return null;
+
+            string normalized = companionName.Trim().ToLowerInvariant();
+            foreach (Mobile mobile in World.Mobiles.Values)
+            {
+                BaseHire ally = mobile as BaseHire;
+                if (ally == null || ally == this || ally.Deleted || ally.Map != Map || ally.GetOwner() != owner)
+                    continue;
+
+                IAIGMCompanionActor actor = ally as IAIGMCompanionActor;
+                string allyName = ally.Name != null ? ally.Name.ToLowerInvariant() : String.Empty;
+                string actorId = actor != null && actor.CompanionId != null ? actor.CompanionId.ToLowerInvariant() : String.Empty;
+                if (allyName == normalized || actorId == normalized)
+                    return ally;
+            }
+
+            return null;
         }
 
         private bool TryHandleReadOnlyCapability(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool shouldSpeak)
@@ -614,7 +678,6 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.ReportTravelStatus:
                 case AIGMCompanionIntentKind.ReturnHome:
                 case AIGMCompanionIntentKind.FollowCompanion:
-                case AIGMCompanionIntentKind.GreetCompanion:
                     return true;
                 default:
                     return false;
@@ -653,6 +716,12 @@ namespace Server.Mobiles
             AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(this, sourceCompanion, dialogueEvent.Text, "companion_dialogue", dialogueEvent.EventId, originCompanionId, dialogueEvent.HopCount, true, shouldSpeak, !shouldSpeak, dialogueEvent.TargetCompanionId);
             string rejection;
             AIGMCompanionSpeechQueue.TryEnqueue(request, shouldSpeak, out rejection);
+        }
+
+        public override void OnThink()
+        {
+            base.OnThink();
+            AIGMCompanionTrackingService.Pulse(this);
         }
 
         public override void Serialize(GenericWriter writer)

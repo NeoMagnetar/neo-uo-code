@@ -24,6 +24,21 @@ namespace Server.Custom.AIGM
         public string AccessLevel { get; set; }
         public string MapName { get; set; }
         public string RegionName { get; set; }
+        public string Mode { get; set; }
+        public string CompanionName { get; set; }
+        public string CompanionTypeName { get; set; }
+        public string CompanionProfileKey { get; set; }
+        public string CompanionRuntimeIdentity { get; set; }
+        public string CompanionMemory { get; set; }
+        public string SpeakerName { get; set; }
+        public string SpeakerTypeName { get; set; }
+        public bool SpeakerIsCompanion { get; set; }
+        public string DialogueMode { get; set; }
+        public string PartyListenerSet { get; set; }
+        public string PartySelectedResponderSet { get; set; }
+        public string PartySuppressedResponderSet { get; set; }
+        public string TurnCoordinatorDecision { get; set; }
+        public string StateContextSummary { get; set; }
         public string Question { get; set; }
         public AIGMTargetInfo Target { get; set; }
         public AIGMSceneContext Scene { get; set; }

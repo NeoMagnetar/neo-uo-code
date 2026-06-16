@@ -27,62 +27,8 @@ namespace Server.Custom.AIGM
             if (request == null)
                 return Failure("Companion speech request was null.");
 
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("[companion_speech_request]");
-            sb.AppendLine("mode: " + (request.DialogueMode ?? "owner_or_world_speech"));
-            sb.AppendLine("visible_turn: " + (request.IsPrimaryVisibleTurn ? "true" : "false"));
-            sb.AppendLine("active_companion: " + (request.CompanionDisplayName ?? request.CompanionId ?? "unknown"));
-            sb.AppendLine("active_profile: " + (request.CompanionProfileKey ?? "unknown"));
-            sb.AppendLine("active_role: " + (request.CompanionRole ?? "unknown"));
-            sb.AppendLine("speaker: " + (request.Speaker != null ? request.Speaker.Name ?? request.Speaker.GetType().Name : "unknown"));
-            sb.AppendLine("speaker_kind: " + (request.Speaker is BaseHire ? "companion" : "owner"));
-            sb.AppendLine("allow_remote_relay: " + (request.AllowRemoteRelay ? "true" : "false"));
-            sb.AppendLine("event_id: " + (request.EventId.HasValue ? request.EventId.Value.ToString() : String.Empty));
-            sb.AppendLine("origin_companion_id: " + (request.OriginCompanionId ?? String.Empty));
-            sb.AppendLine("dialogue_target_companion_id: " + (request.DialogueTargetCompanionId ?? String.Empty));
-            sb.AppendLine("hop_count: " + request.HopCount);
-            sb.AppendLine("speech: " + (request.RawSpeech ?? String.Empty));
-            sb.AppendLine("owner_group_context: " + (request.OwnerGroupContext ?? String.Empty));
-            sb.AppendLine("listener_set: " + (request.PartyListenerSet ?? String.Empty));
-            sb.AppendLine("selected_responders: " + (request.PartySelectedResponderSet ?? String.Empty));
-            sb.AppendLine("suppressed_responders: " + (request.PartySuppressedResponderSet ?? String.Empty));
-            sb.AppendLine("suppressed_reasons: " + (request.PartySuppressedResponderReasons ?? String.Empty));
-            sb.AppendLine("turn_coordinator_decision: " + (request.TurnCoordinatorDecision ?? String.Empty));
-            sb.AppendLine("parsed_intent: " + (request.ParsedIntentSummary ?? String.Empty));
-            sb.AppendLine("state_context: " + (request.StateContextSummary ?? String.Empty));
-            sb.AppendLine("capability_safety_posture: " + (request.CapabilitySafetyPosture ?? String.Empty));
-            sb.AppendLine();
-            sb.AppendLine("[active_companion_identity]");
-            sb.AppendLine(request.CompanionDescription ?? String.Empty);
-            sb.AppendLine("role_profile: " + (request.CompanionRole ?? String.Empty));
-            sb.AppendLine("voice_guidance: " + (request.CompanionVoiceGuidance ?? String.Empty));
-            sb.AppendLine("duties: " + (request.CompanionDutySummary ?? String.Empty));
-            sb.AppendLine("capability_boundary: " + (request.CompanionCapabilityBoundary ?? String.Empty));
-            sb.AppendLine("sibling_context: " + (request.CompanionSiblingContext ?? String.Empty));
-            sb.AppendLine("companion_party: " + (request.CompanionPartyRoster ?? String.Empty));
-            sb.AppendLine("[/active_companion_identity]");
-            sb.AppendLine();
-            sb.AppendLine("[behavior_rules]");
-            sb.AppendLine("Speak as the active companion only.");
-            sb.AppendLine("Do not speak as another companion.");
-            sb.AppendLine("Use listener_set, selected_responders, suppressed_reasons, and state_context as live party context.");
-            sb.AppendLine("If this companion is selected, answer in character using its role and current state.");
-            sb.AppendLine("Treat sibling companions as real companions, not scenery.");
-            sb.AppendLine("If asked about another companion, use dialogue context if present.");
-            sb.AppendLine("If no relevant linked dialogue context exists, say so naturally in character.");
-            sb.AppendLine("Do not summarize the relay, queue, bus, bridge, archives, or technical system behavior.");
-            sb.AppendLine("Do not claim to execute gated actions.");
-            sb.AppendLine("Do not fake healing, cure, bandage, travel, tracking pursuit, movement, attack, or combat execution.");
-            sb.AppendLine("For gated actions, give a brief in-character deferral matching this companion's role.");
-            sb.AppendLine("For direct named commands, only the addressed companion may visibly answer or execute; others are context-only.");
-            sb.AppendLine("For group conversation, keep the answer short and distinct from sibling companions.");
-            sb.AppendLine("For companion_dialogue, allow one natural follow-up only and do not continue the chain.");
-            sb.AppendLine("Keep the reply short, clear, and suitable for Ultima Online journal readability.");
-            sb.AppendLine("If visible_turn is false, this request should not produce visible speech.");
-            sb.AppendLine("[/behavior_rules]");
-            sb.AppendLine("[/companion_speech_request]");
-
-            return AskCompanionSpeech(request.Speaker, sb.ToString(), request.Companion);
+            AIGMRequest bridgeRequest = BuildCompanionSpeechRequest(request);
+            return AskInternal(bridgeRequest);
         }
 
         private static AIGMResponse AskInternal(AIGMRequest request)
@@ -216,25 +162,64 @@ namespace Server.Custom.AIGM
                     target.Tags.Add("execution_mode:" + companion.ExecutionModeKey);
             }
 
-            string companionQuestion = question ?? String.Empty;
-            if (companion != null)
+            AIGMRequest request = BuildRequest(from, question ?? String.Empty, target, null);
+            ApplyCompanionFields(request, companion, null);
+            return request;
+        }
+
+        private static AIGMRequest BuildCompanionSpeechRequest(AIGMCompanionSpeechRequest speechRequest)
+        {
+            Mobile from = speechRequest != null ? speechRequest.Speaker : null;
+            IAIGMCompanionActor companion = speechRequest != null ? speechRequest.Companion : null;
+            AIGMRequest request = BuildCompanionSpeechRequest(from, speechRequest != null ? speechRequest.RawSpeech : String.Empty, companion);
+            ApplyCompanionFields(request, companion, speechRequest);
+            return request;
+        }
+
+        private static void ApplyCompanionFields(AIGMRequest request, IAIGMCompanionActor companion, AIGMCompanionSpeechRequest speechRequest)
+        {
+            if (request == null)
+                return;
+
+            request.Mode = "companion_speech";
+            request.DialogueMode = speechRequest != null ? speechRequest.DialogueMode : "owner_or_world_speech";
+            request.SpeakerName = speechRequest != null && speechRequest.Speaker != null ? speechRequest.Speaker.Name ?? speechRequest.Speaker.GetType().Name : request.RequesterName;
+            request.SpeakerTypeName = speechRequest != null && speechRequest.Speaker != null ? speechRequest.Speaker.GetType().FullName : null;
+            request.SpeakerIsCompanion = speechRequest != null && speechRequest.Speaker is BaseHire;
+            request.PartyListenerSet = speechRequest != null ? speechRequest.PartyListenerSet : String.Empty;
+            request.PartySelectedResponderSet = speechRequest != null ? speechRequest.PartySelectedResponderSet : String.Empty;
+            request.PartySuppressedResponderSet = speechRequest != null ? speechRequest.PartySuppressedResponderSet : String.Empty;
+            request.TurnCoordinatorDecision = speechRequest != null ? speechRequest.TurnCoordinatorDecision : String.Empty;
+            request.StateContextSummary = speechRequest != null ? speechRequest.StateContextSummary : String.Empty;
+
+            if (companion == null)
+                return;
+
+            request.CompanionName = companion.CompanionDisplayName;
+            request.CompanionTypeName = companion.Shell != null ? companion.Shell.GetType().FullName : null;
+            request.CompanionProfileKey = companion.CompanionProfileKey;
+            request.CompanionRuntimeIdentity = (companion.CompanionDisplayName ?? companion.CompanionId ?? "companion")
+                + ":"
+                + (request.CompanionTypeName ?? "unknown")
+                + ":"
+                + (companion.CompanionProfileKey ?? "default");
+
+            AIGMCompanionPersonaContext persona = AIGMCompanionProfileLibrary.BuildPersonaContext(companion);
+            StringBuilder memory = new StringBuilder();
+            string loadedMemory = companion.Shell != null ? AIGMCompanionMemoryLoader.LoadMemoryForCompanion(companion.Shell) : String.Empty;
+            if (!String.IsNullOrWhiteSpace(loadedMemory))
+                memory.AppendLine(loadedMemory);
+            if (persona != null)
             {
-                AIGMCompanionPersonaContext persona = AIGMCompanionProfileLibrary.BuildPersonaContext(companion);
-                companionQuestion = "[mode:companion_speech]\n"
-                    + "[companion_id:" + (companion.CompanionId ?? String.Empty) + "]\n"
-                    + "[companion_name:" + (companion.CompanionDisplayName ?? String.Empty) + "]\n"
-                    + "[companion_role:" + (companion.CompanionRole ?? String.Empty) + "]\n"
-                    + "[companion_profile:" + (companion.CompanionProfileKey ?? String.Empty) + "]\n"
-                    + "[persona_identity:" + (persona != null ? persona.CompanionIdentityLine ?? String.Empty : String.Empty) + "]\n"
-                    + "[persona_voice:" + (persona != null ? persona.VoiceGuidance ?? String.Empty : String.Empty) + "]\n"
-                    + "[persona_duties:" + (persona != null ? persona.DutySummary ?? String.Empty : String.Empty) + "]\n"
-                    + "[persona_boundary:" + (persona != null ? persona.CapabilityBoundary ?? String.Empty : String.Empty) + "]\n"
-                    + "[persona_siblings:" + (persona != null ? persona.SiblingFraming ?? String.Empty : String.Empty) + "]\n"
-                    + "[party_roster:" + (persona != null ? persona.PartyRoster ?? String.Empty : String.Empty) + "]\n"
-                    + question;
+                memory.AppendLine(persona.CompanionIdentityLine ?? String.Empty);
+                memory.AppendLine(persona.VoiceGuidance ?? String.Empty);
+                memory.AppendLine(persona.DutySummary ?? String.Empty);
+                memory.AppendLine(persona.CapabilityBoundary ?? String.Empty);
+                memory.AppendLine(persona.SiblingFraming ?? String.Empty);
+                memory.AppendLine(persona.PartyRoster ?? String.Empty);
             }
 
-            return BuildRequest(from, companionQuestion, target, null);
+            request.CompanionMemory = memory.ToString().Trim();
         }
 
         private static byte[] Serialize<T>(T value)

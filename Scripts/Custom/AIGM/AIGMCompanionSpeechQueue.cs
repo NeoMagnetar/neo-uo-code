@@ -105,8 +105,9 @@ namespace Server.Custom.AIGM
                 || String.Equals(request.DialogueMode, "owner_relay_dialogue", StringComparison.OrdinalIgnoreCase)
                 || String.Equals(request.DialogueMode, "owner_direct_dialogue", StringComparison.OrdinalIgnoreCase);
             bool companionDialogue = String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase);
-            TimeSpan cooldown = sharedOwnerDialogue ? SharedOwnerDialogueCooldown : PlayerCooldown;
-            int cooldownKey = sharedOwnerDialogue
+            bool partyBroadcast = IsPlayerPartyBroadcast(request);
+            TimeSpan cooldown = sharedOwnerDialogue || partyBroadcast ? SharedOwnerDialogueCooldown : PlayerCooldown;
+            int cooldownKey = sharedOwnerDialogue || partyBroadcast
                 ? ((request.Speaker.Serial.Value * 397) ^ request.CompanionSerial.Value)
                 : ((request.Speaker.Serial.Value * 397) ^ 0);
             if (!companionDialogue && NextAllowedRequestUtc.TryGetValue(cooldownKey, out nextAllowed) && now < nextAllowed)
@@ -126,6 +127,18 @@ namespace Server.Custom.AIGM
 
             Task.Run(() => ProcessAsync(request));
             return true;
+        }
+
+        private static bool IsPlayerPartyBroadcast(AIGMCompanionSpeechRequest request)
+        {
+            if (request == null || request.Speaker is BaseHire)
+                return false;
+
+            if (!String.IsNullOrWhiteSpace(request.AddressedCompanionId))
+                return false;
+
+            return request.GroupAddressed
+                || String.Equals(request.DialogueMode, "owner_or_world_speech", StringComparison.OrdinalIgnoreCase);
         }
 
         private static async Task ProcessAsync(AIGMCompanionSpeechRequest request)
@@ -181,11 +194,18 @@ namespace Server.Custom.AIGM
                     return;
             }
 
-            reply = reply.Replace("<BR>", " ").Replace("<br>", " ").Replace("<BR/>", " ").Replace("<br/>", " ");
+            reply = SanitizeVisibleReply(reply);
+            if (String.IsNullOrWhiteSpace(reply))
+                reply = BuildSafeVisibleFallback();
+
             if (reply.Length > 220)
                 reply = reply.Substring(0, 220);
 
-            request.Companion.Shell.SayTo(request.Speaker, reply);
+            if (String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase))
+                request.Companion.Shell.Say(reply);
+            else
+                request.Companion.Shell.SayTo(request.Speaker, reply);
+
             AIGMCompanionPerceptionBuffer.Record(request.Companion, "reply", request.Companion.Shell, reply);
 
             if (String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase))
@@ -193,6 +213,41 @@ namespace Server.Custom.AIGM
 
             if (request.AllowRemoteRelay && request.HopCount == 0)
                 PublishDialogueReply(request.Companion.Shell as BaseHire, reply, request.DialogueTargetCompanionId);
+        }
+
+        private static string SanitizeVisibleReply(string reply)
+        {
+            if (String.IsNullOrWhiteSpace(reply))
+                return reply;
+
+            reply = AIGMCompanionSpeechSanitizer.ForNpcSpeech(reply);
+
+            string lower = reply.ToLowerInvariant();
+            if (ContainsInternalMarker(lower))
+                return BuildSafeVisibleFallback();
+
+            return reply.Trim();
+        }
+
+        private static bool ContainsInternalMarker(string lower)
+        {
+            if (String.IsNullOrWhiteSpace(lower))
+                return false;
+
+            return lower.Contains("[mode:")
+                || lower.Contains("[companion_id:")
+                || lower.Contains("[companion_name:")
+                || lower.Contains("[companion_role:")
+                || lower.Contains("[companion_profile:")
+                || lower.Contains("[persona_identity:")
+                || lower.Contains("[listener")
+                || lower.Contains("[state")
+                || lower.Contains("i understand your request as:");
+        }
+
+        private static string BuildSafeVisibleFallback()
+        {
+            return "I am here. Speak plainly.";
         }
 
         private static string BuildVisibleTimeoutFallback(IAIGMCompanionActor companion)
