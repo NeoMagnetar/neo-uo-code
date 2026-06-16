@@ -343,13 +343,13 @@ namespace Server.Mobiles
             {
                 ControlTarget = speaker;
                 ControlOrder = OrderType.Follow;
-                text = "I am with you.";
+                text = "I am with you. The line moves where you move.";
             }
             else if (intentKind == AIGMCompanionIntentKind.Stay)
             {
                 ControlTarget = null;
                 ControlOrder = OrderType.Stay;
-                text = "I will hold here.";
+                text = "I will hold this ground.";
             }
             else if (intentKind == AIGMCompanionIntentKind.GuardOwner)
             {
@@ -363,7 +363,7 @@ namespace Server.Mobiles
             }
             else if (!String.IsNullOrWhiteSpace(intentKind) && IsExplicitDeferredActionIntent(intentKind))
             {
-                text = "That is beyond my reach for now.";
+                text = "Not that way, not yet. I can still stand guard.";
             }
             else if (!String.IsNullOrWhiteSpace(intentKind))
             {
@@ -377,7 +377,7 @@ namespace Server.Mobiles
                     case AIGMCompanionCommandVerbKind.Come:
                         ControlTarget = speaker;
                         ControlOrder = OrderType.Follow;
-                        text = "I am with you.";
+                        text = "I am with you. The line moves where you move.";
                         break;
                     case AIGMCompanionCommandVerbKind.Stop:
                     case AIGMCompanionCommandVerbKind.Stay:
@@ -385,7 +385,7 @@ namespace Server.Mobiles
                     case AIGMCompanionCommandVerbKind.Wait:
                         ControlTarget = null;
                         ControlOrder = OrderType.Stay;
-                        text = "I will hold here.";
+                        text = "I will hold this ground.";
                         break;
                     case AIGMCompanionCommandVerbKind.Guard:
                         ControlTarget = speaker;
@@ -393,7 +393,7 @@ namespace Server.Mobiles
                         text = "I will stand between you and harm.";
                         break;
                     default:
-                        text = "I understand. I cannot do that yet.";
+                        text = "Give me a clearer order, commander. I will not spend courage blindly.";
                         break;
                 }
             }

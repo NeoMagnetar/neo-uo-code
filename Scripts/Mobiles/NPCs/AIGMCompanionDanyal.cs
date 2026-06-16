@@ -342,19 +342,19 @@ namespace Server.Mobiles
             {
                 ControlTarget = speaker;
                 ControlOrder = OrderType.Follow;
-                text = "I am with you.";
+                text = "I am with you. Keep your breathing steady.";
             }
             else if (intentKind == AIGMCompanionIntentKind.Stay)
             {
                 ControlTarget = null;
                 ControlOrder = OrderType.Stay;
-                text = "I will hold here.";
+                text = "I will hold here and keep bandages ready.";
             }
             else if (intentKind == AIGMCompanionIntentKind.GuardOwner)
             {
                 ControlTarget = speaker;
                 ControlOrder = OrderType.Guard;
-                text = "I will keep you covered.";
+                text = "I will stay close and keep you covered.";
             }
             else if (intentKind == AIGMCompanionIntentKind.GreetCompanion)
             {
@@ -362,7 +362,7 @@ namespace Server.Mobiles
             }
             else if (!String.IsNullOrWhiteSpace(intentKind) && IsExplicitDeferredActionIntent(intentKind))
             {
-                text = "That is beyond my reach for now.";
+                text = "Not that way, not yet. I can still help keep us steady.";
             }
             else if (!String.IsNullOrWhiteSpace(intentKind))
             {
@@ -376,7 +376,7 @@ namespace Server.Mobiles
                     case AIGMCompanionCommandVerbKind.Come:
                         ControlTarget = speaker;
                         ControlOrder = OrderType.Follow;
-                        text = "I am with you.";
+                        text = "I am with you. Keep your breathing steady.";
                         break;
                     case AIGMCompanionCommandVerbKind.Stop:
                     case AIGMCompanionCommandVerbKind.Stay:
@@ -384,15 +384,15 @@ namespace Server.Mobiles
                     case AIGMCompanionCommandVerbKind.Wait:
                         ControlTarget = null;
                         ControlOrder = OrderType.Stay;
-                        text = "I will hold here.";
+                        text = "I will hold here and keep bandages ready.";
                         break;
                     case AIGMCompanionCommandVerbKind.Guard:
                         ControlTarget = speaker;
                         ControlOrder = OrderType.Guard;
-                        text = "I will keep you covered.";
+                        text = "I will stay close and keep you covered.";
                         break;
                     default:
-                        text = "I understand. I cannot do that yet.";
+                        text = "Give me a clearer order, commander. I will not guess with lives in hand.";
                         break;
                 }
             }

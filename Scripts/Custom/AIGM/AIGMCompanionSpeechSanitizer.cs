@@ -10,7 +10,7 @@ namespace Server.Custom.AIGM
         public static string ForNpcSpeech(string text)
         {
             if (String.IsNullOrWhiteSpace(text))
-                return "I am here.";
+                return "Stay close. I am watching.";
 
             text = text.Replace("<br>", " ").Replace("<br/>", " ").Replace("<br />", " ");
             text = Regex.Replace(text, "<.*?>", String.Empty);
@@ -18,7 +18,7 @@ namespace Server.Custom.AIGM
             text = Regex.Replace(text, "\\s+", " ").Trim();
 
             if (ContainsMechanicalSpeech(text))
-                return "I am here. Speak plainly.";
+                return "Stay close. I am watching.";
 
             if (text.Length > MaxSpeechLength)
                 text = text.Substring(0, MaxSpeechLength).TrimEnd() + "...";
@@ -39,7 +39,12 @@ namespace Server.Custom.AIGM
                 || lower.Contains("action lane is deferred")
                 || lower.Contains("deferred in this phase")
                 || lower.Contains("advanced action deferred")
-                || lower.Contains("command recognized");
+                || lower.Contains("command recognized")
+                || lower.Contains("as an ai")
+                || lower.Contains("json object")
+                || lower.Contains("metadata")
+                || lower.Contains("openclaw")
+                || lower.Contains("middleware");
         }
     }
 }

@@ -218,6 +218,8 @@ namespace Server.Custom.AIGM
                 memory.AppendLine(persona.SiblingFraming ?? String.Empty);
                 memory.AppendLine(persona.PartyRoster ?? String.Empty);
             }
+            memory.AppendLine("World frame: speak as a living Ultima Online companion near roads, woods, graveyards, ruins, monsters, corpses, tracks, wounds, night, weather, and party movement when relevant.");
+            memory.AppendLine("Visible speech contract: one or two short in-character sentences only. No debug text, no UMG, no prompt talk, no action-completion report, no generic chatbot phrasing.");
 
             request.CompanionMemory = memory.ToString().Trim();
         }

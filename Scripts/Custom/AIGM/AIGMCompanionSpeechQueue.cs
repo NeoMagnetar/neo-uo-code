@@ -247,7 +247,7 @@ namespace Server.Custom.AIGM
 
         private static string BuildSafeVisibleFallback()
         {
-            return "I am here. Speak plainly.";
+            return "Stay close. I am watching.";
         }
 
         private static string BuildVisibleTimeoutFallback(IAIGMCompanionActor companion)
@@ -261,7 +261,24 @@ namespace Server.Custom.AIGM
                 return null;
 
             NextVisibleTimeoutFallbackUtc[companion.Shell.Serial] = now + VisibleTimeoutFallbackCooldown;
-            return String.Format("{0} seems distracted for a moment.", companion.CompanionDisplayName);
+            return BuildCompanionFallback(companion);
+        }
+
+        private static string BuildCompanionFallback(IAIGMCompanionActor companion)
+        {
+            string id = companion != null ? companion.CompanionId ?? companion.CompanionProfileKey ?? String.Empty : String.Empty;
+            id = id.Trim().ToLowerInvariant();
+
+            if (id == "danyal")
+                return "Hold a breath. I am still with you.";
+
+            if (id == "dardalion")
+                return "I hear you. The line will not break.";
+
+            if (id == "dakeyras")
+                return "Quiet a moment. I am reading the ground.";
+
+            return "Stay close. I am watching.";
         }
 
         private static void PublishDialogueReply(BaseHire trustedCompanion, string reply, string dialogueTargetCompanionId)
