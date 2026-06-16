@@ -191,7 +191,7 @@ namespace Server.Custom.AIGM
                 return true;
             }
 
-            if (speech.Equals("report threats") || speech.Contains("report danger") || speech.Contains("report hostiles") || speech.Contains("what do you sense"))
+            if (speech.Equals("report threats") || speech.Contains("report danger") || speech.Contains("report hostiles"))
             {
                 Make(AIGMCompanionIntentKind.ReportThreats, rawSpeech, out intent);
                 intent.ExplicitlyAddressed = explicitlyAddressed;
@@ -679,7 +679,7 @@ namespace Server.Custom.AIGM
             if (normalized.Equals("hunt monsters") || normalized.Equals("attack monsters") || normalized.Equals("clear monsters") || normalized.Equals("start hunting") || normalized.Equals("start monster tracking") || normalized.Equals("track monsters") || normalized.Equals("start tracking monsters") || normalized.Equals("hunt closest monster"))
                 return "start_monster_hunt";
 
-            if (normalized.Equals("stop hunting") || normalized.Equals("stop tracking") || normalized.Equals("stop tracking monsters") || normalized.Equals("stop monster tracking"))
+            if (normalized.Equals("stop hunting") || normalized.Equals("stop tracking monsters") || normalized.Equals("stop monster tracking"))
                 return "stop_monster_hunt";
 
             if (normalized.Equals("monster status") || normalized.Equals("hunt status") || normalized.Equals("hunting status"))
@@ -700,7 +700,20 @@ namespace Server.Custom.AIGM
             if (normalized.Equals("stop tracking") || normalized.Equals("end tracking") || normalized.Equals("track cycle off") || normalized.Equals("track off"))
                 return "stop_tracking_cycle";
 
-            if (normalized.Equals("tracking status") || normalized.Equals("track status") || normalized.Equals("report tracking") || normalized.Equals("report tracking status") || normalized.Equals("what is your tracking status") || normalized.Equals("all tracking status"))
+            if (normalized.Equals("tracking status")
+                || normalized.Equals("track status")
+                || normalized.Equals("report tracking")
+                || normalized.Equals("report tracking status")
+                || normalized.Equals("what is your tracking status")
+                || normalized.Equals("what are you tracking")
+                || normalized.Equals("what do you sense")
+                || normalized.Equals("what do you sense nearby")
+                || normalized.Equals("any tracks")
+                || normalized.Equals("what tracks")
+                || normalized.Equals("what changed")
+                || normalized.Equals("what do you see")
+                || normalized.StartsWith("what do you see ")
+                || normalized.Equals("all tracking status"))
                 return "report_tracking_status";
 
             return null;

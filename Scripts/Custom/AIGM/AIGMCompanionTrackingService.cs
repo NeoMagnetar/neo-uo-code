@@ -29,7 +29,8 @@ namespace Server.Custom.AIGM
             state.LastReport = sweep;
             state.LastScanUtc = DateTime.UtcNow;
 
-            return String.Format("{0}: I will begin tracking {1} and report what I sense.", companion.Name, DescribeMode(state.Mode));
+            AIGMExecutionLog.Write("TRACKING_AWARENESS_START companion={0} active={1} mode={2} summary=\"{3}\"", companion.Serial.Value, state.IsActive, state.Mode, SafeLog(BuildHiddenTrackingSummary(companion)));
+            return BuildStartLine(companion, state);
         }
 
         public static string StopTracking(BaseHire companion, Mobile speaker)
@@ -40,7 +41,8 @@ namespace Server.Custom.AIGM
             AIGMCompanionTrackingState state = GetOrCreateState(companion);
             state.IsActive = false;
             state.Mode = AIGMCompanionTrackingMode.None;
-            return String.Format("{0}: I will stop the tracking watch.", companion.Name);
+            AIGMExecutionLog.Write("TRACKING_AWARENESS_STOP companion={0} active={1} summary=\"{2}\"", companion.Serial.Value, state.IsActive, SafeLog(BuildHiddenTrackingSummary(companion)));
+            return BuildStopLine(companion);
         }
 
         public static string GetTrackingStatus(BaseHire companion, Mobile speaker)
@@ -54,7 +56,7 @@ namespace Server.Custom.AIGM
             state.LastConfidence = BuildConfidence(companion, state.Mode);
 
             if (!state.IsActive)
-                return String.Format("{0}: no tracking watch is active. Tracking {1:0.0}, {2}. I can begin tracking if asked.", companion.Name, state.SkillValue, state.SkillTier);
+                return BuildInactiveStatusLine(companion, state);
 
             if (ShouldRefresh(state))
             {
@@ -62,9 +64,8 @@ namespace Server.Custom.AIGM
                 state.LastScanUtc = DateTime.UtcNow;
             }
 
-            string tile = String.IsNullOrWhiteSpace(state.LastKnownTileText) ? "no tile recorded" : state.LastKnownTileText;
-            string last = String.IsNullOrWhiteSpace(state.LastReport) ? "No clear sweep yet." : state.LastReport;
-            return String.Format("{0}: tracking watch active for {1}. Tracking {2:0.0}, {3}. Last sweep: {4} Last tile: {5}.", companion.Name, DescribeMode(state.Mode), state.SkillValue, state.SkillTier, last, tile);
+            AIGMExecutionLog.Write("TRACKING_AWARENESS_STATUS companion={0} active={1} mode={2} summary=\"{3}\"", companion.Serial.Value, state.IsActive, state.Mode, SafeLog(BuildHiddenTrackingSummary(companion)));
+            return BuildActiveStatusLine(companion, state);
         }
 
         public static string BuildTrackingSweepReport(BaseHire companion, Mobile speaker, AIGMCompanionTrackingMode mode)
@@ -99,7 +100,7 @@ namespace Server.Custom.AIGM
                     state.IsActive = false;
                     state.Mode = AIGMCompanionTrackingMode.None;
                 }
-                return String.Format("{0}: Tracking {1:0.0}, {2}. I find signs nearby: {3}.", companion.Name, tracking, tier, summary);
+                return BuildAllSignsLine(companion, summary);
             }
 
             if (selection.SelectedTarget == null)
@@ -110,7 +111,7 @@ namespace Server.Custom.AIGM
                     state.IsActive = false;
                     state.Mode = AIGMCompanionTrackingMode.None;
                 }
-                return String.Format("{0}: Tracking {1:0.0}, {2}. I do not find a clear {3} trail nearby.", companion.Name, tracking, tier, DescribeMode(mode));
+                return BuildNoTrailLine(companion, mode);
             }
 
             state.LastKnownTargetDescription = selection.SelectedName;
@@ -128,9 +129,9 @@ namespace Server.Custom.AIGM
             }
 
             if (count <= 1)
-                return String.Format("{0}: Tracking {1:0.0}, {2}. I find 1 {3} sign: {4} at tile {5}, {6}, {7}.", companion.Name, tracking, tier, category, selection.SelectedName, selection.SelectedTileText, selection.SelectedDirection, selection.SelectedDistanceText);
+                return BuildTrailLine(companion, category, selection.SelectedName, selection.SelectedDirection, selection.SelectedDistanceText, selection.SelectedTileText, 1);
 
-            return String.Format("{0}: Tracking {1:0.0}, {2}. I find {3} {4} signs; nearest is {5} at tile {6}, {7}, {8}.", companion.Name, tracking, tier, count, category, selection.SelectedName, selection.SelectedTileText, selection.SelectedDirection, selection.SelectedDistanceText);
+            return BuildTrailLine(companion, category, selection.SelectedName, selection.SelectedDirection, selection.SelectedDistanceText, selection.SelectedTileText, count);
         }
 
         public static void Pulse(BaseHire companion)
@@ -219,7 +220,92 @@ namespace Server.Custom.AIGM
 
         public static AIGMCompanionTrackingState GetState(BaseHire companion)
         {
-            return companion == null ? null : GetOrCreateState(companion);
+            if (companion == null || companion.Deleted)
+                return null;
+
+            return GetOrCreateState(companion);
+        }
+
+        public static string DescribeModeForCognition(AIGMCompanionTrackingMode mode)
+        {
+            return DescribeMode(mode);
+        }
+
+        public static string BuildHiddenTrackingSummary(BaseHire companion)
+        {
+            AIGMCompanionTrackingState state = GetState(companion);
+            if (state == null)
+                return "not tracking; no recent trail";
+
+            if (!state.IsActive && String.IsNullOrWhiteSpace(state.LastReport))
+                return "not tracking; no recent trail";
+
+            List<string> parts = new List<string>();
+            parts.Add(state.IsActive ? "tracking active" : "not tracking");
+            parts.Add("focus=" + DescribeMode(state.Mode));
+            if (!String.IsNullOrWhiteSpace(state.SkillTier))
+                parts.Add("skill=" + state.SkillTier);
+            string nearest = BuildNearestTrailSummary(state);
+            if (!String.IsNullOrWhiteSpace(nearest))
+                parts.Add("nearest=" + nearest);
+            string threat = BuildThreatSummary(state);
+            if (!String.IsNullOrWhiteSpace(threat))
+                parts.Add("threat=" + threat);
+            if (!String.IsNullOrWhiteSpace(state.LastCandidateSummary))
+                parts.Add("signs=" + Shorten(NaturalizeCandidateSummary(state.LastCandidateSummary), 90));
+
+            return String.Join("; ", parts.ToArray());
+        }
+
+        public static string BuildNearestTrailSummary(AIGMCompanionTrackingState state)
+        {
+            if (state == null || String.IsNullOrWhiteSpace(state.LastKnownTargetDescription))
+                return "none";
+
+            List<string> parts = new List<string>();
+            parts.Add(state.LastKnownTargetDescription.Trim());
+            if (!String.IsNullOrWhiteSpace(state.LastKnownDirectionText))
+                parts.Add(state.LastKnownDirectionText.Trim());
+            if (!String.IsNullOrWhiteSpace(state.LastKnownDistanceText))
+                parts.Add(state.LastKnownDistanceText.Trim());
+
+            return String.Join(", ", parts.ToArray());
+        }
+
+        public static string BuildThreatSummary(AIGMCompanionTrackingState state)
+        {
+            if (state == null)
+                return "no tracked threat";
+
+            bool threatMode = state.Mode == AIGMCompanionTrackingMode.Threats || state.Mode == AIGMCompanionTrackingMode.Monsters || state.Mode == AIGMCompanionTrackingMode.All;
+            if (!threatMode && String.IsNullOrWhiteSpace(state.LastKnownTargetDescription))
+                return "no tracked threat";
+
+            if (String.IsNullOrWhiteSpace(state.LastKnownTargetDescription))
+                return "no tracked threat";
+
+            return BuildNearestTrailSummary(state);
+        }
+
+        public static string BuildTrackingCapabilitySummary(BaseHire companion, AIGMCompanionTrackingState state)
+        {
+            if (companion == null || companion.Deleted)
+                return "tracking unavailable";
+
+            double tracking = state != null && state.SkillValue > 0.0 ? state.SkillValue : AIGMCompanionSkillReadiness.GetSkillValue(companion, SkillName.Tracking);
+            string tier = !String.IsNullOrWhiteSpace(state != null ? state.SkillTier : null) ? state.SkillTier : AIGMCompanionSkillReadiness.BuildTier(tracking);
+            return String.Format("Tracking {0:0.0}, {1}; scan-only awareness, no pursuit", tracking, tier);
+        }
+
+        public static string BuildTrackingRecommendationSummary(AIGMCompanionTrackingState state)
+        {
+            if (state == null || !state.IsActive)
+                return "not tracking; start a scan before relying on trail signs";
+
+            if (String.IsNullOrWhiteSpace(state.LastKnownTargetDescription))
+                return "keep scanning; no clear fresh trail nearby";
+
+            return "keep the trail under watch; nearest sign is " + BuildNearestTrailSummary(state);
         }
 
         public static bool IsHostileMonsterSummary(AIGMSceneEntitySummary mob)
@@ -311,6 +397,186 @@ namespace Server.Custom.AIGM
                 case AIGMCompanionTrackingMode.All: return "all signs";
                 default: return "the nearby ground";
             }
+        }
+
+        private static string BuildStartLine(BaseHire companion, AIGMCompanionTrackingState state)
+        {
+            string focus = DescribeMode(state != null ? state.Mode : AIGMCompanionTrackingMode.General);
+            switch (GetCompanionId(companion))
+            {
+                case "dakeyras":
+                    return String.Format("I will read {0}. If anything crossed near us, I will find the sign.", focus);
+                case "danyal":
+                    return String.Format("I will keep watch while the trail is read. Nothing moves through {0} for free.", focus);
+                case "dardalion":
+                    return String.Format("I will hold the line and mark what stirs in {0}.", focus);
+                default:
+                    return String.Format("I will read {0} and keep it scan-only.", focus);
+            }
+        }
+
+        private static string BuildStopLine(BaseHire companion)
+        {
+            switch (GetCompanionId(companion))
+            {
+                case "dakeyras":
+                    return "I will lift my eyes from the trail. No false sign.";
+                case "danyal":
+                    return "The watch eases. I will keep my eyes open without reading the ground.";
+                case "dardalion":
+                    return "The tracking watch is ended. I remain ready.";
+                default:
+                    return "I will stop tracking and keep watch.";
+            }
+        }
+
+        private static string BuildInactiveStatusLine(BaseHire companion, AIGMCompanionTrackingState state)
+        {
+            double tracking = state != null && state.SkillValue > 0.0 ? state.SkillValue : AIGMCompanionSkillReadiness.GetSkillValue(companion, SkillName.Tracking);
+            string tier = !String.IsNullOrWhiteSpace(state != null ? state.SkillTier : null) ? state.SkillTier : AIGMCompanionSkillReadiness.BuildTier(tracking);
+            string capability = String.Format("My Tracking is {0:0.0}, {1}", tracking, tier);
+            switch (GetCompanionId(companion))
+            {
+                case "dakeyras":
+                    return "I am not reading a trail right now. " + capability + ".";
+                case "danyal":
+                    return "No active trail watch. " + capability + ".";
+                case "dardalion":
+                    return "No tracking watch is set. " + capability + ".";
+                default:
+                    return "No tracking watch is active. " + capability + ".";
+            }
+        }
+
+        private static string BuildActiveStatusLine(BaseHire companion, AIGMCompanionTrackingState state)
+        {
+            string nearest = BuildNearestTrailSummary(state);
+            string age = BuildSweepAge(state != null ? state.LastScanUtc : DateTime.MinValue);
+            if (String.IsNullOrWhiteSpace(nearest) || nearest.Equals("none", StringComparison.OrdinalIgnoreCase))
+                nearest = "no clear trail";
+
+            return String.Format("Tracking {0}; last sweep {1}. {2}.", DescribeMode(state.Mode), age, NaturalizeNearestSentence(nearest));
+        }
+
+        private static string BuildAllSignsLine(BaseHire companion, string summary)
+        {
+            return "I read the nearby signs: " + Shorten(summary, 180) + ".";
+        }
+
+        private static string BuildNoTrailLine(BaseHire companion, AIGMCompanionTrackingMode mode)
+        {
+            string trail = DescribeTrailFocus(mode);
+            switch (GetCompanionId(companion))
+            {
+                case "dakeyras":
+                    return String.Format("No clean {0} shows near us. I will keep reading the ground.", trail);
+                case "danyal":
+                    return String.Format("I do not sense a clear {0} nearby. The watch stays sharp.", trail);
+                case "dardalion":
+                    return String.Format("No clear {0} nearby. I will mark any change.", trail);
+                default:
+                    return String.Format("No clear {0} nearby.", trail);
+            }
+        }
+
+        private static string DescribeTrailFocus(AIGMCompanionTrackingMode mode)
+        {
+            switch (mode)
+            {
+                case AIGMCompanionTrackingMode.Animals: return "animal trail";
+                case AIGMCompanionTrackingMode.Monsters: return "monster trail";
+                case AIGMCompanionTrackingMode.Players: return "player trail";
+                case AIGMCompanionTrackingMode.HumanNPCs: return "human trail";
+                case AIGMCompanionTrackingMode.NPCs: return "NPC trail";
+                case AIGMCompanionTrackingMode.Threats: return "threat sign";
+                case AIGMCompanionTrackingMode.All: return "fresh sign";
+                default: return "nearby trail";
+            }
+        }
+
+        private static string BuildTrailLine(BaseHire companion, string category, string name, string direction, string distance, string tile, int count)
+        {
+            string countText = count <= 1 ? "one " + category + " sign" : count + " " + category + " signs";
+            string where = BuildWhereText(direction, distance, tile);
+            return String.Format("I find {0}; nearest is {1}{2}.", countText, SafeSpeech(name, "something"), where);
+        }
+
+        private static string BuildWhereText(string direction, string distance, string tile)
+        {
+            List<string> parts = new List<string>();
+            if (!String.IsNullOrWhiteSpace(direction))
+                parts.Add(direction.Trim());
+            if (!String.IsNullOrWhiteSpace(distance))
+                parts.Add(distance.Trim());
+            if (!String.IsNullOrWhiteSpace(tile))
+                parts.Add("near " + tile.Trim());
+
+            return parts.Count == 0 ? String.Empty : ", " + String.Join(", ", parts.ToArray());
+        }
+
+        private static string NaturalizeNearestSentence(string nearest)
+        {
+            if (String.IsNullOrWhiteSpace(nearest) || nearest.Equals("none", StringComparison.OrdinalIgnoreCase))
+                return "No clear trail yet";
+
+            return "Nearest sign: " + nearest;
+        }
+
+        private static string BuildSweepAge(DateTime lastScanUtc)
+        {
+            if (lastScanUtc == DateTime.MinValue)
+                return "not yet";
+
+            double seconds = Math.Max(0.0, (DateTime.UtcNow - lastScanUtc).TotalSeconds);
+            if (seconds < 2.0)
+                return "just now";
+            if (seconds < 60.0)
+                return String.Format("{0:0}s ago", seconds);
+
+            return String.Format("{0:0}m ago", seconds / 60.0);
+        }
+
+        private static string GetCompanionId(BaseHire companion)
+        {
+            IAIGMCompanionActor actor = companion as IAIGMCompanionActor;
+            if (actor != null && !String.IsNullOrWhiteSpace(actor.CompanionId))
+                return actor.CompanionId.Trim().ToLowerInvariant();
+
+            return companion != null && companion.Name != null ? companion.Name.Trim().ToLowerInvariant() : String.Empty;
+        }
+
+        private static string SafeSpeech(string value, string fallback)
+        {
+            if (String.IsNullOrWhiteSpace(value))
+                return fallback;
+
+            return value.Replace("\r", " ").Replace("\n", " ").Trim();
+        }
+
+        private static string NaturalizeCandidateSummary(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value))
+                return "none";
+
+            string text = value.Trim();
+            if (text.StartsWith("accepted=", StringComparison.OrdinalIgnoreCase))
+                text = text.Substring(9);
+            if (String.IsNullOrWhiteSpace(text))
+                return "none";
+
+            return text.Replace("@", " at ").Replace(",", "; ");
+        }
+
+        private static string Shorten(string value, int max)
+        {
+            if (String.IsNullOrWhiteSpace(value))
+                return String.Empty;
+
+            string text = value.Replace("\r", " ").Replace("\n", " ").Trim();
+            if (max > 0 && text.Length > max)
+                text = text.Substring(0, max);
+
+            return text;
         }
 
         private static string DescribeResultCategory(AIGMCompanionTrackingMode mode)

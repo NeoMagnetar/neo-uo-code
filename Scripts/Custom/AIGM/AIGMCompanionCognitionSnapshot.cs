@@ -27,6 +27,14 @@ namespace Server.Custom.AIGM
         public string LocationSummary { get; set; }
         public string PartySummary { get; set; }
         public string SituationSummary { get; set; }
+        public bool TrackingActive { get; set; }
+        public string TrackingFocus { get; set; }
+        public string LastTrackingReport { get; set; }
+        public string LastSweepAge { get; set; }
+        public string LastNearestCreature { get; set; }
+        public string LastKnownThreatSummary { get; set; }
+        public string TrackingCapabilitySummary { get; set; }
+        public string TrackingRecommendationSummary { get; set; }
         public string RecentDialogueSummary { get; set; }
         public string IntentSummary { get; set; }
         public string CapabilitySummary { get; set; }
@@ -44,6 +52,14 @@ namespace Server.Custom.AIGM
             LocationSummary = "unknown";
             PartySummary = "unknown";
             SituationSummary = "unknown";
+            TrackingActive = false;
+            TrackingFocus = "not tracking";
+            LastTrackingReport = "no recent trail";
+            LastSweepAge = "no recent sweep";
+            LastNearestCreature = "none";
+            LastKnownThreatSummary = "no tracked threat";
+            TrackingCapabilitySummary = "tracking not assessed";
+            TrackingRecommendationSummary = "no tracking recommendation";
             RecentDialogueSummary = "none";
             IntentSummary = "unknown";
             CapabilitySummary = "unknown";
@@ -81,6 +97,7 @@ namespace Server.Custom.AIGM
             snapshot.LocationSummary = BuildLocationSummary(companion, request);
             snapshot.PartySummary = BuildPartySummary(companion, request);
             snapshot.SituationSummary = BuildSituationSummary(companion, request);
+            ApplyTrackingSummary(snapshot, companion as BaseHire);
             snapshot.RecentDialogueSummary = BuildRecentDialogueSummary(actor);
             snapshot.IntentSummary = BuildIntentSummary(request);
             snapshot.CapabilitySummary = BuildCapabilitySummary(request);
@@ -264,6 +281,36 @@ namespace Server.Custom.AIGM
             return context.Length > 360 ? context.Substring(0, 360) : context;
         }
 
+        private static void ApplyTrackingSummary(AIGMCompanionCognitionSnapshot snapshot, BaseHire companion)
+        {
+            if (snapshot == null)
+                return;
+
+            AIGMCompanionTrackingState state = AIGMCompanionTrackingService.GetState(companion);
+            if (state == null)
+            {
+                snapshot.TrackingActive = false;
+                snapshot.TrackingFocus = "not tracking";
+                snapshot.LastTrackingReport = "no recent trail";
+                snapshot.LastSweepAge = "no recent sweep";
+                snapshot.LastNearestCreature = "none";
+                snapshot.LastKnownThreatSummary = "no tracked threat";
+                snapshot.TrackingCapabilitySummary = "no tracking state available";
+                snapshot.TrackingRecommendationSummary = "start tracking before relying on trail signs";
+                return;
+            }
+
+            snapshot.TrackingActive = state.IsActive;
+            snapshot.TrackingFocus = state.IsActive ? AIGMCompanionTrackingService.DescribeModeForCognition(state.Mode) : "not tracking";
+            snapshot.LastTrackingReport = ShortOrDefault(AIGMCompanionTrackingService.BuildHiddenTrackingSummary(companion), "no recent trail", 240);
+            snapshot.LastSweepAge = BuildSweepAge(state.LastScanUtc);
+            snapshot.LastNearestCreature = ShortOrDefault(AIGMCompanionTrackingService.BuildNearestTrailSummary(state), "none", 160);
+            snapshot.LastKnownThreatSummary = ShortOrDefault(AIGMCompanionTrackingService.BuildThreatSummary(state), "no tracked threat", 160);
+            snapshot.TrackingCapabilitySummary = ShortOrDefault(AIGMCompanionTrackingService.BuildTrackingCapabilitySummary(companion, state), "tracking not assessed", 160);
+            snapshot.TrackingRecommendationSummary = ShortOrDefault(AIGMCompanionTrackingService.BuildTrackingRecommendationSummary(state), "no tracking recommendation", 180);
+            AIGMExecutionLog.Write("COMPANION_COGNITION_TRACKING companion={0} active={1} focus=\"{2}\" summary=\"{3}\"", companion != null ? companion.Serial.Value : 0, snapshot.TrackingActive, SafeLog(snapshot.TrackingFocus), SafeLog(snapshot.LastTrackingReport));
+        }
+
         private static string BuildIntentSummary(AIGMCompanionSpeechRequest request)
         {
             if (request == null)
@@ -364,6 +411,28 @@ namespace Server.Custom.AIGM
             return String.IsNullOrWhiteSpace(value) ? "unknown" : value.Trim();
         }
 
+        private static string ShortOrDefault(string value, string fallback, int max)
+        {
+            string text = String.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+            if (max > 0 && text.Length > max)
+                text = text.Substring(0, max);
+            return text;
+        }
+
+        private static string BuildSweepAge(DateTime lastScanUtc)
+        {
+            if (lastScanUtc == DateTime.MinValue)
+                return "no recent sweep";
+
+            double seconds = Math.Max(0.0, (DateTime.UtcNow - lastScanUtc).TotalSeconds);
+            if (seconds < 2.0)
+                return "just now";
+            if (seconds < 60.0)
+                return String.Format("{0:0}s ago", seconds);
+
+            return String.Format("{0:0}m ago", seconds / 60.0);
+        }
+
         private static int SafeInt(int value)
         {
             return value < 0 ? 0 : value;
@@ -389,6 +458,18 @@ namespace Server.Custom.AIGM
             }
 
             return false;
+        }
+
+        private static string SafeLog(string value)
+        {
+            if (String.IsNullOrEmpty(value))
+                return String.Empty;
+
+            string text = value.Replace("\r", " ").Replace("\n", " ");
+            if (text.Length > 220)
+                text = text.Substring(0, 220);
+
+            return text;
         }
 
         private sealed class SkillScore

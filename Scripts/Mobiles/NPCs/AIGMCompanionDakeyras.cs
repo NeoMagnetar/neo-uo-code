@@ -361,6 +361,10 @@ namespace Server.Mobiles
             {
                 return TryExecuteGreetCompanion(speaker, intent, shouldSpeak);
             }
+            else if (IsTrackingIntentKind(intentKind))
+            {
+                text = BuildTrackingIntentReport(intent, speaker);
+            }
             else if (!String.IsNullOrWhiteSpace(intentKind) && IsExplicitDeferredActionIntent(intentKind))
             {
                 text = "Not that way, not yet. I can still read what is around us.";
@@ -591,6 +595,59 @@ namespace Server.Mobiles
 
             AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(kind);
             return AIGMCompanionTrackingService.StartTracking(this, speaker, mode);
+        }
+
+        private string BuildTrackingIntentReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            string kind = intent != null ? intent.Kind : String.Empty;
+            switch (kind)
+            {
+                case AIGMCompanionIntentKind.TrackAnimals:
+                case AIGMCompanionIntentKind.TrackMonsters:
+                case AIGMCompanionIntentKind.TrackNPCs:
+                case AIGMCompanionIntentKind.TrackHumanNPCs:
+                case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.TrackAll:
+                    return BuildTrackReadOnlyReport(intent, speaker);
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                    return AIGMCompanionTrackingService.GetTrackingStatus(this, speaker);
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingAnimals:
+                case AIGMCompanionIntentKind.StartTrackingMonsters:
+                case AIGMCompanionIntentKind.StartTrackingNPCs:
+                case AIGMCompanionIntentKind.StartTrackingHumanNPCs:
+                case AIGMCompanionIntentKind.StartTrackingPlayers:
+                case AIGMCompanionIntentKind.StartTrackingAll:
+                    return BuildTrackingCycleReport(intent, speaker);
+                default:
+                    return String.Empty;
+            }
+        }
+
+        private bool IsTrackingIntentKind(string intentKind)
+        {
+            switch (intentKind)
+            {
+                case AIGMCompanionIntentKind.TrackAnimals:
+                case AIGMCompanionIntentKind.TrackMonsters:
+                case AIGMCompanionIntentKind.TrackNPCs:
+                case AIGMCompanionIntentKind.TrackHumanNPCs:
+                case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.TrackAll:
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingAnimals:
+                case AIGMCompanionIntentKind.StartTrackingMonsters:
+                case AIGMCompanionIntentKind.StartTrackingNPCs:
+                case AIGMCompanionIntentKind.StartTrackingHumanNPCs:
+                case AIGMCompanionIntentKind.StartTrackingPlayers:
+                case AIGMCompanionIntentKind.StartTrackingAll:
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private AIGMCompanionCapabilityKind ResolveCapability(AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent)
