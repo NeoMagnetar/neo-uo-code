@@ -117,29 +117,31 @@ namespace Server.Custom.AIGM
                 return ids;
 
             string[] words = normalized.Split(' ');
-            foreach (CompanionAliasEntry entry in CompanionAliases)
+            for (int i = 0; i < words.Length; i++)
             {
-                if (entry == null || entry.Aliases == null)
+                string word = words[i];
+                if (String.IsNullOrWhiteSpace(word))
                     continue;
 
-                bool matched = false;
-                foreach (string alias in entry.Aliases)
+                for (int j = 0; j < CompanionAliases.Length; j++)
                 {
-                    for (int i = 0; i < words.Length; i++)
+                    CompanionAliasEntry entry = CompanionAliases[j];
+                    if (entry == null || entry.Aliases == null)
+                        continue;
+
+                    bool matched = false;
+                    for (int k = 0; k < entry.Aliases.Length; k++)
                     {
-                        if (String.Equals(words[i], alias, StringComparison.Ordinal))
+                        if (String.Equals(word, entry.Aliases[k], StringComparison.Ordinal))
                         {
                             matched = true;
                             break;
                         }
                     }
 
-                    if (matched)
-                        break;
+                    if (matched && !ids.Contains(entry.Key))
+                        ids.Add(entry.Key);
                 }
-
-                if (matched)
-                    ids.Add(entry.Key);
             }
 
             return ids;

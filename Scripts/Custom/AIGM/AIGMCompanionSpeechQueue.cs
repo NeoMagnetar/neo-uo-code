@@ -150,10 +150,6 @@ namespace Server.Custom.AIGM
                 {
                     await Task.Run(() =>
                     {
-                        string recentContext = AIGMCompanionPerceptionBuffer.BuildRecentContext(request.Companion);
-                        if (!String.IsNullOrWhiteSpace(recentContext))
-                            request = new AIGMCompanionSpeechRequest(request.Companion, request.Speaker, request.RawSpeech + "\n[dialogue_history]\n" + recentContext, request.DialogueMode, request.EventId, request.OriginCompanionId, request.HopCount, request.AllowRemoteRelay, request.IsPrimaryVisibleTurn, request.IsContextOnly, request.DialogueTargetCompanionId);
-
                         AIGMResponse response = AIGMBridgeClient.AskCompanionSpeechRequest(request);
                         DispatchToShardThread(request, response);
                     }, cts.Token).ConfigureAwait(false);

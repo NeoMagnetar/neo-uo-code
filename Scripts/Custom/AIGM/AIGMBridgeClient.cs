@@ -222,6 +222,7 @@ namespace Server.Custom.AIGM
             memory.AppendLine("Visible speech contract: one or two short in-character sentences only. No debug text, no UMG, no prompt talk, no action-completion report, no generic chatbot phrasing.");
 
             request.CompanionMemory = memory.ToString().Trim();
+            request.CompanionCognition = AIGMCompanionCognitionSnapshot.Build(companion.Shell, speechRequest);
         }
 
         private static byte[] Serialize<T>(T value)

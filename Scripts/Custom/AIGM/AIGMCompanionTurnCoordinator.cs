@@ -61,6 +61,8 @@ namespace Server.Custom.AIGM
             context.GroupAddressed = groupAddressed;
             if (route != null && route.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
                 context.AddressedCompanionId = route.CompanionKey ?? String.Empty;
+            else if (IsOwnerDirectedCompanionDialogue(rawSpeech) && addressed != null && addressed.Count >= 2)
+                context.AddressedCompanionId = addressed[0];
             else if (addressed != null && addressed.Count == 1)
                 context.AddressedCompanionId = addressed[0];
             if (String.IsNullOrWhiteSpace(context.DialogueTargetCompanionId))

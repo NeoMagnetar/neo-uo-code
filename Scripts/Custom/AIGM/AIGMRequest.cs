@@ -39,6 +39,7 @@ namespace Server.Custom.AIGM
         public string PartySuppressedResponderSet { get; set; }
         public string TurnCoordinatorDecision { get; set; }
         public string StateContextSummary { get; set; }
+        public AIGMCompanionCognitionSnapshot CompanionCognition { get; set; }
         public string Question { get; set; }
         public AIGMTargetInfo Target { get; set; }
         public AIGMSceneContext Scene { get; set; }
