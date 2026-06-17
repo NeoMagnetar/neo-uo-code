@@ -3,6 +3,13 @@ using Server;
 
 namespace Server.Custom.AIGM
 {
+    public enum AIGMCompanionTrackingActionMode
+    {
+        TrackOnly,
+        TrackMove,
+        TrackHunt
+    }
+
     public sealed class AIGMCompanionTrackingState
     {
         public int CompanionSerial { get; set; }
@@ -21,10 +28,19 @@ namespace Server.Custom.AIGM
         public string LastRejectedCandidates { get; set; }
         public double SkillValue { get; set; }
         public string SkillTier { get; set; }
+        public AIGMCompanionTrackingActionMode ActionMode { get; set; }
+        public int CurrentTargetSerial { get; set; }
+        public string CurrentTargetName { get; set; }
+        public Point3D LastKnownTargetLocation { get; set; }
+        public DateTime LastActionUtc { get; set; }
+        public string LastActionResult { get; set; }
+        public string StopReason { get; set; }
+        public bool EngagementAllowed { get; set; }
 
         public AIGMCompanionTrackingState()
         {
             Mode = AIGMCompanionTrackingMode.None;
+            ActionMode = AIGMCompanionTrackingActionMode.TrackOnly;
             StartedUtc = DateTime.MinValue;
             LastScanUtc = DateTime.MinValue;
             LastReport = String.Empty;
@@ -36,6 +52,11 @@ namespace Server.Custom.AIGM
             LastCandidateSummary = String.Empty;
             LastRejectedCandidates = String.Empty;
             SkillTier = String.Empty;
+            CurrentTargetName = String.Empty;
+            LastKnownTargetLocation = Point3D.Zero;
+            LastActionUtc = DateTime.MinValue;
+            LastActionResult = String.Empty;
+            StopReason = String.Empty;
         }
     }
 }

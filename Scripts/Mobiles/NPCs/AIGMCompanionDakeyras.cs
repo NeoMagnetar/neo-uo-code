@@ -295,7 +295,7 @@ namespace Server.Mobiles
 
             AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromSpeech(speech);
             if (normalized.Contains("start tracking"))
-                SayTo(e.Mobile, AIGMCompanionTrackingService.StartTracking(this, e.Mobile, mode));
+                SayTo(e.Mobile, AIGMCompanionTrackingService.StartTrackingAction(this, e.Mobile, mode, AIGMCompanionTrackingActionMode.TrackHunt));
             else
                 SayTo(e.Mobile, AIGMCompanionTrackingService.BuildTrackingSweepReport(this, e.Mobile, mode));
 
@@ -589,12 +589,7 @@ namespace Server.Mobiles
 
         private string BuildTrackingCycleReport(AIGMCompanionIntent intent, Mobile speaker)
         {
-            string kind = intent != null ? intent.Kind : String.Empty;
-            if (kind == AIGMCompanionIntentKind.StopTrackingCycle)
-                return AIGMCompanionTrackingService.StopTracking(this, speaker);
-
-            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(kind);
-            return AIGMCompanionTrackingService.StartTracking(this, speaker, mode);
+            return AIGMCompanionTrackingService.StartTrackingActionFromIntent(this, speaker, intent);
         }
 
         private string BuildTrackingIntentReport(AIGMCompanionIntent intent, Mobile speaker)
@@ -608,7 +603,11 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.TrackHumanNPCs:
                 case AIGMCompanionIntentKind.TrackPlayers:
                 case AIGMCompanionIntentKind.TrackAll:
-                    return BuildTrackReadOnlyReport(intent, speaker);
+                case AIGMCompanionIntentKind.HuntAnimals:
+                case AIGMCompanionIntentKind.StartMonsterHunt:
+                case AIGMCompanionIntentKind.StopMonsterHunt:
+                case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
+                    return AIGMCompanionTrackingService.StartTrackingActionFromIntent(this, speaker, intent);
                 case AIGMCompanionIntentKind.ReportTrackingStatus:
                     return AIGMCompanionTrackingService.GetTrackingStatus(this, speaker);
                 case AIGMCompanionIntentKind.StopTrackingCycle:
@@ -635,6 +634,7 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.TrackHumanNPCs:
                 case AIGMCompanionIntentKind.TrackPlayers:
                 case AIGMCompanionIntentKind.TrackAll:
+                case AIGMCompanionIntentKind.HuntAnimals:
                 case AIGMCompanionIntentKind.StartTrackingCycle:
                 case AIGMCompanionIntentKind.StartTrackingAnimals:
                 case AIGMCompanionIntentKind.StartTrackingMonsters:
@@ -644,6 +644,9 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.StartTrackingAll:
                 case AIGMCompanionIntentKind.StopTrackingCycle:
                 case AIGMCompanionIntentKind.ReportTrackingStatus:
+                case AIGMCompanionIntentKind.StartMonsterHunt:
+                case AIGMCompanionIntentKind.StopMonsterHunt:
+                case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
                     return true;
                 default:
                     return false;

@@ -35,6 +35,13 @@ namespace Server.Custom.AIGM
         public string LastKnownThreatSummary { get; set; }
         public string TrackingCapabilitySummary { get; set; }
         public string TrackingRecommendationSummary { get; set; }
+        public string TrackingActionMode { get; set; }
+        public string TrackingTargetCategory { get; set; }
+        public string CurrentTrackingTarget { get; set; }
+        public string CurrentTrackingTargetDistance { get; set; }
+        public bool TrackingHuntActive { get; set; }
+        public bool TrackingEngagementAllowed { get; set; }
+        public string TrackingStopReason { get; set; }
         public string RecentDialogueSummary { get; set; }
         public string IntentSummary { get; set; }
         public string CapabilitySummary { get; set; }
@@ -60,6 +67,13 @@ namespace Server.Custom.AIGM
             LastKnownThreatSummary = "no tracked threat";
             TrackingCapabilitySummary = "tracking not assessed";
             TrackingRecommendationSummary = "no tracking recommendation";
+            TrackingActionMode = "track only";
+            TrackingTargetCategory = "none";
+            CurrentTrackingTarget = "none";
+            CurrentTrackingTargetDistance = "unknown";
+            TrackingHuntActive = false;
+            TrackingEngagementAllowed = false;
+            TrackingStopReason = "none";
             RecentDialogueSummary = "none";
             IntentSummary = "unknown";
             CapabilitySummary = "unknown";
@@ -297,6 +311,13 @@ namespace Server.Custom.AIGM
                 snapshot.LastKnownThreatSummary = "no tracked threat";
                 snapshot.TrackingCapabilitySummary = "no tracking state available";
                 snapshot.TrackingRecommendationSummary = "start tracking before relying on trail signs";
+                snapshot.TrackingActionMode = "track only";
+                snapshot.TrackingTargetCategory = "none";
+                snapshot.CurrentTrackingTarget = "none";
+                snapshot.CurrentTrackingTargetDistance = "unknown";
+                snapshot.TrackingHuntActive = false;
+                snapshot.TrackingEngagementAllowed = false;
+                snapshot.TrackingStopReason = "none";
                 return;
             }
 
@@ -308,7 +329,14 @@ namespace Server.Custom.AIGM
             snapshot.LastKnownThreatSummary = ShortOrDefault(AIGMCompanionTrackingService.BuildThreatSummary(state), "no tracked threat", 160);
             snapshot.TrackingCapabilitySummary = ShortOrDefault(AIGMCompanionTrackingService.BuildTrackingCapabilitySummary(companion, state), "tracking not assessed", 160);
             snapshot.TrackingRecommendationSummary = ShortOrDefault(AIGMCompanionTrackingService.BuildTrackingRecommendationSummary(state), "no tracking recommendation", 180);
-            AIGMExecutionLog.Write("COMPANION_COGNITION_TRACKING companion={0} active={1} focus=\"{2}\" summary=\"{3}\"", companion != null ? companion.Serial.Value : 0, snapshot.TrackingActive, SafeLog(snapshot.TrackingFocus), SafeLog(snapshot.LastTrackingReport));
+            snapshot.TrackingActionMode = AIGMCompanionTrackingService.DescribeActionModeForCognition(state.ActionMode);
+            snapshot.TrackingTargetCategory = AIGMCompanionTrackingService.DescribeModeForCognition(state.Mode);
+            snapshot.CurrentTrackingTarget = ShortOrDefault(state.CurrentTargetName, "none", 120);
+            snapshot.CurrentTrackingTargetDistance = ShortOrDefault(state.LastKnownDistanceText, "unknown", 80);
+            snapshot.TrackingHuntActive = state.IsActive && state.ActionMode == AIGMCompanionTrackingActionMode.TrackHunt;
+            snapshot.TrackingEngagementAllowed = state.EngagementAllowed;
+            snapshot.TrackingStopReason = ShortOrDefault(state.StopReason, "none", 120);
+            AIGMExecutionLog.Write("COMPANION_COGNITION_TRACKING companion={0} active={1} focus=\"{2}\" action=\"{3}\" target=\"{4}\" summary=\"{5}\"", companion != null ? companion.Serial.Value : 0, snapshot.TrackingActive, SafeLog(snapshot.TrackingFocus), SafeLog(snapshot.TrackingActionMode), SafeLog(snapshot.CurrentTrackingTarget), SafeLog(snapshot.LastTrackingReport));
         }
 
         private static string BuildIntentSummary(AIGMCompanionSpeechRequest request)
