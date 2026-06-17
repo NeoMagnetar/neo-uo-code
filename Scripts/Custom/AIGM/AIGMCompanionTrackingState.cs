@@ -1,5 +1,6 @@
 using System;
 using Server;
+using Server.Mobiles;
 
 namespace Server.Custom.AIGM
 {
@@ -36,6 +37,21 @@ namespace Server.Custom.AIGM
         public string LastActionResult { get; set; }
         public string StopReason { get; set; }
         public bool EngagementAllowed { get; set; }
+        public PathFollower PursuitPathFollower { get; set; }
+        public int PursuitPathTargetSerial { get; set; }
+        public Point3D LastPursuitLocation { get; set; }
+        public int LastPursuitDistance { get; set; }
+        public int ConsecutivePursuitNoProgress { get; set; }
+        public string LastMoveDirection { get; set; }
+        public Point3D LastMoveFrom { get; set; }
+        public Point3D LastMoveTo { get; set; }
+        public int LastMoveDistanceBefore { get; set; }
+        public int LastMoveDistanceAfter { get; set; }
+        public string LastMoveResult { get; set; }
+        public bool PursuitAuthorityActive { get; set; }
+        public OrderType PreviousControlOrder { get; set; }
+        public int PreviousControlTargetSerial { get; set; }
+        public bool PreviousControlTargetWasSet { get; set; }
 
         public AIGMCompanionTrackingState()
         {
@@ -57,6 +73,15 @@ namespace Server.Custom.AIGM
             LastActionUtc = DateTime.MinValue;
             LastActionResult = String.Empty;
             StopReason = String.Empty;
+            LastPursuitLocation = Point3D.Zero;
+            LastPursuitDistance = -1;
+            LastMoveDirection = String.Empty;
+            LastMoveFrom = Point3D.Zero;
+            LastMoveTo = Point3D.Zero;
+            LastMoveDistanceBefore = -1;
+            LastMoveDistanceAfter = -1;
+            LastMoveResult = String.Empty;
+            PreviousControlOrder = OrderType.None;
         }
     }
 }

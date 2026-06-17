@@ -6,6 +6,11 @@ namespace Server.Custom.AIGM
 {
     public static class AIGMCompanionCombatController
     {
+        public static int GetNativeOrderRange()
+        {
+            return 24;
+        }
+
         public static int GetPreferredEngagementRange(BaseHire companion)
         {
             BaseWeapon weapon = companion != null ? companion.Weapon as BaseWeapon : null;
@@ -25,7 +30,7 @@ namespace Server.Custom.AIGM
                 return false;
             }
 
-            AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, 24);
+            AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, GetNativeOrderRange());
             if (!validation.Allowed)
             {
                 result = validation.Reason;
@@ -45,7 +50,7 @@ namespace Server.Custom.AIGM
                 return false;
             }
 
-            AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateAnimalTarget(companion, target, 24);
+            AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateAnimalTarget(companion, target, GetNativeOrderRange());
             if (!validation.Allowed)
             {
                 result = validation.Reason;

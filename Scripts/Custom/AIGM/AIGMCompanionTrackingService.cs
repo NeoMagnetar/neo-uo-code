@@ -43,8 +43,15 @@ namespace Server.Custom.AIGM
             state.Mode = AIGMCompanionTrackingMode.None;
             state.ActionMode = AIGMCompanionTrackingActionMode.TrackOnly;
             state.StopReason = "stop_command";
+            bool restored = RestorePursuitAuthority(companion, state, "stop_tracking");
             ClearActionTarget(state);
-            AIGMCompanionCombatController.StopCombat(companion);
+            if (!restored)
+                AIGMCompanionCombatController.StopCombat(companion);
+            else
+            {
+                companion.Combatant = null;
+                companion.Warmode = false;
+            }
             AIGMExecutionLog.Write("TRACKING_AWARENESS_STOP companion={0} active={1} summary=\"{2}\"", companion.Serial.Value, state.IsActive, SafeLog(BuildHiddenTrackingSummary(companion)));
             return BuildStopLine(companion);
         }
@@ -249,6 +256,7 @@ namespace Server.Custom.AIGM
                 state.StopReason = "no_valid_" + DescribeMode(state.Mode);
                 state.LastActionResult = "no_valid_target";
                 state.LastReport = BuildNoTrailLine(companion, state.Mode);
+                RestorePursuitAuthority(companion, state, "no_valid_target");
                 ClearActionTarget(state);
                 if (state.ActionMode == AIGMCompanionTrackingActionMode.TrackHunt)
                     state.IsActive = false;
@@ -294,6 +302,35 @@ namespace Server.Custom.AIGM
                 if (!CanHuntMode(state.Mode))
                     return StartBlockedHunt(companion, companion.GetOwner(), state.Mode);
 
+                int nativeOrderRange = AIGMCompanionCombatController.GetNativeOrderRange();
+                int currentDistance = (int)Math.Round(companion.GetDistanceToSqrt(target));
+                if (currentDistance > nativeOrderRange)
+                {
+                    AIGMExecutionLog.Write("TRACKING_ACTION_PURSUIT_REQUIRED companion={0} mode={1} target={2} distance={3} orderRange={4}", companion.Serial.Value, state.Mode, target.Serial.Value, currentDistance, nativeOrderRange);
+                    AcquirePursuitAuthority(companion, target, state, currentDistance);
+
+                    if (TryStepTowardTarget(companion, target, state))
+                    {
+                        state.LastActionResult = "pursuing_target";
+                        state.LastReport = BuildHuntPursuitLine(companion, state.Mode, target);
+                        AIGMExecutionLog.Write("TRACKING_ACTION_MOVE companion={0} name=\"{1}\" mode={2} action={3} target={4} targetName=\"{5}\" result={6} controlOrder={7} ownerDistance={8} from=\"{9}\" to=\"{10}\" beforeDistance=\"{11}\" afterDistance=\"{12}\" direction={13} moved=True", companion.Serial.Value, SafeLog(companion.Name), state.Mode, state.ActionMode, target.Serial.Value, SafeLog(DescribeMobile(target)), SafeLog(state.LastMoveResult), companion.ControlOrder, GetOwnerDistance(companion), FormatPoint(state.LastMoveFrom), FormatPoint(state.LastMoveTo), state.LastMoveDistanceBefore + " tiles", state.LastMoveDistanceAfter + " tiles", SafeLog(state.LastMoveDirection));
+                        if (state.ConsecutivePursuitNoProgress == 0 && state.LastMoveDistanceAfter < state.LastMoveDistanceBefore)
+                            AIGMExecutionLog.Write("TRACKING_ACTION_MOVE_RECOVERED companion={0} target={1} distance={2}", companion.Serial.Value, target.Serial.Value, state.LastMoveDistanceAfter);
+                        else if (state.ConsecutivePursuitNoProgress >= 4)
+                            AIGMExecutionLog.Write("TRACKING_ACTION_MOVE_STALLED companion={0} target={1} distance={2} noProgressTicks={3} reason={4}", companion.Serial.Value, target.Serial.Value, state.LastMoveDistanceAfter, state.ConsecutivePursuitNoProgress, SafeLog(state.LastMoveResult));
+                        return state.LastReport;
+                    }
+
+                    state.LastActionResult = "pursuit_blocked";
+                    state.LastReport = BuildMovementBlockedLine(companion, target);
+                    AIGMExecutionLog.Write("TRACKING_ACTION_MOVE_BLOCKED companion={0} name=\"{1}\" mode={2} action={3} target={4} targetName=\"{5}\" controlOrder={6} ownerDistance={7} from=\"{8}\" to=\"{9}\" beforeDistance=\"{10}\" afterDistance=\"{11}\" direction={12} reason={13}", companion.Serial.Value, SafeLog(companion.Name), state.Mode, state.ActionMode, target.Serial.Value, SafeLog(DescribeMobile(target)), companion.ControlOrder, GetOwnerDistance(companion), FormatPoint(state.LastMoveFrom), FormatPoint(state.LastMoveTo), state.LastMoveDistanceBefore + " tiles", state.LastMoveDistanceAfter + " tiles", SafeLog(state.LastMoveDirection), SafeLog(state.LastMoveResult));
+                    if (state.ConsecutivePursuitNoProgress >= 4)
+                        AIGMExecutionLog.Write("TRACKING_ACTION_MOVE_STALLED companion={0} target={1} distance={2} noProgressTicks={3} reason={4}", companion.Serial.Value, target.Serial.Value, state.LastMoveDistanceAfter, state.ConsecutivePursuitNoProgress, SafeLog(state.LastMoveResult));
+                    return state.LastReport;
+                }
+
+                ReleasePursuitAuthorityForCombat(companion, state, target, currentDistance);
+
                 bool nativeOrderNeeded = companion.ControlTarget != target || companion.ControlOrder != OrderType.Attack;
                 string nativeOrderResult = state.LastActionResult;
                 if (nativeOrderNeeded)
@@ -303,10 +340,12 @@ namespace Server.Custom.AIGM
                         : AIGMCompanionCombatController.TryEngageMonster(companion, target, out nativeOrderResult);
 
                     state.LastActionResult = nativeOrderResult;
-                    AIGMExecutionLog.Write("TRACKING_ACTION_NATIVE_KILL_ORDER companion={0} mode={1} target={2} ordered={3} result={4} combatantAfter={5} warmodeAfter={6} controlTargetAfter={7} orderAfter={8}", companion.Serial.Value, state.Mode, target.Serial.Value, nativeOrdered, SafeLog(nativeOrderResult), companion.Combatant != null ? companion.Combatant.Serial.Value : 0, companion.Warmode, companion.ControlTarget != null ? companion.ControlTarget.Serial.Value : 0, companion.ControlOrder);
+                    AIGMExecutionLog.Write("TRACKING_ACTION_NATIVE_KILL_ORDER companion={0} mode={1} target={2} ordered={3} result={4} distance={5} combatantAfter={6} warmodeAfter={7} controlTargetAfter={8} orderAfter={9}", companion.Serial.Value, state.Mode, target.Serial.Value, nativeOrdered, SafeLog(nativeOrderResult), currentDistance, companion.Combatant != null ? companion.Combatant.Serial.Value : 0, companion.Warmode, companion.ControlTarget != null ? companion.ControlTarget.Serial.Value : 0, companion.ControlOrder);
 
                     if (!nativeOrdered)
                     {
+                        AIGMExecutionLog.Write("TRACKING_ACTION_TARGET_CLEAR companion={0} mode={1} target={2} reason={3}", companion.Serial.Value, state.Mode, target.Serial.Value, SafeLog(nativeOrderResult));
+                        RestorePursuitAuthority(companion, state, nativeOrderResult);
                         ClearActionTarget(state);
                         state.LastReport = "I lost the mark and will find the next clean sign.";
                         return state.LastReport;
@@ -352,6 +391,7 @@ namespace Server.Custom.AIGM
                     return state.LastReport;
                 }
 
+                RestorePursuitAuthority(companion, state, combatResult);
                 ClearActionTarget(state);
                 state.LastReport = "I lost the mark and will find the next clean sign.";
                 return state.LastReport;
@@ -669,6 +709,7 @@ namespace Server.Custom.AIGM
             if (!IsValidActionTarget(companion, target, state.Mode, state.ActionMode, GetTrackingRange(companion)))
             {
                 state.LastActionResult = "target_invalid_or_lost";
+                RestorePursuitAuthority(companion, state, "target_invalid_or_lost");
                 return null;
             }
 
@@ -718,6 +759,7 @@ namespace Server.Custom.AIGM
 
             if (best == null)
             {
+                RestorePursuitAuthority(companion, state, "no_selected_target");
                 ClearActionTarget(state);
                 return null;
             }
@@ -776,6 +818,75 @@ namespace Server.Custom.AIGM
             state.LastKnownTargetLocation = target.Location;
         }
 
+        private static void AcquirePursuitAuthority(BaseHire companion, Mobile target, AIGMCompanionTrackingState state, int distance)
+        {
+            if (companion == null || target == null || state == null)
+                return;
+
+            if (!state.PursuitAuthorityActive)
+            {
+                state.PursuitAuthorityActive = true;
+                state.PreviousControlOrder = companion.ControlOrder;
+                Mobile previousTarget = companion.ControlTarget as Mobile;
+                state.PreviousControlTargetWasSet = previousTarget != null;
+                state.PreviousControlTargetSerial = previousTarget != null ? previousTarget.Serial.Value : 0;
+                AIGMExecutionLog.Write("TRACKING_ACTION_PURSUIT_AUTHORITY_ACQUIRED companion={0} target={1} distance={2} previousOrder={3} previousTarget={4} ownerDistance={5}", companion.Serial.Value, target.Serial.Value, distance, state.PreviousControlOrder, state.PreviousControlTargetSerial, GetOwnerDistance(companion));
+            }
+            else if (companion.ControlOrder == OrderType.Follow || companion.ControlOrder == OrderType.Come)
+            {
+                AIGMExecutionLog.Write("TRACKING_ACTION_PURSUIT_AUTHORITY_ACQUIRED companion={0} target={1} distance={2} previousOrder={3} previousTarget={4} ownerDistance={5} reason=reassert_after_follow", companion.Serial.Value, target.Serial.Value, distance, state.PreviousControlOrder, state.PreviousControlTargetSerial, GetOwnerDistance(companion));
+            }
+
+            companion.CantWalk = false;
+            companion.ControlTarget = null;
+            companion.Combatant = null;
+            companion.Warmode = false;
+            if (companion.ControlOrder == OrderType.Follow || companion.ControlOrder == OrderType.Come || companion.ControlOrder == OrderType.Attack)
+                companion.ControlOrder = OrderType.Stay;
+            companion.CurrentSpeed = companion.ActiveSpeed;
+        }
+
+        private static void ReleasePursuitAuthorityForCombat(BaseHire companion, AIGMCompanionTrackingState state, Mobile target, int distance)
+        {
+            if (companion == null || state == null || !state.PursuitAuthorityActive)
+                return;
+
+            AIGMExecutionLog.Write("TRACKING_ACTION_PURSUIT_AUTHORITY_RESTORED companion={0} target={1} distance={2} restored=False reason=enter_native_order_range currentOrder={3}", companion.Serial.Value, target != null ? target.Serial.Value : 0, distance, companion.ControlOrder);
+            state.PursuitAuthorityActive = false;
+            state.PreviousControlOrder = OrderType.None;
+            state.PreviousControlTargetSerial = 0;
+            state.PreviousControlTargetWasSet = false;
+        }
+
+        private static bool RestorePursuitAuthority(BaseHire companion, AIGMCompanionTrackingState state, string reason)
+        {
+            if (companion == null || state == null || !state.PursuitAuthorityActive)
+                return false;
+
+            OrderType restoreOrder = state.PreviousControlOrder;
+            if (restoreOrder == OrderType.Attack)
+                restoreOrder = OrderType.Follow;
+
+            Mobile restoreTarget = null;
+            if (state.PreviousControlTargetWasSet && state.PreviousControlTargetSerial != 0)
+                restoreTarget = World.FindMobile(state.PreviousControlTargetSerial);
+
+            if ((restoreOrder == OrderType.Follow || restoreOrder == OrderType.Come) && (restoreTarget == null || restoreTarget.Deleted || restoreTarget.Map != companion.Map))
+                restoreTarget = companion.GetOwner();
+
+            companion.ControlTarget = restoreTarget;
+            companion.ControlOrder = restoreOrder;
+            companion.CantWalk = false;
+
+            AIGMExecutionLog.Write("TRACKING_ACTION_PURSUIT_AUTHORITY_RESTORED companion={0} restored=True reason={1} order={2} target={3} ownerDistance={4}", companion.Serial.Value, SafeLog(reason), companion.ControlOrder, restoreTarget != null ? restoreTarget.Serial.Value : 0, GetOwnerDistance(companion));
+
+            state.PursuitAuthorityActive = false;
+            state.PreviousControlOrder = OrderType.None;
+            state.PreviousControlTargetSerial = 0;
+            state.PreviousControlTargetWasSet = false;
+            return true;
+        }
+
         private static void ClearActionTarget(AIGMCompanionTrackingState state)
         {
             if (state == null)
@@ -784,6 +895,21 @@ namespace Server.Custom.AIGM
             state.CurrentTargetSerial = 0;
             state.CurrentTargetName = String.Empty;
             state.LastKnownTargetLocation = Point3D.Zero;
+            state.PursuitPathFollower = null;
+            state.PursuitPathTargetSerial = 0;
+            state.LastPursuitLocation = Point3D.Zero;
+            state.LastPursuitDistance = -1;
+            state.ConsecutivePursuitNoProgress = 0;
+            state.LastMoveDirection = String.Empty;
+            state.LastMoveFrom = Point3D.Zero;
+            state.LastMoveTo = Point3D.Zero;
+            state.LastMoveDistanceBefore = -1;
+            state.LastMoveDistanceAfter = -1;
+            state.LastMoveResult = String.Empty;
+            state.PursuitAuthorityActive = false;
+            state.PreviousControlOrder = OrderType.None;
+            state.PreviousControlTargetSerial = 0;
+            state.PreviousControlTargetWasSet = false;
             ClearLastTarget(state);
         }
 
@@ -792,22 +918,118 @@ namespace Server.Custom.AIGM
             if (companion == null || target == null || state == null || companion.Map == null || target.Map != companion.Map)
                 return false;
 
+            companion.CantWalk = false;
+            Point3D before = companion.Location;
+            int beforeDistance = (int)Math.Round(companion.GetDistanceToSqrt(target));
+            if (state.LastMoveTo != Point3D.Zero && before != state.LastMoveTo)
+                AIGMExecutionLog.Write("TRACKING_ACTION_MOVE_STALLED companion={0} target={1} distance={2} previousAfter=\"{3}\" nextTickStart=\"{4}\" controlOrder={5} ownerDistance={6} reason=next_tick_start_changed", companion.Serial.Value, target.Serial.Value, beforeDistance, FormatPoint(state.LastMoveTo), FormatPoint(before), companion.ControlOrder, GetOwnerDistance(companion));
+            state.LastMoveFrom = before;
+            state.LastMoveTo = before;
+            state.LastMoveDistanceBefore = beforeDistance;
+            state.LastMoveDistanceAfter = beforeDistance;
+            state.LastMoveDirection = (companion.GetDirectionTo(target) & Direction.Mask).ToString();
+            state.LastMoveResult = "not_attempted";
+
+            if (state.PursuitPathFollower == null || state.PursuitPathTargetSerial != target.Serial.Value)
+            {
+                state.PursuitPathFollower = new PathFollower(companion, target);
+                state.PursuitPathTargetSerial = target.Serial.Value;
+                state.ConsecutivePursuitNoProgress = 0;
+                state.LastPursuitDistance = beforeDistance;
+                state.LastPursuitLocation = before;
+            }
+
+            if (TryPathFollowerStep(companion, target, state, before, beforeDistance))
+                return true;
+
             Point3D[] candidates = BuildStepCandidates(companion, target.Location);
             for (int i = 0; i < candidates.Length; i++)
             {
-                Direction direction = companion.GetDirectionTo(candidates[i]) & Direction.Mask;
                 if (candidates[i] == companion.Location)
                     continue;
 
+                Direction direction = companion.GetDirectionTo(candidates[i]) & Direction.Mask;
+                state.LastMoveDirection = direction.ToString();
                 if (TryMove(companion, direction))
+                {
+                    RecordPursuitStep(companion, target, state, before, beforeDistance, "direct_step");
                     return true;
+                }
 
                 AIGMCompanionDoorResult door = AIGMCompanionDoorService.TryOpenNearbyDoorDetailed(companion);
                 if (door.Opened && TryMove(companion, direction))
+                {
+                    RecordPursuitStep(companion, target, state, before, beforeDistance, "direct_step_after_door:" + door.Target);
                     return true;
+                }
             }
 
+            state.LastMoveTo = companion.Location;
+            state.LastMoveDistanceAfter = (int)Math.Round(companion.GetDistanceToSqrt(target));
+            state.LastMoveResult = "movement_blocked";
+            NotePursuitProgress(state, before, beforeDistance);
             return false;
+        }
+
+        private static bool TryPathFollowerStep(BaseHire companion, Mobile target, AIGMCompanionTrackingState state, Point3D before, int beforeDistance)
+        {
+            if (state.PursuitPathFollower == null)
+                return false;
+
+            state.LastMoveDirection = (companion.GetDirectionTo(target) & Direction.Mask).ToString();
+            bool followed = state.PursuitPathFollower.Follow(true, 1);
+            if (companion.Location != before)
+            {
+                RecordPursuitStep(companion, target, state, before, beforeDistance, "path_follower_step");
+                return true;
+            }
+
+            if (followed)
+            {
+                RecordPursuitStep(companion, target, state, before, beforeDistance, "path_follower_in_range");
+                return true;
+            }
+
+            AIGMCompanionDoorResult door = AIGMCompanionDoorService.TryOpenNearbyDoorDetailed(companion);
+            if (door.Opened)
+            {
+                state.PursuitPathFollower.ForceRepath();
+                Point3D doorBefore = companion.Location;
+                bool afterDoor = state.PursuitPathFollower.Follow(true, 1);
+                if (companion.Location != doorBefore || afterDoor)
+                {
+                    RecordPursuitStep(companion, target, state, before, beforeDistance, "path_follower_after_door:" + door.Target);
+                    return true;
+                }
+            }
+
+            state.PursuitPathFollower.ForceRepath();
+            return false;
+        }
+
+        private static void RecordPursuitStep(BaseHire companion, Mobile target, AIGMCompanionTrackingState state, Point3D before, int beforeDistance, string result)
+        {
+            state.LastMoveFrom = before;
+            state.LastMoveTo = companion.Location;
+            state.LastMoveDistanceBefore = beforeDistance;
+            state.LastMoveDistanceAfter = (int)Math.Round(companion.GetDistanceToSqrt(target));
+            state.LastMoveDirection = before != companion.Location
+                ? DirectionFromStep(before, companion.Location).ToString()
+                : (companion.GetDirectionTo(target) & Direction.Mask).ToString();
+            state.LastMoveResult = result;
+            NotePursuitProgress(state, before, beforeDistance);
+        }
+
+        private static void NotePursuitProgress(AIGMCompanionTrackingState state, Point3D before, int beforeDistance)
+        {
+            bool progressed = state.LastMoveDistanceAfter < beforeDistance;
+            if (progressed)
+                state.ConsecutivePursuitNoProgress = 0;
+            else
+                state.ConsecutivePursuitNoProgress++;
+
+            state.LastPursuitLocation = state.LastMoveTo;
+            state.LastPursuitDistance = state.LastMoveDistanceAfter;
         }
 
         private static Point3D[] BuildStepCandidates(BaseHire companion, Point3D destination)
@@ -835,6 +1057,45 @@ namespace Server.Custom.AIGM
                 companion.Direction = masked;
 
             return companion.Move(masked);
+        }
+
+        private static Direction DirectionFromStep(Point3D from, Point3D to)
+        {
+            int dx = Math.Sign(to.X - from.X);
+            int dy = Math.Sign(to.Y - from.Y);
+
+            if (dx == 0 && dy < 0)
+                return Direction.North;
+            if (dx > 0 && dy < 0)
+                return Direction.Right;
+            if (dx > 0 && dy == 0)
+                return Direction.East;
+            if (dx > 0 && dy > 0)
+                return Direction.Down;
+            if (dx == 0 && dy > 0)
+                return Direction.South;
+            if (dx < 0 && dy > 0)
+                return Direction.Left;
+            if (dx < 0 && dy == 0)
+                return Direction.West;
+            if (dx < 0 && dy < 0)
+                return Direction.Up;
+
+            return Direction.North;
+        }
+
+        private static string FormatPoint(Point3D p)
+        {
+            return String.Format("{0},{1},{2}", p.X, p.Y, p.Z);
+        }
+
+        private static int GetOwnerDistance(BaseHire companion)
+        {
+            Mobile owner = companion != null ? companion.GetOwner() : null;
+            if (companion == null || owner == null || owner.Map != companion.Map)
+                return -1;
+
+            return (int)Math.Round(companion.GetDistanceToSqrt(owner));
         }
 
         private static string DescribeMobile(Mobile target)
