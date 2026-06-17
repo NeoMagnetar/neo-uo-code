@@ -30,19 +30,19 @@ namespace Server.Custom.AIGM
             {
                 Key = "dakeyras",
                 Name = "Dakeyras",
-                Aliases = new[] { "dak", "dakeyras", "waylander" }
+                Aliases = new[] { "dak", "dake", "dakeyras", "waylander" }
             },
             new CompanionAliasEntry
             {
                 Key = "danyal",
                 Name = "Danyal",
-                Aliases = new[] { "danyal" }
+                Aliases = new[] { "dan", "danyal" }
             },
             new CompanionAliasEntry
             {
                 Key = "dardalion",
                 Name = "Dardalion",
-                Aliases = new[] { "dardalion" }
+                Aliases = new[] { "dar", "dard", "dardalion" }
             }
         };
 
@@ -93,9 +93,9 @@ namespace Server.Custom.AIGM
             Create(AIGMCompanionCommandVerbKind.Disengage, AIGMCompanionCapabilityKind.Disengage, "disengage", false, true, true,
                 prefixMatches: new[] { "disengage", "stop fighting", "stop attack", "stop attacking", "stop combat" }),
             Create(AIGMCompanionCommandVerbKind.Heal, AIGMCompanionCapabilityKind.Heal, "heal", false, true, true,
-                prefixMatches: new[] { "heal me", "heal my wounds", "heal owner", "heal yourself", "heal self", "heal myself" }),
+                prefixMatches: new[] { "heal ", "heal me", "heal my wounds", "heal owner", "heal yourself", "heal self", "heal myself", "stop healing", "cancel healing" }),
             Create(AIGMCompanionCommandVerbKind.Bandage, AIGMCompanionCapabilityKind.Bandage, "bandage", false, true, true,
-                prefixMatches: new[] { "bandage me", "bandage my wounds", "bandage owner", "use bandages on me", "bandage yourself", "bandage self", "bandage myself", "bandage your own self" }),
+                prefixMatches: new[] { "bandage ", "bandage me", "bandage my wounds", "bandage owner", "use bandages on me", "bandage yourself", "bandage self", "bandage myself", "bandage your own self", "stop bandaging", "cancel bandaging" }),
             Create(AIGMCompanionCommandVerbKind.Cure, AIGMCompanionCapabilityKind.Cure, "cure", false, true, true,
                 prefixMatches: new[] { "cure me", "cure my poison", "cure yourself", "cure self" }),
             Create(AIGMCompanionCommandVerbKind.CastHeal, AIGMCompanionCapabilityKind.CastHeal, "cast heal", false, true, true,

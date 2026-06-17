@@ -6,6 +6,12 @@ namespace Server.Custom.AIGM
 {
     public static class AIGMCompanionSelfSustainService
     {
+        public static bool TryAutoSelfBandage(BaseHire companion)
+        {
+            string response;
+            return TryBandageSelf(companion, out response);
+        }
+
         public static bool TryBandageSelf(BaseHire companion, out string response)
         {
             response = null;

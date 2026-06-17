@@ -237,6 +237,22 @@ namespace Server.Mobiles
             AIGMCompanionIntent intent;
             bool parsedIntent = AIGMCompanionIntentParser.TryParse(this, e.Mobile, e.Speech, out intent);
 
+            string healingRouteReason;
+            if (AIGMCompanionHealingService.ShouldRouteHealingCommand(this, e.Mobile, e.Speech, out healingRouteReason))
+            {
+                AIGMCompanionHealingService.LogCommandRoute(this, e.Mobile, e.Speech, healingRouteReason);
+
+                string healingResponse;
+                if (AIGMCompanionHealingService.TryHandleExplicitHealingCommand(this, e.Mobile, e.Speech, out healingResponse))
+                {
+                    if (shouldSpeak && !String.IsNullOrWhiteSpace(healingResponse))
+                        SayTo(e.Mobile, healingResponse);
+
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             if (allowTrustedOwnerFallback || ShouldUseCompanionChat(e.Mobile, e.Speech, decision, intent, parsedIntent))
             {
                 if (e.Mobile == owner && (allowTrustedOwnerFallback || decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion || decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion))
@@ -785,6 +801,7 @@ namespace Server.Mobiles
         public override void OnThink()
         {
             base.OnThink();
+            AIGMCompanionHealingService.Pulse(this);
             AIGMCompanionTrackingService.Pulse(this);
         }
 
