@@ -1921,7 +1921,7 @@ namespace Server.Mobiles
         [CommandProperty(AccessLevel.GameMaster)]
         public int ManaMaxSeed { get { return m_ManaMax; } set { m_ManaMax = value; } }
 
-        public virtual bool CanOpenDoors { get { return !Body.IsAnimal && !Body.IsSea; } }
+        public virtual bool CanOpenDoors { get { return Body.IsHuman; } }
 
         public virtual bool CanMoveOverObstacles { get { return Core.AOS || Body.IsMonster; } }
 

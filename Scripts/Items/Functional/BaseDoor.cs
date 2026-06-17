@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server.Commands;
+using Server.Mobiles;
 using Server.Network;
 using Server.Targeting;
 
@@ -491,7 +492,11 @@ namespace Server.Items
         {
             Mobile m = e.Mobile;
 
-            if (m == null || !m.Player || m.Map == null)
+            if (m == null || m.Map == null)
+                return;
+
+            BaseCreature creature = m as BaseCreature;
+            if (!m.Player && (creature == null || !creature.CanOpenDoors))
                 return;
 
             if ((m.Direction & Direction.Mask) != (e.Direction & Direction.Mask))

@@ -47,9 +47,17 @@ namespace Server.Custom.AIGM
             }
 
             result.Target = DescribeDoor(door);
-            bool opened = BaseDoor.TryAutoOpenDoor(companion, false);
-            result.Opened = opened;
-            result.Status = opened ? "opened" : "blocked";
+            bool wasOpen = door.Open;
+            BaseDoor.TryAutoOpenDoor(companion, false);
+            result.Opened = !wasOpen && door.Open;
+
+            if (result.Opened)
+                result.Status = "opened";
+            else if (door.Locked && door.UseLocks())
+                result.Status = "locked";
+            else
+                result.Status = "blocked";
+
             return result;
         }
 
