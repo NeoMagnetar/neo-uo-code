@@ -158,7 +158,7 @@ namespace Server.Custom.AIGM
 
             if (speech.Equals("track and hunt player") || speech.Equals("track and hunt players") || speech.Equals("hunt player") || speech.Equals("hunt players") || speech.Equals("attack player") || speech.Equals("attack players"))
             {
-                Make(AIGMCompanionIntentKind.TrackPlayers, rawSpeech, out intent);
+                Make(AIGMCompanionIntentKind.RefusePlayerHunt, rawSpeech, out intent);
                 intent.ExplicitlyAddressed = explicitlyAddressed;
                 return true;
             }

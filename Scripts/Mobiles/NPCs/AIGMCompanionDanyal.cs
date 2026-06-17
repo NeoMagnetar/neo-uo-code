@@ -573,6 +573,9 @@ namespace Server.Mobiles
 
         private string BuildTrackReadOnlyReport(AIGMCompanionIntent intent, Mobile speaker)
         {
+            if (intent != null && intent.Kind == AIGMCompanionIntentKind.RefusePlayerHunt)
+                return "I can track a player's sign, but I will not make it a hunt.";
+
             AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(intent != null ? intent.Kind : String.Empty);
             return AIGMCompanionTrackingService.BuildTrackingSweepReport(this, speaker, mode);
         }
@@ -665,6 +668,7 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.TrackNPCs:
                 case AIGMCompanionIntentKind.TrackHumanNPCs:
                 case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.RefusePlayerHunt:
                 case AIGMCompanionIntentKind.TrackAll:
                     return AIGMCompanionCapabilityKind.TrackReadOnly;
                 case AIGMCompanionIntentKind.StartTrackingCycle:
@@ -718,6 +722,7 @@ namespace Server.Mobiles
                 case AIGMCompanionIntentKind.TrackMonsters:
                 case AIGMCompanionIntentKind.TrackHumanNPCs:
                 case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.RefusePlayerHunt:
                 case AIGMCompanionIntentKind.StartTrackingCycle:
                 case AIGMCompanionIntentKind.StopTrackingCycle:
                 case AIGMCompanionIntentKind.ReportTrackingStatus:
