@@ -29,6 +29,7 @@ using Server.Spells.Sixth;
 using Server.Spells.SkillMasteries;
 using Server.Spells.Spellweaving;
 using Server.Targeting;
+using Server.Custom.AIGM;
 #endregion
 
 namespace Server.Mobiles
@@ -7939,7 +7940,11 @@ namespace Server.Mobiles
                         {
                             c.OwnerAbandonTime = DateTime.MinValue;
 
-                            if (c.Map != Map.Internal)
+                            if (IsPermanentAIGMCompanionHire(c))
+                            {
+                                c.Loyalty = BaseCreature.MaxLoyalty;
+                            }
+                            else if (c.Map != Map.Internal)
                             {
                                 c.Loyalty -= (BaseCreature.MaxLoyalty / 10);
 
@@ -8008,6 +8013,13 @@ namespace Server.Mobiles
 
             ColUtility.Free(toRelease);
             ColUtility.Free(toRemove);
+        }
+
+        private static bool IsPermanentAIGMCompanionHire(BaseCreature creature)
+        {
+            return creature is BaseHire
+                && creature is IAIGMCompanionActor
+                && !((BaseHire)creature).UsesHirelingPayroll;
         }
     }
 
