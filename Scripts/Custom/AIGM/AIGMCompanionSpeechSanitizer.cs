@@ -42,9 +42,17 @@ namespace Server.Custom.AIGM
                 || lower.Contains("command recognized")
                 || lower.Contains("as an ai")
                 || lower.Contains("json object")
+                || lower.Contains("json")
+                || lower.Contains("prompt")
                 || lower.Contains("metadata")
+                || lower.Contains("debug")
+                || lower.Contains("umg")
+                || lower.Contains("molt")
+                || lower.Contains("neoblock")
                 || lower.Contains("openclaw")
-                || lower.Contains("middleware");
+                || lower.Contains("middleware")
+                || lower.Contains("capability gate")
+                || lower.Contains("hidden context");
         }
     }
 }

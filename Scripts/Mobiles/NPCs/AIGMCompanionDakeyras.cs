@@ -253,6 +253,22 @@ namespace Server.Mobiles
                 }
             }
 
+            string dialogueControlResponse;
+            if (AIGMCompanionDialogueControlService.TryHandleSpeechControl(this, e.Mobile, e.Speech, decision, out dialogueControlResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(dialogueControlResponse))
+                    SayTo(e.Mobile, dialogueControlResponse);
+
+                e.Handled = true;
+                return;
+            }
+
+            if (AIGMCompanionDialogueControlService.ShouldSuppressCasualDialogue(this, e.Mobile, e.Speech, decision))
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (allowTrustedOwnerFallback || ShouldUseCompanionChat(e.Mobile, e.Speech, decision, intent, parsedIntent))
             {
                 if (e.Mobile == owner && (allowTrustedOwnerFallback || decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion || decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion))
@@ -431,6 +447,9 @@ namespace Server.Mobiles
 
             if (decision.RouteKind != AIGMCompanionCommandRouteKind.NamedCompanion && decision.RouteKind != AIGMCompanionCommandRouteKind.SharedCompanion)
                 return false;
+
+            if (!decision.IsCompanionCommand)
+                return true;
 
             if (parsedIntent)
             {

@@ -117,10 +117,13 @@ namespace Server.Custom.AIGM
             if (context == null || listeners == null)
                 return;
 
-            if (context.DialogueMode == AIGMCompanionDialogueMode.DirectNamedCommand)
+            if (context.DialogueMode == AIGMCompanionDialogueMode.DirectNamedCommand ||
+                context.DialogueMode == AIGMCompanionDialogueMode.DirectNamedDialogue)
             {
                 SelectNamed(context, listeners, context.AddressedCompanionId);
-                context.TurnCoordinatorDecision = "direct_named_command_one_primary";
+                context.TurnCoordinatorDecision = context.DialogueMode == AIGMCompanionDialogueMode.DirectNamedCommand
+                    ? "direct_named_command_one_primary"
+                    : "direct_named_dialogue_one_primary";
                 return;
             }
 
@@ -324,14 +327,14 @@ namespace Server.Custom.AIGM
                 return AIGMCompanionDialogueMode.CompanionToCompanion;
 
             if (route != null && route.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
-                return AIGMCompanionDialogueMode.DirectNamedCommand;
+                return route.IsCompanionCommand ? AIGMCompanionDialogueMode.DirectNamedCommand : AIGMCompanionDialogueMode.DirectNamedDialogue;
 
             if (IsOwnerDirectedCompanionDialogue(rawSpeech))
                 return AIGMCompanionDialogueMode.OwnerDirectedCompanionDialogue;
 
             List<string> addressed = AIGMCompanionCommandBoundary.GetAddressedCompanionIds(rawSpeech);
             if (!groupAddressed && addressed != null && addressed.Count == 1)
-                return AIGMCompanionDialogueMode.DirectNamedCommand;
+                return AIGMCompanionDialogueMode.DirectNamedDialogue;
 
             string normalized = Normalize(rawSpeech);
             if (IsStatusSpeech(normalized))

@@ -46,6 +46,13 @@ namespace Server.Custom.AIGM
         public string IntentSummary { get; set; }
         public string CapabilitySummary { get; set; }
         public string ResponseStyleSummary { get; set; }
+        public string DialogueMode { get; set; }
+        public string RecentSpeaker { get; set; }
+        public string RecentCompanionLine { get; set; }
+        public string CurrentTrackingState { get; set; }
+        public string CurrentHealingState { get; set; }
+        public string CurrentThreatState { get; set; }
+        public bool QuietMode { get; set; }
 
         public AIGMCompanionCognitionSnapshot()
         {
@@ -78,6 +85,13 @@ namespace Server.Custom.AIGM
             IntentSummary = "unknown";
             CapabilitySummary = "unknown";
             ResponseStyleSummary = "Hidden cognition only. Visible replyText must be short in-character speech with no UMG, block, JSON, prompt, metadata, or debug wording.";
+            DialogueMode = "DIALOGUE_NATURAL";
+            RecentSpeaker = "unknown";
+            RecentCompanionLine = "none";
+            CurrentTrackingState = "not tracking";
+            CurrentHealingState = "stable";
+            CurrentThreatState = "unknown";
+            QuietMode = false;
         }
 
         public static AIGMCompanionCognitionSnapshot Build(Mobile companion, AIGMCompanionSpeechRequest request)
@@ -113,6 +127,13 @@ namespace Server.Custom.AIGM
             snapshot.SituationSummary = BuildSituationSummary(companion, request);
             ApplyTrackingSummary(snapshot, companion as BaseHire);
             snapshot.RecentDialogueSummary = BuildRecentDialogueSummary(actor);
+            snapshot.DialogueMode = BuildDialogueMode(request);
+            snapshot.RecentSpeaker = request != null && request.Speaker != null ? Safe(request.Speaker.Name) : "unknown";
+            snapshot.RecentCompanionLine = snapshot.RecentDialogueSummary;
+            snapshot.CurrentTrackingState = BuildCurrentTrackingState(snapshot);
+            snapshot.CurrentHealingState = BuildCurrentHealingState(companion);
+            snapshot.CurrentThreatState = snapshot.SituationSummary;
+            snapshot.QuietMode = BuildQuietMode(companion as BaseHire);
             snapshot.IntentSummary = BuildIntentSummary(request);
             snapshot.CapabilitySummary = BuildCapabilitySummary(request);
             return snapshot;
@@ -345,7 +366,7 @@ namespace Server.Custom.AIGM
                 return "unknown";
 
             List<string> parts = new List<string>();
-            parts.Add("dialogueMode=" + Safe(request.DialogueMode));
+            parts.Add("dialogueMode=" + BuildDialogueMode(request));
             if (!String.IsNullOrWhiteSpace(request.ParsedIntentSummary))
                 parts.Add("parsed=" + request.ParsedIntentSummary);
             if (!String.IsNullOrWhiteSpace(request.AddressedCompanionId))
@@ -353,7 +374,55 @@ namespace Server.Custom.AIGM
             if (!String.IsNullOrWhiteSpace(request.DialogueTargetCompanionId))
                 parts.Add("dialogueTarget=" + request.DialogueTargetCompanionId);
             parts.Add("groupAddressed=" + request.GroupAddressed);
+            BaseHire hire = request.Companion != null ? request.Companion.Shell as BaseHire : null;
+            parts.Add("quietMode=" + BuildQuietMode(hire));
             return String.Join("; ", parts.ToArray());
+        }
+
+        private static string BuildDialogueMode(AIGMCompanionSpeechRequest request)
+        {
+            if (request == null)
+                return "DIALOGUE_NATURAL";
+
+            if (String.Equals(request.DialogueMode, "companion_dialogue", StringComparison.OrdinalIgnoreCase))
+                return "DIALOGUE_COMPANION_REPLY";
+
+            if (request.GroupAddressed)
+                return "DIALOGUE_GROUP_BANTER";
+
+            if (!String.IsNullOrWhiteSpace(request.AddressedCompanionId))
+                return "DIALOGUE_NATURAL";
+
+            return "DIALOGUE_NATURAL";
+        }
+
+        private static string BuildCurrentTrackingState(AIGMCompanionCognitionSnapshot snapshot)
+        {
+            if (snapshot == null || !snapshot.TrackingActive)
+                return "inactive";
+
+            return String.Format("{0}; action={1}; target={2}; distance={3}", snapshot.TrackingFocus, snapshot.TrackingActionMode, snapshot.CurrentTrackingTarget, snapshot.CurrentTrackingTargetDistance);
+        }
+
+        private static string BuildCurrentHealingState(Mobile companion)
+        {
+            if (companion == null)
+                return "unknown";
+
+            int hitsMax = SafeInt(companion.HitsMax);
+            if (hitsMax <= 0)
+                return "unknown";
+
+            if (companion.Hits < hitsMax)
+                return String.Format("damaged {0}/{1}", companion.Hits, hitsMax);
+
+            return String.Format("full {0}/{1}", companion.Hits, hitsMax);
+        }
+
+        private static bool BuildQuietMode(BaseHire companion)
+        {
+            Mobile owner = companion != null ? companion.GetOwner() : null;
+            return AIGMCompanionDialogueControlService.IsQuiet(owner);
         }
 
         private static string BuildCapabilitySummary(AIGMCompanionSpeechRequest request)

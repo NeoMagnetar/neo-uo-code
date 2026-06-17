@@ -169,12 +169,13 @@ namespace Server.Custom.AIGM
                 decision.CompanionKey = namedAlias.Key;
                 decision.CompanionName = namedAlias.Name;
 
+                if (IsNaturalNamedDialoguePayload(payload))
+                    return ApplyDialogueDecision(decision, AIGMCompanionCommandRouteKind.NamedCompanion, "companion_named_dialogue");
+
                 if (TryRecognizeCommandFamily(payload, out var family))
                     return ApplyFamilyDecision(decision, family, AIGMCompanionCommandRouteKind.NamedCompanion, "companion_named_command");
 
-                decision.RouteKind = AIGMCompanionCommandRouteKind.NonCompanion;
-                decision.Reason = "not_companion_command";
-                return decision;
+                return ApplyDialogueDecision(decision, AIGMCompanionCommandRouteKind.NamedCompanion, "companion_named_dialogue");
             }
 
             string firstWord = GetFirstWord(decision.NormalizedSpeech);
@@ -189,8 +190,28 @@ namespace Server.Custom.AIGM
             if (TryRecognizeCommandFamily(decision.NormalizedSpeech, out var sharedFamily))
                 return ApplyFamilyDecision(decision, sharedFamily, AIGMCompanionCommandRouteKind.SharedCompanion, "companion_shared_command");
 
+            if (IsNaturalGroupDialogueSpeech(decision.NormalizedSpeech))
+                return ApplyDialogueDecision(decision, AIGMCompanionCommandRouteKind.SharedCompanion, "companion_group_dialogue");
+
             decision.RouteKind = AIGMCompanionCommandRouteKind.NonCompanion;
             decision.Reason = "not_companion_command";
+            return decision;
+        }
+
+        private static AIGMCompanionCommandRouteDecision ApplyDialogueDecision(AIGMCompanionCommandRouteDecision decision, AIGMCompanionCommandRouteKind routeKind, string reason)
+        {
+            decision.IsCompanionCommand = false;
+            decision.BlocksCounselorLane = true;
+            decision.IsNamedCompanionCommand = false;
+            decision.IsSharedCompanionCommand = false;
+            decision.CommandVerb = null;
+            decision.VerbKind = AIGMCompanionCommandVerbKind.None;
+            decision.Capability = AIGMCompanionCapabilityKind.None;
+            decision.IsDeferredCapability = false;
+            decision.RequiresFutureExecutor = false;
+            decision.IsExecutableNow = false;
+            decision.RouteKind = routeKind;
+            decision.Reason = reason;
             return decision;
         }
 
@@ -209,6 +230,60 @@ namespace Server.Custom.AIGM
             decision.RouteKind = routeKind;
             decision.Reason = reason;
             return decision;
+        }
+
+        private static bool IsNaturalNamedDialoguePayload(string payload)
+        {
+            string speech = NormalizeSpeech(payload);
+            if (String.IsNullOrWhiteSpace(speech))
+                return true;
+
+            return speech.Contains("what do you see")
+                || speech.Contains("what do you notice")
+                || speech.Contains("what do you think")
+                || speech.Contains("how are we looking")
+                || speech.Contains("how do we look")
+                || speech.Contains("are we safe")
+                || speech.Contains("what is ahead")
+                || speech.Contains("what's ahead")
+                || speech.Contains("discuss")
+                || speech.Contains("talk to")
+                || speech.Contains("ask ")
+                || speech.Contains("keep everyone together")
+                || speech.Contains("keep us together")
+                || speech.Contains("stay close to")
+                || speech.Contains("watch the")
+                || speech.Contains("tell me what")
+                || speech.Contains("tell us what");
+        }
+
+        private static bool IsNaturalGroupDialogueSpeech(string normalizedSpeech)
+        {
+            if (String.IsNullOrWhiteSpace(normalizedSpeech))
+                return false;
+
+            bool groupAddressed = normalizedSpeech.Contains("companions")
+                || normalizedSpeech.Contains("all companions")
+                || normalizedSpeech.Contains("all of you")
+                || normalizedSpeech.Contains("you all")
+                || normalizedSpeech.Contains("you three")
+                || normalizedSpeech.Contains("three of you")
+                || normalizedSpeech.Contains("everyone")
+                || normalizedSpeech.Contains("everybody")
+                || normalizedSpeech.StartsWith("party ", StringComparison.Ordinal);
+
+            if (!groupAddressed)
+                return false;
+
+            return normalizedSpeech.Contains("discuss")
+                || normalizedSpeech.Contains("talk")
+                || normalizedSpeech.Contains("what do you see")
+                || normalizedSpeech.Contains("what do you think")
+                || normalizedSpeech.Contains("how are we looking")
+                || normalizedSpeech.Contains("situation")
+                || normalizedSpeech.Contains("trail")
+                || normalizedSpeech.Contains("safe")
+                || normalizedSpeech.Contains("notice");
         }
 
         private static bool TryMatchNamedAlias(string normalizedSpeech, out CompanionAliasEntry matchedAlias, out string payload)

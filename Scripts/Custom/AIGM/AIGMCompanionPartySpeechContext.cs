@@ -6,6 +6,7 @@ namespace Server.Custom.AIGM
     public enum AIGMCompanionDialogueMode
     {
         DirectNamedCommand,
+        DirectNamedDialogue,
         GroupCommand,
         GroupConversation,
         CompanionToCompanion,
