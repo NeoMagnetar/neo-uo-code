@@ -49,17 +49,6 @@ namespace Server.Custom.AIGM
                             return "This will immediately refresh vendor stock on the live shard and can affect what players see or buy.";
                         case AIGMCommandAction.SpawnTestCopy:
                             return "This will create a duplicate test item near your GM character and add a new world object to the shard.";
-                        case AIGMCommandAction.FollowMobile:
-                        case AIGMCommandAction.StopFollowing:
-                        case AIGMCommandAction.PathToCoordinates:
-                        case AIGMCommandAction.PathToNamedLocation:
-                        case AIGMCommandAction.SetArrivalAction:
-                        case AIGMCommandAction.PauseMovement:
-                        case AIGMCommandAction.ResumeMovement:
-                        case AIGMCommandAction.CancelMovement:
-                        case AIGMCommandAction.PathToCurrentTarget:
-                        case AIGMCommandAction.FollowCurrentTarget:
-                            return "This will change the counselor's movement state in the live world.";
                     }
                 }
             }
@@ -86,28 +75,6 @@ namespace Server.Custom.AIGM
                             return "Refreshes the selected vendor's available stock immediately.";
                         case AIGMCommandAction.SpawnTestCopy:
                             return "Duplicates the selected item and places the copy at your current location.";
-                        case AIGMCommandAction.FollowMobile:
-                            return "Puts the counselor into follow mode for the chosen mobile.";
-                        case AIGMCommandAction.StopFollowing:
-                            return "Stops the counselor's active follow or travel behavior.";
-                        case AIGMCommandAction.PathToCoordinates:
-                            return "Walks the counselor toward the requested map coordinates.";
-                        case AIGMCommandAction.PathToNamedLocation:
-                            return "Walks the counselor toward a known named destination such as a town or bank.";
-                        case AIGMCommandAction.MovementStatus:
-                            return "Reports the counselor's current movement mode and destination.";
-                        case AIGMCommandAction.SetArrivalAction:
-                            return "Configures what the counselor should do automatically after arriving.";
-                        case AIGMCommandAction.PauseMovement:
-                            return "Pauses the counselor's current route without discarding it.";
-                        case AIGMCommandAction.ResumeMovement:
-                            return "Resumes the counselor's paused route or follow behavior.";
-                        case AIGMCommandAction.CancelMovement:
-                            return "Cancels the counselor's current route or paused movement plan.";
-                        case AIGMCommandAction.PathToCurrentTarget:
-                            return "Moves the counselor toward the currently selected AI GM target.";
-                        case AIGMCommandAction.FollowCurrentTarget:
-                            return "Puts the counselor into follow mode for the currently selected AI GM target.";
                     }
                 }
             }

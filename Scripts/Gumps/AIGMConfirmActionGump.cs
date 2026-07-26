@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Server.Custom.AIGM;
 using Server.Network;
 
@@ -45,18 +44,14 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Log("CONFIRM_OPEN kind=" + (m_Action != null ? m_Action.ActionKind : "null") + " typeName=" + (m_Action != null ? m_Action.GetParameter("typeName") : "null") + " amount=" + (m_Action != null ? m_Action.GetParameter("amount") : "null") + " button=" + info.ButtonID);
-
             if (m_From == null || m_From.Deleted || m_Action == null)
                 return;
 
             if (info.ButtonID == 1)
             {
-                Log("CONFIRM_CLICK kind=" + (m_Action != null ? m_Action.ActionKind : "null"));
                 string result;
                 if (AIGMActionExecutor.Execute(m_From, m_Action, out result))
                 {
-                    Log("Confirm execute success result=" + (result ?? String.Empty));
                     string targetSummary = AIGMActionPreview.BuildTargetSummary(m_Action);
                     AIGMActionHistory.Record(m_From, m_Action, result, targetSummary);
 
@@ -69,21 +64,8 @@ namespace Server.Gumps
                 }
                 else if (!String.IsNullOrWhiteSpace(result))
                 {
-                    Log("Confirm execute failure result=" + result);
                     m_From.SendMessage(result);
                 }
-            }
-        }
-
-        private static void Log(string message)
-        {
-            try
-            {
-                string path = Path.Combine(Core.BaseDirectory, "Logs", "AIGMConfirmActionGump.log");
-                File.AppendAllText(path, DateTime.UtcNow.ToString("o") + " " + (message ?? String.Empty) + Environment.NewLine);
-            }
-            catch
-            {
             }
         }
     }

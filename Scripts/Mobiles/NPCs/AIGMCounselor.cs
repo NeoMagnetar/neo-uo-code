@@ -98,7 +98,15 @@ namespace Server.Mobiles
             if (!IsOwner(from))
                 return;
 
-            string speech = e.Speech == null ? String.Empty : e.Speech.Trim().ToLowerInvariant();
+            string rawSpeech = e.Speech == null ? String.Empty : e.Speech.Trim();
+            AIGMCompanionCommandRouteDecision routeDecision = AIGMCompanionCommandBoundary.Classify(rawSpeech);
+            if (routeDecision != null && routeDecision.BlocksCounselorLane)
+            {
+                LogVendorFlow("CounselorEarlyExit speech=" + rawSpeech + " routeKind=" + routeDecision.RouteKind + " reason=" + (routeDecision.Reason ?? String.Empty));
+                return;
+            }
+
+            string speech = rawSpeech.ToLowerInvariant();
             if (speech.IndexOf("hello counselor") >= 0 || speech.IndexOf("consult counselor") >= 0 || speech.IndexOf("question counselor") >= 0 || speech.IndexOf("archives") >= 0)
             {
                 OpenConsultInterface(from);

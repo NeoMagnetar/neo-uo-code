@@ -1,16 +1,13 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Server.Commands;
 using Server.Commands.Generic;
 using Server.Gumps;
-using Server.Items;
 using Server.Mobiles;
 using Server.Spells;
 
 namespace Server.Custom.AIGM
 {
-    public static partial class AIGMActionExecutor
+    public static class AIGMActionExecutor
     {
         public static string BuildFollowupSuggestion(AIGMActionProposal action)
         {
@@ -47,64 +44,6 @@ namespace Server.Custom.AIGM
                                     return "Props opened. Want file analysis for this target next?";
                                 case AIGMCommandAction.ViewEquipOnTarget:
                                     return "Equipment shown. Want target props or file analysis next?";
-                                case AIGMCommandAction.InspectNearbyMobiles:
-                                    return "Nearby mobiles listed. Want me to inspect one target or scan the area again?";
-                                case AIGMCommandAction.InspectNearbyItems:
-                                    return "Nearby items listed. Want me to inspect a specific one or compare distances?";
-                                case AIGMCommandAction.InspectRegion:
-                                    return "Region summary opened. Want me to scan mobiles, items, or move somewhere nearby?";
-                                case AIGMCommandAction.ScanAroundTarget:
-                                    return "Target-centered world scan opened. Want me to move there or inspect a listed entity?";
-                                case AIGMCommandAction.GoToCoordinates:
-                                    return "Moved to the requested coordinates. Want a fresh local scan now?";
-                                case AIGMCommandAction.FollowMobile:
-                                    return "Follow mode is active. Want me to stop following or head somewhere specific next?";
-                                case AIGMCommandAction.StopFollowing:
-                                    return "Movement stopped. Want me to follow again or walk to a location?";
-                                case AIGMCommandAction.PathToCoordinates:
-                                    return "Pathing to the requested coordinates. Want a status check or a nearby scan when I arrive?";
-                                case AIGMCommandAction.PathToNamedLocation:
-                                    return "Pathing to the named location. Want me to stop there or keep following you after arrival?";
-                                case AIGMCommandAction.MovementStatus:
-                                    return "Movement status checked. Want me to keep going, stop, or redirect somewhere else?";
-                                case AIGMCommandAction.SetArrivalAction:
-                                    return "Arrival behavior updated. Want me to move somewhere now and use it?";
-                                case AIGMCommandAction.PauseMovement:
-                                    return "Movement paused. Want me to resume, cancel, or reroute?";
-                                case AIGMCommandAction.ResumeMovement:
-                                    return "Movement resumed. Want a status check or a different destination?";
-                                case AIGMCommandAction.CancelMovement:
-                                    return "Movement canceled. Want a new destination or follow order?";
-                                case AIGMCommandAction.QueueNamedRouteStop:
-                                    return "Queued the next named stop. Want to add another stop or start the route?";
-                                case AIGMCommandAction.QueueCoordinateRouteStop:
-                                    return "Queued the next coordinate stop. Want another stop or should I start moving?";
-                                case AIGMCommandAction.PathToCurrentTarget:
-                                    return "Pathing to the current target. Want me to stop there, follow it, or scan on arrival?";
-                                case AIGMCommandAction.FollowCurrentTarget:
-                                    return "Following the current target now. Want me to keep shadowing it or stop at a destination instead?";
-                                case AIGMCommandAction.OpenCounselorPack:
-                                    return "Counselor pack opened. Want me to create an item in it now?";
-                                case AIGMCommandAction.SpawnItemToCounselorPack:
-                                    return "Item created in counselor pack. Want me to open the pack or create another item?";
-                                case AIGMCommandAction.InspectNearestVendor:
-                                    return "Nearest vendor inspected. Want me to move there or inspect stock next?";
-                                case AIGMCommandAction.GoToNearestVendor:
-                                    return "Moved to the nearest vendor. Want a fresh local scan or stock inspection next?";
-                                case AIGMCommandAction.InspectNearestContainer:
-                                    return "Nearest container inspected. Want me to compare its contents or nearby items next?";
-                                case AIGMCommandAction.InspectNearestDoor:
-                                    return "Nearest door inspected. Want me to move there or inspect surrounding items next?";
-                                case AIGMCommandAction.InspectNearestMobile:
-                                    return "Nearest mobile inspected. Want me to move there or inspect its equipment/props next?";
-                                case AIGMCommandAction.GoToNearestByType:
-                                    return "Moved to the nearest matching type. Want a fresh local scan now?";
-                                case AIGMCommandAction.InspectDoorState:
-                                    return "Door state inspected. Want me to move there or scan around it next?";
-                                case AIGMCommandAction.InspectVendorRuntimeStock:
-                                    return "Vendor runtime stock inspected. Want me to compare it to likely code files next?";
-                                case AIGMCommandAction.ExecuteNextStep:
-                                    return "Executed the next suggested AI GM step. Want me to continue or rescan?";
                             }
                         }
                     }
@@ -130,8 +69,6 @@ namespace Server.Custom.AIGM
                 return false;
             }
 
-            AIGMExecutionLog.Write("EXECUTE_START kind={0}", action == null ? "(null)" : action.ActionKind);
-
             switch (action.ActionKind)
             {
                 case "inspect_target":
@@ -142,57 +79,111 @@ namespace Server.Custom.AIGM
                     return ExecuteReviewFile(from, action, out message);
                 case "inspect_vendor_stock":
                     return ExecuteInspectVendorStock(from, action, out message);
-                case "gm_add_world_item":
-                    return ExecuteNativeAddWorldItem(from, action, out message);
-                case "gm_add_container_item":
-                    return ExecuteNativeAddContainerItem(from, action, out message);
-                case "gm_add_world_mobile":
-                    return ExecuteNativeAddWorldMobile(from, action, out message);
-                case "gm_props_read":
-                    return ExecuteNativePropsRead(from, action, out message);
-                case "gm_follow_requester":
-                    return ExecuteFollowRequester(from, action, out message);
-                case "gm_stop_follow":
-                    return ExecuteStopFollowCanonical(from, action, out message);
-                case "gm_resume_follow":
-                    return ExecuteResumeFollowCanonical(from, action, out message);
-                case "gm_go_to_requester":
-                    return ExecuteGoToRequester(from, action, out message);
                 case "run_gm_command":
                     return ExecuteRunGmCommand(from, action, out message);
                 default:
-                    AIGMExecutionLog.Write("EXECUTE_UNSUPPORTED kind={0}", action.ActionKind ?? String.Empty);
                     message = "That AI GM action is not executable yet.";
                     return false;
             }
         }
 
-        private static bool ExecuteNativeAddWorldItem(Mobile from, AIGMActionProposal action, out string message)
+        private static bool ExecuteInspectTarget(Mobile from, AIGMActionProposal action, out string message)
         {
-            AIGMExecutionResult result = AIGMNativeAddAdapter.AddWorldItem(from, null, action);
-            message = result != null ? result.Message : "Native Add adapter returned no result.";
-            return result != null && result.Ok;
+            message = null;
+
+            IEntity ent = ResolveEntity(action, out message);
+            if (ent == null)
+                return false;
+            if (ent == null)
+            {
+                message = "Target entity was not found.";
+                return false;
+            }
+
+            if (!BaseCommand.IsAccessible(from, ent))
+            {
+                message = "That target is not accessible.";
+                return false;
+            }
+
+            from.SendGump(new PropertiesGump(from, ent));
+            message = "Opened properties for the selected AI GM target.";
+            return true;
         }
 
-        private static bool ExecuteNativeAddContainerItem(Mobile from, AIGMActionProposal action, out string message)
+        private static bool ExecuteGotoTarget(Mobile from, AIGMActionProposal action, out string message)
         {
-            AIGMExecutionResult result = AIGMNativeAddAdapter.AddContainerItem(from, null, action);
-            message = result != null ? result.Message : "Native Add container adapter returned no result.";
-            return result != null && result.Ok;
+            message = null;
+
+            IEntity ent = ResolveEntity(action, out message);
+            if (ent == null)
+                return false;
+
+            IPoint3D p = ent as IPoint3D;
+            if (p == null)
+            {
+                message = "That target does not have a valid world location.";
+                return false;
+            }
+
+            if (p is Item)
+                p = ((Item)p).GetWorldTop();
+            else if (p is Mobile)
+                p = ((Mobile)p).Location;
+
+            SpellHelper.GetSurfaceTop(ref p);
+            from.Location = new Point3D(p);
+            from.ProcessDelta();
+
+            message = "Teleported to the selected AI GM target.";
+            return true;
         }
 
-        private static bool ExecuteNativeAddWorldMobile(Mobile from, AIGMActionProposal action, out string message)
+        private static bool ExecuteReviewFile(Mobile from, AIGMActionProposal action, out string message)
         {
-            AIGMExecutionResult result = AIGMNativeAddAdapter.AddWorldMobile(from, null, action);
-            message = result != null ? result.Message : "Native Add mobile adapter returned no result.";
-            return result != null && result.Ok;
+            message = null;
+
+            string path;
+            if (action.Parameters == null || !action.Parameters.TryGetValue("path", out path) || String.IsNullOrWhiteSpace(path))
+            {
+                message = "No file path was provided for review.";
+                return false;
+            }
+
+            string insight = null;
+            if (action.Parameters != null)
+                action.Parameters.TryGetValue("insight", out insight);
+
+            if (string.IsNullOrWhiteSpace(insight))
+                insight = AIGMFileInsightStore.Get(path);
+
+            if (string.IsNullOrWhiteSpace(insight))
+                insight = "No deeper file insight was available yet for that file.";
+
+            from.SendGump(new AIGMFileInsightGump(path, insight));
+            message = "Opened AI GM file review insight.";
+            return true;
         }
 
-        private static bool ExecuteNativePropsRead(Mobile from, AIGMActionProposal action, out string message)
+        private static bool ExecuteInspectVendorStock(Mobile from, AIGMActionProposal action, out string message)
         {
-            AIGMExecutionResult result = AIGMPropsReadAdapter.Read(from, action);
-            message = result != null ? result.Message : "Native props-read adapter returned no result.";
-            return result != null && result.Ok;
+            message = null;
+
+            string title = "AI GM Vendor Stock Insight";
+            string body = null;
+
+            if (action.Parameters != null)
+            {
+                action.Parameters.TryGetValue("title", out title);
+                action.Parameters.TryGetValue("body", out body);
+            }
+
+            if (String.IsNullOrWhiteSpace(body))
+                body = "No vendor stock insight payload was provided.";
+
+            from.SendGump(new AIGMVendorInsightGump(title, body));
+            message = "Opened AI GM vendor stock insight.";
+            return true;
         }
 
         private static bool ExecuteRunGmCommand(Mobile from, AIGMActionProposal action, out string message)
@@ -222,64 +213,6 @@ namespace Server.Custom.AIGM
                     return ExecuteCleanupTestCopies(from, action, out message);
                 case AIGMCommandAction.ListTestCopies:
                     return ExecuteListTestCopies(from, action, out message);
-                case AIGMCommandAction.InspectNearbyMobiles:
-                    return ExecuteInspectNearbyMobiles(from, action, out message);
-                case AIGMCommandAction.InspectNearbyItems:
-                    return ExecuteInspectNearbyItems(from, action, out message);
-                case AIGMCommandAction.InspectRegion:
-                    return ExecuteInspectRegion(from, action, out message);
-                case AIGMCommandAction.ScanAroundTarget:
-                    return ExecuteScanAroundTarget(from, action, out message);
-                case AIGMCommandAction.GoToCoordinates:
-                    return ExecuteGotoCoordinates(from, action, out message);
-                case AIGMCommandAction.FollowMobile:
-                    return ExecuteFollowMobile(from, action, out message);
-                case AIGMCommandAction.StopFollowing:
-                    return ExecuteStopFollowing(from, action, out message);
-                case AIGMCommandAction.PathToCoordinates:
-                    return ExecutePathToCoordinates(from, action, out message);
-                case AIGMCommandAction.PathToNamedLocation:
-                    return ExecutePathToNamedLocation(from, action, out message);
-                case AIGMCommandAction.MovementStatus:
-                    return ExecuteMovementStatus(from, action, out message);
-                case AIGMCommandAction.SetArrivalAction:
-                    return ExecuteSetArrivalAction(from, action, out message);
-                case AIGMCommandAction.PauseMovement:
-                    return ExecutePauseMovement(from, action, out message);
-                case AIGMCommandAction.ResumeMovement:
-                    return ExecuteResumeMovement(from, action, out message);
-                case AIGMCommandAction.CancelMovement:
-                    return ExecuteCancelMovement(from, action, out message);
-                case AIGMCommandAction.QueueNamedRouteStop:
-                    return ExecuteQueueNamedRouteStop(from, action, out message);
-                case AIGMCommandAction.QueueCoordinateRouteStop:
-                    return ExecuteQueueCoordinateRouteStop(from, action, out message);
-                case AIGMCommandAction.PathToCurrentTarget:
-                    return ExecutePathToCurrentTarget(from, action, out message);
-                case AIGMCommandAction.FollowCurrentTarget:
-                    return ExecuteFollowCurrentTarget(from, action, out message);
-                case AIGMCommandAction.InspectNearestVendor:
-                    return ExecuteInspectNearestVendor(from, action, out message);
-                case AIGMCommandAction.GoToNearestVendor:
-                    return ExecuteGoToNearestVendor(from, action, out message);
-                case AIGMCommandAction.InspectNearestContainer:
-                    return ExecuteInspectNearestContainer(from, action, out message);
-                case AIGMCommandAction.InspectNearestDoor:
-                    return ExecuteInspectNearestDoor(from, action, out message);
-                case AIGMCommandAction.InspectNearestMobile:
-                    return ExecuteInspectNearestMobile(from, action, out message);
-                case AIGMCommandAction.GoToNearestByType:
-                    return ExecuteGoToNearestByType(from, action, out message);
-                case AIGMCommandAction.InspectDoorState:
-                    return ExecuteInspectDoorState(from, action, out message);
-                case AIGMCommandAction.InspectVendorRuntimeStock:
-                    return ExecuteInspectVendorRuntimeStock(from, action, out message);
-                case AIGMCommandAction.ExecuteNextStep:
-                    return ExecuteNextStep(from, action, out message);
-                case AIGMCommandAction.OpenCounselorPack:
-                    return ExecuteOpenCounselorPack(from, action, out message);
-                case AIGMCommandAction.SpawnItemToCounselorPack:
-                    return ExecuteSpawnItemToCounselorPack(from, action, out message);
                 default:
                     message = "That GM command action is not whitelisted.";
                     return false;
@@ -326,69 +259,96 @@ namespace Server.Custom.AIGM
             return true;
         }
 
-        private static bool ExecuteNextStep(Mobile from, AIGMActionProposal action, out string message)
+        private static bool ExecuteSpawnTestCopy(Mobile from, AIGMActionProposal action, out string message)
         {
             message = null;
 
-            AIGMSessionState session = AIGMSessionState.Get(from);
-            if (session == null || session.LastResponse == null || session.LastResponse.NextAction == null)
+            IEntity ent = ResolveEntity(action, out message);
+            if (ent == null)
+                return false;
+
+            Item item = ent as Item;
+            if (item == null)
             {
-                message = "No AI GM next step is available to execute.";
+                message = "Spawn test copy currently supports items only. Mobile test-copy support is a later upgrade.";
                 return false;
             }
 
-            AIGMActionProposal next = session.LastResponse.NextAction;
-            if (next.Category != null && next.Category.Equals("mutate", StringComparison.OrdinalIgnoreCase))
+            Item copy = Server.Commands.Dupe.DupeItem(from, item);
+            if (copy == null)
             {
-                message = "Next step requires explicit confirmation because it is mutating.";
+                message = "Unable to create a test copy of that item.";
                 return false;
             }
 
-            AIGMExecutionLoopState loop = AIGMExecutionLoopState.Get(from);
-            if (loop != null && loop.StepsExecuted >= 3)
+            copy.Name = (copy.Name ?? item.Name ?? item.GetType().Name) + " [TEST COPY]";
+            copy.Hue = 1150;
+            copy.MoveToWorld(from.Location, from.Map);
+            from.SendGump(new PropertiesGump(from, copy));
+            message = "Spawned a marked test copy of the selected item near you and opened its properties.";
+            return true;
+        }
+
+        private static bool ExecuteCleanupTestCopies(Mobile from, AIGMActionProposal action, out string message)
+        {
+            message = null;
+
+            if (from == null || from.Map == null)
             {
-                message = "AI GM execution loop reached its safety step limit for now.";
+                message = "No valid GM position was available for cleanup.";
                 return false;
             }
 
-            string inner;
-            bool ok = Execute(from, next, out inner);
-            if (loop != null)
+            int removed = 0;
+            IPooledEnumerable items = from.Map.GetItemsInRange(from.Location, 8);
+            foreach (Item item in items)
             {
-                loop.StepsExecuted++;
-                loop.LastStepUtc = DateTime.UtcNow;
-                loop.LastPlanSummary = session.LastResponse.Plan != null ? String.Join(" -> ", session.LastResponse.Plan.ToArray()) : null;
-                loop.LastStopReason = session.LastResponse.StopReason;
-            }
+                if (item == null || item.Deleted)
+                    continue;
 
-            session.LastActionDescription = next.Description;
-            session.LastActionResult = inner;
-            session.ExecutionStepCount = loop != null ? loop.StepsExecuted : (session.ExecutionStepCount + 1);
-
-            if (ok && !String.IsNullOrWhiteSpace(session.LastQuestion))
-            {
-                AIGMResponse followup = AIGMBridgeClient.ContinueAfterAction(from, session.LastQuestion, session.CurrentTarget, next.Description, inner, session.ExecutionStepCount);
-                if (followup != null)
+                string name = item.Name;
+                if (!string.IsNullOrWhiteSpace(name) && name.IndexOf("[TEST COPY]", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    session.LastResponse = followup;
-
-                    bool autoContinued = false;
-                    if (loop != null && !loop.AutoContinueUsed && followup.NextAction != null && IsSafeAutoContinue(followup.NextAction) && loop.StepsExecuted < 3)
-                    {
-                        loop.AutoContinueUsed = true;
-                        string chainedMessage;
-                        autoContinued = ExecuteNextStep(from, action, out chainedMessage);
-                        if (!String.IsNullOrWhiteSpace(chainedMessage))
-                            inner = (inner ?? String.Empty) + " | Auto-continue: " + chainedMessage;
-                    }
-
-                    if (!autoContinued)
-                        from.SendGump(new AIGMResponseGump(from, null, followup));
+                    item.Delete();
+                    removed++;
                 }
             }
+            items.Free();
 
-            message = ok ? (inner ?? "Executed next AI GM step.") : (inner ?? "Failed to execute next AI GM step.");
-            return ok;
+            message = removed > 0
+                ? string.Format("Removed {0} nearby marked test cop{1}.", removed, removed == 1 ? "y" : "ies")
+                : "No nearby marked test copies were found.";
+            return true;
+        }
+
+        private static bool ExecuteListTestCopies(Mobile from, AIGMActionProposal action, out string message)
+        {
+            message = null;
+
+            if (from == null || from.Map == null)
+            {
+                message = "No valid GM position was available for listing test copies.";
+                return false;
+            }
+
+            System.Collections.Generic.List<Item> found = new System.Collections.Generic.List<Item>();
+            IPooledEnumerable items = from.Map.GetItemsInRange(from.Location, 8);
+            foreach (Item item in items)
+            {
+                if (item == null || item.Deleted)
+                    continue;
+
+                string name = item.Name;
+                if (!string.IsNullOrWhiteSpace(name) && name.IndexOf("[TEST COPY]", StringComparison.OrdinalIgnoreCase) >= 0)
+                    found.Add(item);
+            }
+            items.Free();
+
+            from.SendGump(new AIGMTestCopyListGump(found));
+            message = found.Count > 0
+                ? string.Format("Listed {0} nearby marked test cop{1}.", found.Count, found.Count == 1 ? "y" : "ies")
+                : "No nearby marked test copies were found.";
+            return true;
         }
 
         private static IEntity ResolveEntity(AIGMActionProposal action, out string message)
@@ -403,7 +363,7 @@ namespace Server.Custom.AIGM
             }
 
             int serial;
-            if (!TryParseSerial(rawSerial, out serial))
+            if (!Int32.TryParse(rawSerial, out serial))
             {
                 message = "Target serial was invalid.";
                 return null;
@@ -418,323 +378,5 @@ namespace Server.Custom.AIGM
 
             return ent;
         }
-
-        private static bool TryParseSerial(string rawSerial, out int serial)
-        {
-            serial = 0;
-
-            if (String.IsNullOrWhiteSpace(rawSerial))
-                return false;
-
-            rawSerial = rawSerial.Trim();
-
-            if (rawSerial.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-            {
-                return Int32.TryParse(rawSerial.Substring(2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out serial);
-            }
-
-            return Int32.TryParse(rawSerial, out serial);
-        }
-
-        private static bool IsSafeAutoContinue(AIGMActionProposal action)
-        {
-            if (action == null)
-                return false;
-
-            string category = action.Category ?? "read";
-            if (category.Equals("mutate", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            return true;
-        }
-
-        public static bool ExecuteSystemAction(Mobile from, string commandName, out string message)
-        {
-            message = null;
-            if (String.IsNullOrWhiteSpace(commandName))
-            {
-                message = "No system action was provided.";
-                return false;
-            }
-
-            AIGMActionProposal action = new AIGMActionProposal();
-            action.ActionKind = "run_gm_command";
-            action.Description = commandName;
-            action.Category = "read";
-            action.RequiresConfirmation = false;
-            action.Parameters["commandName"] = commandName;
-            return ExecuteRunGmCommand(from, action, out message);
-        }
-
-        private static bool ExecuteOpenCounselorPack(Mobile from, AIGMActionProposal action, out string message)
-        {
-            message = null;
-
-            AIGMCounselor counselor = FindCounselor(from, 48);
-            if (counselor == null)
-            {
-                message = "No nearby AI GM counselor pack was available.";
-                return false;
-            }
-
-            IAIGMInventoryCapability inventory = counselor.Inventory;
-            if (inventory == null)
-            {
-                message = "The counselor pack could not be prepared.";
-                return false;
-            }
-
-            return inventory.TryOpenPrimaryContainer(from, out message);
-        }
-
-        private static bool ExecuteSpawnItemToCounselorPack(Mobile from, AIGMActionProposal action, out string message)
-        {
-            message = null;
-            LogExecution("ExecuteSpawnItemToCounselorPack start from=" + SafeMobileName(from));
-
-            AIGMCounselor counselor = FindCounselor(from, 48);
-            if (counselor == null)
-            {
-                message = "No nearby AI GM counselor was found for item delivery.";
-                return false;
-            }
-
-            IAIGMInventoryCapability inventory = counselor.Inventory;
-            if (inventory == null)
-            {
-                message = "The counselor pack could not be prepared.";
-                return false;
-            }
-
-            string rawItemName = null;
-            string rawAmount = null;
-            string rawBlessed = null;
-
-            if (action != null && action.Parameters != null)
-            {
-                action.Parameters.TryGetValue("itemName", out rawItemName);
-
-                if (String.IsNullOrWhiteSpace(rawItemName))
-                    action.Parameters.TryGetValue("itemAlias", out rawItemName);
-
-                action.Parameters.TryGetValue("amount", out rawAmount);
-                action.Parameters.TryGetValue("blessed", out rawBlessed);
-            }
-
-            if (String.IsNullOrWhiteSpace(rawItemName))
-            {
-                message = "No item name was provided for counselor pack creation.";
-                LogExecution("spawn fail no item name");
-                return false;
-            }
-
-            LogExecution("spawn request item=" + rawItemName + " rawAmount=" + (rawAmount ?? String.Empty) + " rawBlessed=" + (rawBlessed ?? String.Empty));
-
-            int amount = 1;
-            if (!String.IsNullOrWhiteSpace(rawAmount))
-            {
-                int parsedAmount;
-                if (Int32.TryParse(rawAmount, out parsedAmount))
-                    amount = parsedAmount;
-            }
-
-            if (amount < 1)
-                amount = 1;
-
-            bool blessed = false;
-            if (!String.IsNullOrWhiteSpace(rawBlessed))
-                Boolean.TryParse(rawBlessed, out blessed);
-
-            Container pack = inventory.GetPrimaryContainer();
-            if (pack == null)
-            {
-                message = "The counselor pack could not be prepared.";
-                return false;
-            }
-
-            string[] ctorArgs = BuildAddConstructorArgs(rawItemName, amount);
-
-            Item item;
-            string error;
-            if (!AIGMAddAdapter.TryCreateItemInContainer(from, pack, rawItemName, ctorArgs, null, out item, out error))
-            {
-                LogExecution("add adapter failed error=" + (error ?? String.Empty) + " fallingBack=true");
-                if (!TryCreateAllowedCounselorPackItem(rawItemName, amount, blessed, out item, out error))
-                {
-                    message = !String.IsNullOrWhiteSpace(error)
-                        ? error
-                        : "I do not yet know how to create that item safely.";
-                    LogExecution("fallback failed error=" + (message ?? String.Empty));
-                    return false;
-                }
-
-                if (item == null)
-                {
-                    message = "Item creation returned no result.";
-                    LogExecution("fallback built null item");
-                    return false;
-                }
-
-                bool droppedFallback = inventory.TryDropCreatedItem(from, item, rawItemName, out message);
-                LogExecution("fallback success dropped=" + droppedFallback + " message=" + (message ?? String.Empty));
-                return droppedFallback;
-            }
-
-            TryApplyBlessed(item, blessed);
-            bool dropped = inventory.TryDropCreatedItem(from, item, rawItemName, out message);
-            LogExecution("add adapter success dropped=" + dropped + " message=" + (message ?? String.Empty));
-            return dropped;
-        }
-
-        private static string[] BuildAddConstructorArgs(string itemName, int amount)
-        {
-            string alias = NormalizeItemAlias(itemName);
-            if (String.IsNullOrWhiteSpace(alias))
-                return new string[0];
-
-            switch (alias)
-            {
-                case "bandage":
-                case "bandages":
-                case "blank scroll":
-                case "blank scrolls":
-                case "gold":
-                case "black pearl":
-                case "bloodmoss":
-                case "garlic":
-                case "ginseng":
-                case "mandrake root":
-                case "nightshade":
-                case "sulfurous ash":
-                case "spider silk":
-                case "spiders silk":
-                    return new string[] { Math.Max(1, amount).ToString() };
-                default:
-                    return new string[0];
-            }
-        }
-
-        private static bool TryCreateAllowedCounselorPackItem(string itemName, int amount, bool blessed, out Item item, out string error)
-        {
-            item = null;
-            error = null;
-
-            string alias = NormalizeItemAlias(itemName);
-            if (String.IsNullOrWhiteSpace(alias))
-            {
-                error = "I do not yet know how to create that item safely.";
-                return false;
-            }
-
-            amount = Math.Max(1, amount);
-
-            switch (alias)
-            {
-                case "katana":
-                    item = new Katana();
-                    break;
-                case "longsword":
-                    item = new Longsword();
-                    break;
-                case "broadsword":
-                    item = new Broadsword();
-                    break;
-                case "dagger":
-                    item = new Dagger();
-                    break;
-                case "bag":
-                    item = new Bag();
-                    break;
-                case "backpack":
-                    item = new Backpack();
-                    break;
-                case "bandage":
-                case "bandages":
-                    item = new Bandage(Math.Min(amount, 1000));
-                    break;
-                case "blank scroll":
-                case "blank scrolls":
-                    item = new BlankScroll(Math.Min(amount, 1000));
-                    break;
-                case "recall rune":
-                case "rune":
-                    item = new RecallRune();
-                    break;
-                case "gold":
-                    item = new Gold(Math.Min(amount, 100000));
-                    break;
-                case "black pearl":
-                    item = new BlackPearl(Math.Min(amount, 1000));
-                    break;
-                case "bloodmoss":
-                    item = new Bloodmoss(Math.Min(amount, 1000));
-                    break;
-                case "garlic":
-                    item = new Garlic(Math.Min(amount, 1000));
-                    break;
-                case "ginseng":
-                    item = new Ginseng(Math.Min(amount, 1000));
-                    break;
-                case "mandrake root":
-                    item = new MandrakeRoot(Math.Min(amount, 1000));
-                    break;
-                case "nightshade":
-                    item = new Nightshade(Math.Min(amount, 1000));
-                    break;
-                case "sulfurous ash":
-                    item = new SulfurousAsh(Math.Min(amount, 1000));
-                    break;
-                case "spiders silk":
-                case "spider silk":
-                    item = new SpidersSilk(Math.Min(amount, 1000));
-                    break;
-                default:
-                    error = "I do not yet know how to create that item safely.";
-                    return false;
-            }
-
-            TryApplyBlessed(item, blessed);
-            return true;
-        }
-
-        private static string NormalizeItemAlias(string raw)
-        {
-            if (String.IsNullOrWhiteSpace(raw))
-                return null;
-
-            string alias = raw.Trim().ToLowerInvariant();
-
-            while (alias.Contains("  "))
-                alias = alias.Replace("  ", " ");
-
-            if (alias == "black pearls")
-                alias = "black pearl";
-            else if (alias == "mandrake")
-                alias = "mandrake root";
-            else if (alias == "mandrakes")
-                alias = "mandrake root";
-            else if (alias == "spider silk")
-                alias = "spiders silk";
-            else if (alias == "recall runes")
-                alias = "recall rune";
-
-            return alias;
-        }
-
-        private static void TryApplyBlessed(Item item, bool blessed)
-        {
-            if (item == null || !blessed)
-                return;
-
-            try
-            {
-                item.LootType = LootType.Blessed;
-            }
-            catch
-            {
-            }
-        }
-
-
     }
 }

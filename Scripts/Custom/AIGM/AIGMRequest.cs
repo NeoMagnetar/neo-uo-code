@@ -1,17 +1,8 @@
 using System;
-
 using System.Collections.Generic;
 
 namespace Server.Custom.AIGM
 {
-    public class AIGMExecutionContext
-    {
-        public string Mode { get; set; }
-        public string LastActionDescription { get; set; }
-        public string LastActionResult { get; set; }
-        public int StepCount { get; set; }
-    }
-
     public class AIGMConversationContext
     {
         public string ActiveTaskSummary { get; set; }
@@ -28,11 +19,32 @@ namespace Server.Custom.AIGM
     {
         public string RequestId { get; set; }
         public string TimestampUtc { get; set; }
+        public string ServerDateUtc { get; set; }
+        public string ServerDateLocal { get; set; }
+        public int ServerYear { get; set; }
         public string ShardName { get; set; }
         public string RequesterName { get; set; }
         public string AccessLevel { get; set; }
         public string MapName { get; set; }
         public string RegionName { get; set; }
+        public string Mode { get; set; }
+        public string CompanionName { get; set; }
+        public string CompanionTypeName { get; set; }
+        public string CompanionProfileKey { get; set; }
+        public string CompanionRuntimeIdentity { get; set; }
+        public string CompanionMemory { get; set; }
+        public string CompanionUMGPersonaContext { get; set; }
+        public string CompanionPhase64CContext { get; set; }
+        public string SpeakerName { get; set; }
+        public string SpeakerTypeName { get; set; }
+        public bool SpeakerIsCompanion { get; set; }
+        public string DialogueMode { get; set; }
+        public string PartyListenerSet { get; set; }
+        public string PartySelectedResponderSet { get; set; }
+        public string PartySuppressedResponderSet { get; set; }
+        public string TurnCoordinatorDecision { get; set; }
+        public string StateContextSummary { get; set; }
+        public AIGMCompanionCognitionSnapshot CompanionCognition { get; set; }
         public string Question { get; set; }
         public AIGMTargetInfo Target { get; set; }
         public AIGMSceneContext Scene { get; set; }

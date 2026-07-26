@@ -1,98 +1,97 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using Server.Mobiles;
 
 namespace Server.Custom.AIGM
 {
-    public sealed class AIGMCompanionPerceptionState
+    public sealed class AIGMCompanionPerceptionBuffer
     {
-        public readonly Queue<AIGMCompanionTrackingSweep> LastTrackingSweeps = new Queue<AIGMCompanionTrackingSweep>();
-        public readonly Dictionary<int, AIGMCompanionTrackingEntry> LastSightingsBySerial = new Dictionary<int, AIGMCompanionTrackingEntry>();
-        public readonly Queue<AIGMCompanionAwarenessEvent> LastAwarenessEvents = new Queue<AIGMCompanionAwarenessEvent>();
-        public DateTime LastSweepUtc;
-    }
-
-    public static class AIGMCompanionPerceptionBuffer
-    {
-        private static readonly Dictionary<int, AIGMCompanionPerceptionState> States = new Dictionary<int, AIGMCompanionPerceptionState>();
-        private const int MaxTrackingSweeps = 20;
-        private const int MaxSightings = 100;
-        private const int MaxAwarenessEvents = 30;
-
-        public static AIGMCompanionPerceptionState Get(BaseHire companion)
+        public sealed class HeardEntrySnapshot
         {
-            if (companion == null)
+            public DateTime TimestampUtc { get; set; }
+            public string Summary { get; set; }
+        }
+
+        private sealed class HeardEntry
+        {
+            public DateTime TimestampUtc { get; set; }
+            public string Summary { get; set; }
+        }
+
+        private static readonly ConcurrentDictionary<Serial, List<HeardEntry>> BufferByCompanion = new ConcurrentDictionary<Serial, List<HeardEntry>>();
+        private static readonly TimeSpan Retention = TimeSpan.FromMinutes(3.0);
+        private const int MaxEntries = 8;
+
+        public static void Record(IAIGMCompanionActor companion, string mode, Mobile speaker, string text)
+        {
+            if (companion == null || companion.Shell == null || speaker == null || String.IsNullOrWhiteSpace(text))
+                return;
+
+            string summary = String.Format("{0}:{1}:{2}", mode ?? "speech", speaker.Name ?? "unknown", text);
+            List<HeardEntry> list = BufferByCompanion.GetOrAdd(companion.Shell.Serial, _ => new List<HeardEntry>());
+            lock (list)
+            {
+                Prune(list);
+                list.Add(new HeardEntry { TimestampUtc = DateTime.UtcNow, Summary = summary });
+                while (list.Count > MaxEntries)
+                    list.RemoveAt(0);
+            }
+        }
+
+        public static string BuildRecentContext(IAIGMCompanionActor companion)
+        {
+            if (companion == null || companion.Shell == null)
                 return null;
 
-            AIGMCompanionPerceptionState state;
-            if (!States.TryGetValue(companion.Serial.Value, out state))
-            {
-                state = new AIGMCompanionPerceptionState();
-                States[companion.Serial.Value] = state;
-            }
+            List<HeardEntry> list;
+            if (!BufferByCompanion.TryGetValue(companion.Shell.Serial, out list))
+                return null;
 
-            return state;
+            lock (list)
+            {
+                Prune(list);
+                if (list.Count == 0)
+                    return null;
+
+                return String.Join(" | ", list.Select(x => x.Summary).ToArray());
+            }
         }
 
-        public static void RecordSweep(BaseHire companion, AIGMCompanionTrackingSweep sweep)
+        public static int GetRecentCount(IAIGMCompanionActor companion)
         {
-            if (companion == null || sweep == null)
-                return;
-
-            AIGMCompanionPerceptionState state = Get(companion);
-            if (state == null)
-                return;
-
-            state.LastTrackingSweeps.Enqueue(sweep);
-            while (state.LastTrackingSweeps.Count > MaxTrackingSweeps)
-                state.LastTrackingSweeps.Dequeue();
-
-            if (sweep.Entries != null)
-            {
-                for (int i = 0; i < sweep.Entries.Count; i++)
-                {
-                    AIGMCompanionTrackingEntry entry = sweep.Entries[i];
-                    if (entry == null || entry.TargetSerial == 0)
-                        continue;
-
-                    state.LastSightingsBySerial[entry.TargetSerial] = entry;
-                }
-            }
-
-            while (state.LastSightingsBySerial.Count > MaxSightings)
-            {
-                int oldestKey = 0;
-                DateTime oldest = DateTime.MaxValue;
-                foreach (KeyValuePair<int, AIGMCompanionTrackingEntry> pair in state.LastSightingsBySerial)
-                {
-                    if (pair.Value != null && pair.Value.TimestampUtc < oldest)
-                    {
-                        oldest = pair.Value.TimestampUtc;
-                        oldestKey = pair.Key;
-                    }
-                }
-
-                if (oldestKey == 0)
-                    break;
-
-                state.LastSightingsBySerial.Remove(oldestKey);
-            }
-
-            state.LastSweepUtc = DateTime.UtcNow;
+            List<HeardEntrySnapshot> entries = GetRecentEntries(companion);
+            return entries != null ? entries.Count : 0;
         }
 
-        public static void RecordAwarenessEvent(BaseHire companion, AIGMCompanionAwarenessEvent awarenessEvent)
+        public static List<HeardEntrySnapshot> GetRecentEntries(IAIGMCompanionActor companion)
         {
-            if (companion == null || awarenessEvent == null)
-                return;
+            if (companion == null || companion.Shell == null)
+                return null;
 
-            AIGMCompanionPerceptionState state = Get(companion);
-            if (state == null)
-                return;
+            List<HeardEntry> list;
+            if (!BufferByCompanion.TryGetValue(companion.Shell.Serial, out list))
+                return null;
 
-            state.LastAwarenessEvents.Enqueue(awarenessEvent);
-            while (state.LastAwarenessEvents.Count > MaxAwarenessEvents)
-                state.LastAwarenessEvents.Dequeue();
+            lock (list)
+            {
+                Prune(list);
+                if (list.Count == 0)
+                    return null;
+
+                return list.Select(x => new HeardEntrySnapshot
+                {
+                    TimestampUtc = x.TimestampUtc,
+                    Summary = x.Summary
+                }).ToList();
+            }
+        }
+
+        private static void Prune(List<HeardEntry> list)
+        {
+            DateTime cutoff = DateTime.UtcNow - Retention;
+            list.RemoveAll(x => x.TimestampUtc < cutoff);
         }
     }
 }

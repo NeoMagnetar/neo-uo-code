@@ -331,40 +331,18 @@ namespace Server.Custom.AIGM
 
         private static DateTime GetNextSupportActionUtc(BaseHire companion)
         {
-            AIGMCompanionDakeyras dakeyras = companion as AIGMCompanionDakeyras;
-            if (dakeyras != null)
-                return dakeyras.NextSupportActionUtc;
-
-            AIGMCompanionDanyal danyal = companion as AIGMCompanionDanyal;
-            if (danyal != null)
-                return danyal.NextSupportActionUtc;
-
-            AIGMCompanionDardalion dardalion = companion as AIGMCompanionDardalion;
-            if (dardalion != null)
-                return dardalion.NextSupportActionUtc;
+            IAIGMCompanionActor companionActor = companion as IAIGMCompanionActor;
+            if (companionActor != null)
+                return companionActor.NextSupportActionUtc;
 
             return DateTime.MinValue;
         }
 
         private static void SetNextSupportActionUtc(BaseHire companion, DateTime value)
         {
-            AIGMCompanionDakeyras dakeyras = companion as AIGMCompanionDakeyras;
-            if (dakeyras != null)
-            {
-                dakeyras.NextSupportActionUtc = value;
-                return;
-            }
-
-            AIGMCompanionDanyal danyal = companion as AIGMCompanionDanyal;
-            if (danyal != null)
-            {
-                danyal.NextSupportActionUtc = value;
-                return;
-            }
-
-            AIGMCompanionDardalion dardalion = companion as AIGMCompanionDardalion;
-            if (dardalion != null)
-                dardalion.NextSupportActionUtc = value;
+            IAIGMCompanionActor companionActor = companion as IAIGMCompanionActor;
+            if (companionActor != null)
+                companionActor.NextSupportActionUtc = value;
         }
 
         private static void Log(string message)

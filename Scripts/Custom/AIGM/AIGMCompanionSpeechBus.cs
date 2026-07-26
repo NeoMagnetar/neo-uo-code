@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server;
+using Server.Custom.AIGM.Characters.Waylander;
 using Server.Mobiles;
 
 namespace Server.Custom.AIGM
@@ -12,7 +13,10 @@ namespace Server.Custom.AIGM
             if (hearingCompanion == null || hearingCompanion.Deleted || ownerSpeaker == null || String.IsNullOrWhiteSpace(speech))
                 return;
 
-            RelayToLinkedCompanions(hearingCompanion, ownerSpeaker, speech, false);
+            if (AIGMCompanionTurnCoordinator.ShouldSuppressOwnerSpeechRelay(speech))
+                return;
+
+            RelayToLinkedCompanions(hearingCompanion as IAIGMCompanionActor, ownerSpeaker, speech, false);
         }
 
         public static void PublishCompanionSpeech(BaseHire sourceCompanion, string speech)
@@ -20,7 +24,15 @@ namespace Server.Custom.AIGM
             if (sourceCompanion == null || sourceCompanion.Deleted || String.IsNullOrWhiteSpace(speech))
                 return;
 
-            RelayToLinkedCompanions(sourceCompanion, sourceCompanion, speech, true);
+            RelayToLinkedCompanions(sourceCompanion as IAIGMCompanionActor, sourceCompanion, speech, true);
+        }
+
+        public static void PublishCompanionSpeech(IAIGMCompanionActor sourceCompanion, string speech)
+        {
+            if (sourceCompanion == null || sourceCompanion.Shell == null || sourceCompanion.Shell.Deleted || String.IsNullOrWhiteSpace(speech))
+                return;
+
+            RelayToLinkedCompanions(sourceCompanion, sourceCompanion.Shell, speech, true);
         }
 
         public static void PublishDelayedCompanionSpeech(BaseHire sourceCompanion, string speech, TimeSpan delay)
@@ -33,48 +45,93 @@ namespace Server.Custom.AIGM
                 if (sourceCompanion == null || sourceCompanion.Deleted || sourceCompanion.Map == null)
                     return;
 
-                RelayToLinkedCompanions(sourceCompanion, sourceCompanion, speech, true);
+                RelayToLinkedCompanions(sourceCompanion as IAIGMCompanionActor, sourceCompanion, speech, true);
             });
         }
 
-        private static void RelayToLinkedCompanions(BaseHire sourceCompanion, Mobile eventSpeaker, string speech, bool companionOrigin)
+        public static List<IAIGMCompanionActor> GetLinkedCompanionsIncludingSource(IAIGMCompanionActor source, Mobile owner)
         {
-            Mobile owner = sourceCompanion.GetOwner();
-            if (owner == null || sourceCompanion.Map == null)
+            List<IAIGMCompanionActor> linked = new List<IAIGMCompanionActor>();
+            if (source == null || source.Shell == null || source.Shell.Deleted || owner == null || source.Shell.Map == null)
+                return linked;
+
+            linked.Add(source);
+            foreach (Mobile mobile in World.Mobiles.Values)
+            {
+                BaseHire hire = mobile as BaseHire;
+                IAIGMCompanionActor actor = mobile as IAIGMCompanionActor;
+                if (actor == null || actor.Shell == null || actor.Shell.Deleted || actor == source)
+                    continue;
+
+                if (actor.Shell.Map != source.Shell.Map)
+                    continue;
+
+                if (ResolveOwner(actor) != owner)
+                    continue;
+
+                linked.Add(actor);
+            }
+
+            return linked;
+        }
+
+        public static Mobile ResolveOwner(IAIGMCompanionActor actor)
+        {
+            if (actor == null || actor.Shell == null)
+                return null;
+
+            BaseHire hire = actor.Shell as BaseHire;
+            if (hire != null)
+                return hire.GetOwner();
+
+            WaylanderRosterMobile roster = actor.Shell as WaylanderRosterMobile;
+            if (roster != null && roster.RosterTrustedCommanderSerial != Serial.MinusOne)
+                return World.FindMobile(roster.RosterTrustedCommanderSerial);
+
+            return null;
+        }
+
+        private static void RelayToLinkedCompanions(IAIGMCompanionActor sourceCompanion, Mobile eventSpeaker, string speech, bool companionOrigin)
+        {
+            if (sourceCompanion == null || sourceCompanion.Shell == null)
                 return;
 
-            List<BaseHire> linkedCompanions = GetLinkedCompanions(sourceCompanion, owner);
+            Mobile owner = ResolveOwner(sourceCompanion);
+            if (owner == null || sourceCompanion.Shell.Map == null)
+                return;
+
+            List<IAIGMCompanionActor> linkedCompanions = GetLinkedCompanions(sourceCompanion, owner);
             for (int i = 0; i < linkedCompanions.Count; i++)
             {
-                BaseHire ally = linkedCompanions[i];
-                if (ally is AIGMCompanionDakeyras)
-                    ((AIGMCompanionDakeyras)ally).ReceiveSpeechBusEvent(sourceCompanion, eventSpeaker, speech, companionOrigin);
-                else if (ally is AIGMCompanionDanyal)
-                    ((AIGMCompanionDanyal)ally).ReceiveSpeechBusEvent(sourceCompanion, eventSpeaker, speech, companionOrigin);
-                else if (ally is AIGMCompanionDardalion)
-                    ((AIGMCompanionDardalion)ally).ReceiveSpeechBusEvent(sourceCompanion, eventSpeaker, speech, companionOrigin);
+                IAIGMCompanionActor ally = linkedCompanions[i];
+                BaseHire sourceHire = sourceCompanion.Shell as BaseHire;
+                if (sourceHire != null && ally.Shell is AIGMCompanionDakeyras)
+                    ((AIGMCompanionDakeyras)ally.Shell).ReceiveSpeechBusEvent(sourceHire, eventSpeaker, speech, companionOrigin);
+                else if (sourceHire != null && ally.Shell is AIGMCompanionDanyal)
+                    ((AIGMCompanionDanyal)ally.Shell).ReceiveSpeechBusEvent(sourceHire, eventSpeaker, speech, companionOrigin);
+                else if (sourceHire != null && ally.Shell is AIGMCompanionDardalion)
+                    ((AIGMCompanionDardalion)ally.Shell).ReceiveSpeechBusEvent(sourceHire, eventSpeaker, speech, companionOrigin);
+                else if (ally.Shell is WaylanderRosterMobile)
+                    ((WaylanderRosterMobile)ally.Shell).ReceiveSpeechBusEvent(sourceCompanion, eventSpeaker, speech, companionOrigin);
             }
         }
 
-        private static List<BaseHire> GetLinkedCompanions(BaseHire sourceCompanion, Mobile owner)
+        private static List<IAIGMCompanionActor> GetLinkedCompanions(IAIGMCompanionActor sourceCompanion, Mobile owner)
         {
-            List<BaseHire> linked = new List<BaseHire>();
-            if (sourceCompanion == null || owner == null)
+            List<IAIGMCompanionActor> linked = new List<IAIGMCompanionActor>();
+            if (sourceCompanion == null || sourceCompanion.Shell == null || owner == null)
                 return linked;
 
             foreach (Mobile mobile in World.Mobiles.Values)
             {
-                BaseHire ally = mobile as BaseHire;
-                if (ally == null || ally == sourceCompanion || ally.Deleted)
+                IAIGMCompanionActor ally = mobile as IAIGMCompanionActor;
+                if (ally == null || ally == sourceCompanion || ally.Shell == null || ally.Shell.Deleted)
                     continue;
 
-                if (ally.Map != sourceCompanion.Map)
+                if (ally.Shell.Map != sourceCompanion.Shell.Map)
                     continue;
 
-                if (!(ally is AIGMCompanionDakeyras) && !(ally is AIGMCompanionDanyal) && !(ally is AIGMCompanionDardalion))
-                    continue;
-
-                if (ally.GetOwner() != owner)
+                if (ResolveOwner(ally) != owner)
                     continue;
 
                 linked.Add(ally);
