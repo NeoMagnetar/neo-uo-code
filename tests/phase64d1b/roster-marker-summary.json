@@ -1,0 +1,51 @@
+﻿{
+    "rows":  24,
+    "registeredAigm":  22,
+    "normalized":  22,
+    "markerItemId0xE75":  22,
+    "markerHue1175":  22,
+    "uniqueBackpacks":  22,
+    "primarySerials":  [
+                           {
+                               "name":  "Dardalion",
+                               "serial":  "0x00000193",
+                               "backpackSerial":  "0x40021EEC",
+                               "backpackItemID":  "0xE75",
+                               "backpackHue":  "1175",
+                               "classification":  "AIGM_BACKPACK"
+                           },
+                           {
+                               "name":  "Dardalion",
+                               "serial":  "0x00003B7A",
+                               "backpackSerial":  "0x4002358C",
+                               "backpackItemID":  "0xE75",
+                               "backpackHue":  "1175",
+                               "classification":  "AIGM_BACKPACK"
+                           },
+                           {
+                               "name":  "Druss",
+                               "serial":  "0x00000304",
+                               "backpackSerial":  "0x40021F31",
+                               "backpackItemID":  "0xE75",
+                               "backpackHue":  "1175",
+                               "classification":  "AIGM_BACKPACK"
+                           },
+                           {
+                               "name":  "Durmast",
+                               "serial":  "0x00003575",
+                               "backpackSerial":  "0x40021F73",
+                               "backpackItemID":  "0xE75",
+                               "backpackHue":  "1175",
+                               "classification":  "AIGM_BACKPACK"
+                           },
+                           {
+                               "name":  "Miriel",
+                               "serial":  "0x00002AA5",
+                               "backpackSerial":  "0x40021E54",
+                               "backpackItemID":  "0xE75",
+                               "backpackHue":  "1175",
+                               "classification":  "AIGM_BACKPACK"
+                           }
+                       ]
+}
+

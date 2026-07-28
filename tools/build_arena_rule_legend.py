@@ -2,7 +2,7 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import date
 
-ROOT = Path(r"C:\Users\Magne\Desktop\neo-uo-code\docs\systems\arena_rule_legend")
+ROOT = Path(__file__).resolve().parents[1] / "docs" / "systems" / "arena_rule_legend"
 TODAY = "2026-04-11"
 AGENT = "OpenClaw"
 

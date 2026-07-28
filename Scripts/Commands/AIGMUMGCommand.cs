@@ -12,7 +12,19 @@ namespace Server.Commands
     {
         public static void Initialize()
         {
+            AIGMUMGSleeveAccessService.Initialize();
+
             CommandSystem.Register("umg", AccessLevel.GameMaster, OnOpen);
+            CommandSystem.Register("umgcompose", AccessLevel.GameMaster, OnOpen);
+            CommandSystem.Register("umgarchitect", AccessLevel.GameMaster, OnArchitect);
+            CommandSystem.Register("umglibrary", AccessLevel.GameMaster, OnLibrary);
+            CommandSystem.Register("umgassign", AccessLevel.GameMaster, OnAssign);
+            CommandSystem.Register("umgpreview", AccessLevel.GameMaster, OnPreview);
+            CommandSystem.Register("umgapprove", AccessLevel.GameMaster, OnApprove);
+            CommandSystem.Register("umgreject", AccessLevel.GameMaster, OnReject);
+            CommandSystem.Register("umgversions", AccessLevel.GameMaster, OnVersions);
+            CommandSystem.Register("umgrollback", AccessLevel.GameMaster, OnRollback);
+            CommandSystem.Register("umgcompare", AccessLevel.GameMaster, OnCompare);
             CommandSystem.Register("umgstatus", AccessLevel.GameMaster, OnStatus);
             CommandSystem.Register("umgblocks", AccessLevel.GameMaster, OnBlocks);
             CommandSystem.Register("umgwhy", AccessLevel.GameMaster, OnWhy);
@@ -23,8 +35,9 @@ namespace Server.Commands
             CommandSystem.Register("umgproposal", AccessLevel.GameMaster, OnProposal);
             CommandSystem.Register("umgactivate", AccessLevel.GameMaster, OnDeferredMutationCommand);
             CommandSystem.Register("umgdeactivate", AccessLevel.GameMaster, OnDeferredMutationCommand);
-            CommandSystem.Register("umgsuspend", AccessLevel.GameMaster, OnDeferredMutationCommand);
-            CommandSystem.Register("umgresume", AccessLevel.GameMaster, OnDeferredMutationCommand);
+            CommandSystem.Register("umgsuspend", AccessLevel.GameMaster, OnSuspend);
+            CommandSystem.Register("umgresume", AccessLevel.GameMaster, OnResume);
+            CommandSystem.Register("umgsleeve", AccessLevel.Player, OnSleeve);
         }
 
         private static void OnOpen(CommandEventArgs e)
@@ -50,6 +63,195 @@ namespace Server.Commands
 
             e.Mobile.CloseGump(typeof(AIGMUMGPanelGump));
             e.Mobile.SendGump(new AIGMUMGPanelGump(e.Mobile, actor, 0));
+        }
+
+        private static void OnArchitect(CommandEventArgs e)
+        {
+            OpenTab(e, 1);
+        }
+
+        private static void OnSleeve(CommandEventArgs e)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            AIGMUMGSleeveAccessService.OpenFromCommand(e.Mobile, Clean(e.ArgString));
+        }
+
+        private static void OnLibrary(CommandEventArgs e)
+        {
+            OpenTab(e, 3);
+        }
+
+        private static void OpenTab(CommandEventArgs e, int tab)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            string arg = Clean(e.ArgString);
+            if (String.IsNullOrWhiteSpace(arg))
+            {
+                e.Mobile.SendMessage(68, "Usage: [{0} <actor>]", e.Command);
+                e.Mobile.SendMessage(68, AIGMUMGRepository.BuildInventorySummary());
+                return;
+            }
+
+            Mobile actor = ResolveSingleActor(arg);
+            if (actor == null)
+            {
+                e.Mobile.SendMessage(38, "No live UMG actor matched '{0}'.", arg);
+                return;
+            }
+
+            e.Mobile.CloseGump(typeof(AIGMUMGPanelGump));
+            e.Mobile.SendGump(new AIGMUMGPanelGump(e.Mobile, actor, tab));
+        }
+
+        private static void OnAssign(CommandEventArgs e)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            string targetText;
+            string rest;
+            SplitFirst(Clean(e.ArgString), out targetText, out rest);
+            string definitionText;
+            string parameters;
+            SplitFirst(rest, out definitionText, out parameters);
+            if (String.IsNullOrWhiteSpace(targetText) || String.IsNullOrWhiteSpace(definitionText))
+            {
+                e.Mobile.SendMessage(68, "Usage: [umgassign <actor/group> <template> [param=value ...]]");
+                return;
+            }
+
+            List<Mobile> targets = ResolveTargets(targetText);
+            if (targets.Count == 0)
+            {
+                e.Mobile.SendMessage(38, "No live UMG targets matched '{0}'.", targetText);
+                return;
+            }
+
+            for (int i = 0; i < targets.Count; i++)
+                e.Mobile.SendMessage(68, AIGMUMGComposerService.AddDraft(targets[i], definitionText, AIGMUMGComposerService.ParseParameters(parameters), Author(e)));
+        }
+
+        private static void OnPreview(CommandEventArgs e)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            string targetText;
+            string selectorText;
+            SplitFirst(Clean(e.ArgString), out targetText, out selectorText);
+            if (String.IsNullOrWhiteSpace(targetText))
+            {
+                e.Mobile.SendMessage(68, "Usage: [umgpreview <actor/group> [assignment/template]]");
+                return;
+            }
+
+            List<Mobile> targets = ResolveTargets(targetText);
+            if (targets.Count == 0)
+            {
+                e.Mobile.SendMessage(38, "No live UMG targets matched '{0}'.", targetText);
+                return;
+            }
+
+            for (int i = 0; i < targets.Count; i++)
+                e.Mobile.SendMessage(68, AIGMUMGComposerService.Preview(targets[i], selectorText));
+        }
+
+        private static void OnApprove(CommandEventArgs e)
+        {
+            ChangeAssignment(e, delegate (Mobile actor, string id) { return AIGMUMGComposerService.Approve(actor, id, Author(e)); }, "Usage: [umgapprove <actor> <assignment-id>]");
+        }
+
+        private static void OnReject(CommandEventArgs e)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            string targetText;
+            string rest;
+            SplitFirst(Clean(e.ArgString), out targetText, out rest);
+            string id;
+            string reason;
+            SplitFirst(rest, out id, out reason);
+            if (String.IsNullOrWhiteSpace(targetText) || String.IsNullOrWhiteSpace(id))
+            {
+                e.Mobile.SendMessage(68, "Usage: [umgreject <actor> <assignment-id> [reason]]");
+                return;
+            }
+
+            Mobile actor = ResolveSingleActor(targetText);
+            if (actor == null)
+            {
+                e.Mobile.SendMessage(38, "No live UMG actor matched '{0}'.", targetText);
+                return;
+            }
+
+            e.Mobile.SendMessage(68, AIGMUMGComposerService.Reject(actor, id, Author(e), reason));
+        }
+
+        private static void OnSuspend(CommandEventArgs e)
+        {
+            ChangeAssignment(e, delegate (Mobile actor, string id) { return AIGMUMGComposerService.Suspend(actor, id, Author(e)); }, "Usage: [umgsuspend <actor> <assignment-id>]");
+        }
+
+        private static void OnResume(CommandEventArgs e)
+        {
+            ChangeAssignment(e, delegate (Mobile actor, string id) { return AIGMUMGComposerService.Resume(actor, id, Author(e)); }, "Usage: [umgresume <actor> <assignment-id>]");
+        }
+
+        private static void OnVersions(CommandEventArgs e)
+        {
+            ForEachTarget(e, delegate (Mobile actor)
+            {
+                e.Mobile.SendMessage(68, AIGMUMGComposerService.BuildVersionSummary(actor));
+            });
+        }
+
+        private static void OnRollback(CommandEventArgs e)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            string targetText;
+            string versionText;
+            SplitFirst(Clean(e.ArgString), out targetText, out versionText);
+            if (String.IsNullOrWhiteSpace(targetText) || String.IsNullOrWhiteSpace(versionText))
+            {
+                e.Mobile.SendMessage(68, "Usage: [umgrollback <actor> <version-id>]");
+                return;
+            }
+
+            Mobile actor = ResolveSingleActor(targetText);
+            if (actor == null)
+            {
+                e.Mobile.SendMessage(38, "No live UMG actor matched '{0}'.", targetText);
+                return;
+            }
+
+            e.Mobile.SendMessage(68, AIGMUMGComposerService.Rollback(actor, versionText, Author(e)));
+        }
+
+        private static void OnCompare(CommandEventArgs e)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            string targetText;
+            string selectorText;
+            SplitFirst(Clean(e.ArgString), out targetText, out selectorText);
+            if (String.IsNullOrWhiteSpace(targetText) || String.IsNullOrWhiteSpace(selectorText))
+            {
+                e.Mobile.SendMessage(68, "Usage: [umgcompare <actor/group> <assignment>]");
+                return;
+            }
+
+            ForEachResolvedTarget(e, targetText, delegate (Mobile actor)
+            {
+                e.Mobile.SendMessage(68, AIGMUMGComposerService.Compare(actor, selectorText));
+            });
         }
 
         private static void OnStatus(CommandEventArgs e)
@@ -154,6 +356,14 @@ namespace Server.Commands
             if (String.IsNullOrWhiteSpace(actorId))
                 actorId = actorText.Trim().ToLowerInvariant();
 
+            Mobile actor = ResolveSingleActor(actorText);
+            if (actor != null && proposalText.IndexOf("defensive", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                e.Mobile.SendMessage(68, AIGMUMGComposerService.ForkDefinition("Warrior Priest", "Dardalion Defensive Support", "agent"));
+                e.Mobile.SendMessage(68, AIGMUMGComposerService.AddDraft(actor, "Dardalion Defensive Support", AIGMUMGComposerService.ParseParameters("mana_reserve_pct=50 heal_ally_below_pct=45 protect_group=Heroes"), "agent"));
+                return;
+            }
+
             e.Mobile.SendMessage(68, AIGMUMGRuntimeService.CreateAgentProposal(actorId, proposalText));
         }
 
@@ -162,7 +372,44 @@ namespace Server.Commands
             if (e == null || e.Mobile == null)
                 return;
 
-            e.Mobile.SendMessage(38, "UMG mutation command is registered but deferred in Phase64C Gate 1-3. Use [umgtemplate] and [umgproposal] for preview/draft; activation requires later explicit approval workflow.");
+            e.Mobile.SendMessage(38, AIGMUMGPhase64C2Invariant.DisabledReason);
+        }
+
+        private static void ChangeAssignment(CommandEventArgs e, Func<Mobile, string, string> action, string usage)
+        {
+            if (e == null || e.Mobile == null || action == null)
+                return;
+
+            string targetText;
+            string idText;
+            SplitFirst(Clean(e.ArgString), out targetText, out idText);
+            if (String.IsNullOrWhiteSpace(targetText) || String.IsNullOrWhiteSpace(idText))
+            {
+                e.Mobile.SendMessage(68, usage);
+                return;
+            }
+
+            Mobile actor = ResolveSingleActor(targetText);
+            if (actor == null)
+            {
+                e.Mobile.SendMessage(38, "No live UMG actor matched '{0}'.", targetText);
+                return;
+            }
+
+            e.Mobile.SendMessage(68, action(actor, idText));
+        }
+
+        private static void ForEachResolvedTarget(CommandEventArgs e, string selector, Action<Mobile> action)
+        {
+            List<Mobile> targets = ResolveTargets(selector);
+            if (targets.Count == 0)
+            {
+                e.Mobile.SendMessage(38, "No live UMG target matched '{0}'.", selector);
+                return;
+            }
+
+            for (int i = 0; i < targets.Count; i++)
+                action(targets[i]);
         }
 
         private static void ForEachTarget(CommandEventArgs e, Action<Mobile> action)
@@ -292,6 +539,11 @@ namespace Server.Commands
         private static string Clean(string value)
         {
             return value != null ? value.Trim() : String.Empty;
+        }
+
+        private static string Author(CommandEventArgs e)
+        {
+            return e != null && e.Mobile != null ? (e.Mobile.Name ?? e.Mobile.AccessLevel.ToString()) : "unknown";
         }
 
         private static string NormalizeSelector(string value)

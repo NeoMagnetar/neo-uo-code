@@ -150,4 +150,68 @@ namespace Server.Custom.AIGM.UMG
         [EnumMember] CanBind = 21,
         [EnumMember] CanOperateAutonomously = 22
     }
+
+    [DataContract]
+    public enum AIGMUMGAssignmentState
+    {
+        [EnumMember] Draft = 0,
+        [EnumMember] Approved = 1,
+        [EnumMember] Rejected = 2,
+        [EnumMember] Archived = 3
+    }
+
+    [DataContract]
+    public enum AIGMUMGExecutionMode
+    {
+        [EnumMember] PreviewOnly = 0,
+        [EnumMember] Live = 1
+    }
+
+    [DataContract]
+    public enum AIGMUMGPreviewParticipation
+    {
+        [EnumMember] Inactive = 0,
+        [EnumMember] EnabledPreview = 1,
+        [EnumMember] Suspended = 2,
+        [EnumMember] Expired = 3
+    }
+
+    [DataContract]
+    public enum AIGMUMGParameterType
+    {
+        [EnumMember] String = 0,
+        [EnumMember] Integer = 1,
+        [EnumMember] Decimal = 2,
+        [EnumMember] Boolean = 3,
+        [EnumMember] Percentage = 4,
+        [EnumMember] TileDistance = 5,
+        [EnumMember] DurationSeconds = 6,
+        [EnumMember] ActorReference = 7,
+        [EnumMember] GroupReference = 8,
+        [EnumMember] FactionReference = 9,
+        [EnumMember] Enum = 10,
+        [EnumMember] OrderedSelectorList = 11,
+        [EnumMember] TagSet = 12,
+        [EnumMember] RegionReference = 13,
+        [EnumMember] TemplateReference = 14
+    }
+
+    [DataContract]
+    public enum AIGMUMGCompatibilityState
+    {
+        [EnumMember] Compatible = 0,
+        [EnumMember] CompatibleWithFallback = 1,
+        [EnumMember] Degraded = 2,
+        [EnumMember] Incompatible = 3,
+        [EnumMember] Unknown = 4
+    }
+
+    [DataContract]
+    public enum AIGMUMGTargetScope
+    {
+        [EnumMember] NPC = 0,
+        [EnumMember] Group = 1,
+        [EnumMember] Faction = 2,
+        [EnumMember] Scenario = 3
+    }
 }

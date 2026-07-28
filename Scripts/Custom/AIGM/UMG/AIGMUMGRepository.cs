@@ -59,6 +59,9 @@ namespace Server.Custom.AIGM.UMG
         private static Dictionary<string, AIGMUMGSleeve> _sleeves;
         private static Dictionary<string, AIGMUMGTemplate> _templates;
         private static Dictionary<string, AIGMUMGBlockProposal> _proposals;
+        private static Dictionary<string, AIGMUMGLibraryDefinition> _libraryDefinitions;
+        private static Dictionary<string, AIGMUMGAssignment> _assignments;
+        private static List<AIGMUMGVersionRecord> _versions;
 
         public static string DataRoot
         {
@@ -99,6 +102,137 @@ namespace Server.Custom.AIGM.UMG
             {
                 if (String.Equals(NormalizeId(candidate.Name), key, StringComparison.OrdinalIgnoreCase))
                     return candidate;
+            }
+
+            return null;
+        }
+
+        public static List<AIGMUMGLibraryDefinition> GetLibraryDefinitions()
+        {
+            EnsureLoaded();
+            return new List<AIGMUMGLibraryDefinition>(_libraryDefinitions.Values);
+        }
+
+        public static AIGMUMGLibraryDefinition GetLibraryDefinition(string definitionNameOrId)
+        {
+            EnsureLoaded();
+            return AIGMUMGLibraryService.Find(_libraryDefinitions.Values, definitionNameOrId);
+        }
+
+        public static void SaveLibraryDefinition(AIGMUMGLibraryDefinition definition, string author, string summary)
+        {
+            EnsureLoaded();
+            if (definition == null || String.IsNullOrWhiteSpace(definition.DefinitionId))
+                return;
+
+            _libraryDefinitions[definition.DefinitionId] = definition;
+            PersistLibraryDefinitions();
+            AIGMUMGLog.Write("library_definition_saved", null, AIGMUMGLog.Fields("definitionId", definition.DefinitionId, "author", author, "summary", summary));
+        }
+
+        public static List<AIGMUMGAssignment> GetAssignments()
+        {
+            EnsureLoaded();
+            return new List<AIGMUMGAssignment>(_assignments.Values);
+        }
+
+        public static List<AIGMUMGAssignment> GetAssignmentsForTarget(string targetCanonicalId)
+        {
+            EnsureLoaded();
+            List<AIGMUMGAssignment> results = new List<AIGMUMGAssignment>();
+            string key = NormalizeId(targetCanonicalId);
+            foreach (AIGMUMGAssignment assignment in _assignments.Values)
+            {
+                if (assignment != null && String.Equals(NormalizeId(assignment.TargetCanonicalId), key, StringComparison.OrdinalIgnoreCase))
+                    results.Add(assignment);
+            }
+
+            results.Sort(delegate (AIGMUMGAssignment left, AIGMUMGAssignment right) { return right.ModifiedUtc.CompareTo(left.ModifiedUtc); });
+            return results;
+        }
+
+        public static AIGMUMGAssignment FindAssignment(string targetCanonicalId, string assignmentOrDefinitionId)
+        {
+            EnsureLoaded();
+            string target = NormalizeId(targetCanonicalId);
+            string needle = NormalizeId(assignmentOrDefinitionId);
+            foreach (AIGMUMGAssignment assignment in _assignments.Values)
+            {
+                if (assignment == null || !String.Equals(NormalizeId(assignment.TargetCanonicalId), target, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (String.Equals(NormalizeId(assignment.AssignmentId), needle, StringComparison.OrdinalIgnoreCase)
+                    || String.Equals(NormalizeId(assignment.DefinitionId), needle, StringComparison.OrdinalIgnoreCase)
+                    || NormalizeId(assignment.AssignmentId).IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0)
+                    return assignment;
+            }
+
+            return null;
+        }
+
+        public static AIGMUMGAssignment FindAssignment(string targetCanonicalId, string definitionId, AIGMUMGAssignmentState state)
+        {
+            EnsureLoaded();
+            string target = NormalizeId(targetCanonicalId);
+            string definition = NormalizeId(definitionId);
+            foreach (AIGMUMGAssignment assignment in _assignments.Values)
+            {
+                if (assignment != null
+                    && assignment.State == state
+                    && String.Equals(NormalizeId(assignment.TargetCanonicalId), target, StringComparison.OrdinalIgnoreCase)
+                    && String.Equals(NormalizeId(assignment.DefinitionId), definition, StringComparison.OrdinalIgnoreCase))
+                    return assignment;
+            }
+
+            return null;
+        }
+
+        public static void SaveAssignmentChange(AIGMUMGAssignment assignment, string author, string summary)
+        {
+            EnsureLoaded();
+            if (assignment == null || String.IsNullOrWhiteSpace(assignment.AssignmentId))
+                return;
+
+            assignment.ExecutionMode = AIGMUMGExecutionMode.PreviewOnly;
+            assignment.ModifiedUtc = DateTime.UtcNow;
+            _assignments[assignment.AssignmentId] = assignment;
+
+            int nextVersion = 1;
+            for (int i = 0; i < _versions.Count; i++)
+            {
+                if (String.Equals(_versions[i].AssignmentId, assignment.AssignmentId, StringComparison.OrdinalIgnoreCase))
+                    nextVersion = Math.Max(nextVersion, _versions[i].VersionNumber + 1);
+            }
+
+            AIGMUMGVersionRecord version = AIGMUMGVersionService.CreateAssignmentVersion(assignment, author, summary, nextVersion);
+            _versions.Insert(0, version);
+            PersistAssignments();
+            PersistVersions();
+            AIGMUMGLog.Write("assignment_saved", null, AIGMUMGLog.Fields("assignmentId", assignment.AssignmentId, "target", assignment.TargetCanonicalId, "state", assignment.State.ToString(), "execution", assignment.ExecutionMode.ToString(), "author", author, "summary", summary));
+        }
+
+        public static List<AIGMUMGVersionRecord> GetVersionsForTarget(string targetCanonicalId)
+        {
+            EnsureLoaded();
+            List<AIGMUMGVersionRecord> results = new List<AIGMUMGVersionRecord>();
+            string key = NormalizeId(targetCanonicalId);
+            for (int i = 0; i < _versions.Count; i++)
+            {
+                if (_versions[i] != null && String.Equals(NormalizeId(_versions[i].TargetId), key, StringComparison.OrdinalIgnoreCase))
+                    results.Add(_versions[i]);
+            }
+
+            return results;
+        }
+
+        public static AIGMUMGVersionRecord GetVersion(string versionId)
+        {
+            EnsureLoaded();
+            string key = NormalizeId(versionId);
+            for (int i = 0; i < _versions.Count; i++)
+            {
+                if (_versions[i] != null && String.Equals(NormalizeId(_versions[i].VersionId), key, StringComparison.OrdinalIgnoreCase))
+                    return _versions[i];
             }
 
             return null;
@@ -177,6 +311,9 @@ namespace Server.Custom.AIGM.UMG
                 _sleeves = null;
                 _templates = null;
                 _proposals = null;
+                _libraryDefinitions = null;
+                _assignments = null;
+                _versions = null;
             }
 
             EnsureLoaded();
@@ -194,29 +331,37 @@ namespace Server.Custom.AIGM.UMG
             }
 
             return String.Format(
-                "schema={0}; sleeves={1}; templates={2}; proposals={3}; blocks={4}; activeBlocks={5}",
+                "schema={0}; sleeves={1}; templates={2}; libraryDefinitions={3}; assignments={4}; versions={5}; proposals={6}; blocks={7}; activeBlocks={8}; tacticalDispatch={9}",
                 AIGMUMGSleeve.CurrentSchemaName,
                 _sleeves.Count,
                 _templates.Count,
+                _libraryDefinitions.Count,
+                _assignments.Count,
+                _versions.Count,
                 _proposals.Count,
                 blocks,
-                activeBlocks);
+                activeBlocks,
+                AIGMUMGPhase64C2Invariant.TacticalDispatchEnabled ? "true" : "false");
         }
 
         private static void EnsureLoaded()
         {
-            if (_sleeves != null && _templates != null && _proposals != null)
+            if (_sleeves != null && _templates != null && _proposals != null && _libraryDefinitions != null && _assignments != null && _versions != null)
                 return;
 
             lock (SyncRoot)
             {
-                if (_sleeves != null && _templates != null && _proposals != null)
+                if (_sleeves != null && _templates != null && _proposals != null && _libraryDefinitions != null && _assignments != null && _versions != null)
                     return;
 
                 EnsureDirectories();
+                BackupV1SidecarsOnce();
                 _templates = LoadTemplatesOrDefault();
                 _sleeves = LoadSleevesOrDefault();
                 _proposals = LoadProposals();
+                _libraryDefinitions = LoadLibraryDefinitionsOrDefault();
+                _assignments = LoadAssignments();
+                _versions = LoadVersions();
                 TrySaveSeedFiles();
             }
         }
@@ -235,7 +380,12 @@ namespace Server.Custom.AIGM.UMG
                 Path.Combine(DataRoot, "Migrations"),
                 Path.Combine(DataRoot, "Logs"),
                 Path.Combine(DataRoot, "Runtime"),
-                Path.Combine(DataRoot, "Proposals")
+                Path.Combine(DataRoot, "Proposals"),
+                Path.Combine(DataRoot, "Library"),
+                Path.Combine(DataRoot, "Assignments"),
+                Path.Combine(DataRoot, "Versions"),
+                Path.Combine(DataRoot, "ChangeSets"),
+                Path.Combine(DataRoot, "MigrationBackups")
             };
 
             for (int i = 0; i < paths.Length; i++)
@@ -275,7 +425,11 @@ namespace Server.Custom.AIGM.UMG
                 {
                     AIGMUMGSleeve sleeve = loaded[i];
                     if (sleeve != null && !String.IsNullOrWhiteSpace(sleeve.ActorId))
+                    {
+                        sleeve.SchemaVersion = AIGMUMGSleeve.CurrentSchemaVersion;
+                        sleeve.MigrationVersion = "phase64c2_preview_authoring";
                         sleeves[NormalizeId(sleeve.ActorId)] = sleeve;
+                    }
                 }
 
                 if (sleeves.Count > 0)
@@ -283,6 +437,55 @@ namespace Server.Custom.AIGM.UMG
             }
 
             return BuildDefaultSleeves();
+        }
+
+        private static Dictionary<string, AIGMUMGLibraryDefinition> LoadLibraryDefinitionsOrDefault()
+        {
+            List<AIGMUMGLibraryDefinition> loaded;
+            if (!TryReadJson(GetLibraryPath(), out loaded) || loaded == null || loaded.Count == 0)
+                loaded = AIGMUMGLibraryService.BuildDefaultDefinitions();
+
+            Dictionary<string, AIGMUMGLibraryDefinition> definitions = new Dictionary<string, AIGMUMGLibraryDefinition>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < loaded.Count; i++)
+            {
+                AIGMUMGLibraryDefinition definition = loaded[i];
+                if (definition == null || String.IsNullOrWhiteSpace(definition.DefinitionId))
+                    continue;
+
+                definition.DefaultExecutionMode = AIGMUMGExecutionMode.PreviewOnly;
+                definitions[definition.DefinitionId] = definition;
+            }
+
+            return definitions;
+        }
+
+        private static Dictionary<string, AIGMUMGAssignment> LoadAssignments()
+        {
+            Dictionary<string, AIGMUMGAssignment> assignments = new Dictionary<string, AIGMUMGAssignment>(StringComparer.OrdinalIgnoreCase);
+            List<AIGMUMGAssignment> loaded;
+            if (!TryReadJson(GetAssignmentsPath(), out loaded) || loaded == null)
+                return assignments;
+
+            for (int i = 0; i < loaded.Count; i++)
+            {
+                AIGMUMGAssignment assignment = loaded[i];
+                if (assignment == null)
+                    continue;
+                if (String.IsNullOrWhiteSpace(assignment.AssignmentId))
+                    assignment.AssignmentId = Guid.NewGuid().ToString("N");
+                assignment.ExecutionMode = AIGMUMGExecutionMode.PreviewOnly;
+                assignments[assignment.AssignmentId] = assignment;
+            }
+
+            return assignments;
+        }
+
+        private static List<AIGMUMGVersionRecord> LoadVersions()
+        {
+            List<AIGMUMGVersionRecord> versions;
+            if (!TryReadJson(GetVersionsPath(), out versions) || versions == null)
+                versions = new List<AIGMUMGVersionRecord>();
+            return versions;
         }
 
         private static Dictionary<string, AIGMUMGBlockProposal> LoadProposals()
@@ -586,6 +789,9 @@ namespace Server.Custom.AIGM.UMG
                 WriteJsonAtomicIfMissing(Path.Combine(DataRoot, "Templates", "phase64c_initial_templates.json"), new List<AIGMUMGTemplate>(_templates.Values));
                 WriteJsonAtomicIfMissing(Path.Combine(DataRoot, "Migrations", "phase64c_default_sleeves.json"), new List<AIGMUMGSleeve>(_sleeves.Values));
                 WriteJsonAtomicIfMissing(GetProposalPath(), new List<AIGMUMGBlockProposal>(_proposals.Values));
+                WriteJsonAtomicIfMissing(GetLibraryPath(), new List<AIGMUMGLibraryDefinition>(_libraryDefinitions.Values));
+                WriteJsonAtomicIfMissing(GetAssignmentsPath(), new List<AIGMUMGAssignment>(_assignments.Values));
+                WriteJsonAtomicIfMissing(GetVersionsPath(), _versions);
             }
             catch
             {
@@ -597,9 +803,80 @@ namespace Server.Custom.AIGM.UMG
             WriteJsonAtomic(GetProposalPath(), new List<AIGMUMGBlockProposal>(_proposals.Values));
         }
 
+        private static void PersistLibraryDefinitions()
+        {
+            WriteJsonAtomic(GetLibraryPath(), new List<AIGMUMGLibraryDefinition>(_libraryDefinitions.Values));
+        }
+
+        private static void PersistAssignments()
+        {
+            WriteJsonAtomic(GetAssignmentsPath(), new List<AIGMUMGAssignment>(_assignments.Values));
+        }
+
+        private static void PersistVersions()
+        {
+            WriteJsonAtomic(GetVersionsPath(), _versions);
+        }
+
         private static string GetProposalPath()
         {
             return Path.Combine(DataRoot, "Proposals", "agent_proposals.json");
+        }
+
+        private static string GetLibraryPath()
+        {
+            return Path.Combine(DataRoot, "Library", "library_definitions_v2.json");
+        }
+
+        private static string GetAssignmentsPath()
+        {
+            return Path.Combine(DataRoot, "Assignments", "assignments_v2.json");
+        }
+
+        private static string GetVersionsPath()
+        {
+            return Path.Combine(DataRoot, "Versions", "versions_v2.json");
+        }
+
+        private static void BackupV1SidecarsOnce()
+        {
+            try
+            {
+                string marker = Path.Combine(DataRoot, "MigrationBackups", "phase64c2_v1_backup.marker");
+                if (File.Exists(marker))
+                    return;
+
+                string dir = Path.Combine(DataRoot, "MigrationBackups", "phase64c2_" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
+                Directory.CreateDirectory(dir);
+                CopyIfExists(Path.Combine(DataRoot, "Templates", "phase64c_initial_templates.json"), Path.Combine(dir, "phase64c_initial_templates.json"));
+                CopyIfExists(Path.Combine(DataRoot, "Migrations", "phase64c_default_sleeves.json"), Path.Combine(dir, "phase64c_default_sleeves.json"));
+                CopyIfExists(GetProposalPath(), Path.Combine(dir, "agent_proposals.json"));
+                File.WriteAllText(marker, dir);
+            }
+            catch (Exception ex)
+            {
+                AIGMUMGLog.Write("migration_backup_warning", null, AIGMUMGLog.Fields("error", ex.Message));
+            }
+        }
+
+        private static void CopyIfExists(string source, string destination)
+        {
+            if (File.Exists(source))
+                File.Copy(source, destination, true);
+        }
+
+        public static T RoundTripClone<T>(T value)
+        {
+            if (value == null)
+                return default(T);
+
+            using (MemoryStream stream = new MemoryStream())
+            {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T));
+                serializer.WriteObject(stream, value);
+                stream.Position = 0;
+                return (T)serializer.ReadObject(stream);
+            }
         }
 
         private static bool TryReadJson<T>(string path, out T value)
@@ -610,7 +887,9 @@ namespace Server.Custom.AIGM.UMG
                 if (String.IsNullOrWhiteSpace(path) || !File.Exists(path) || new FileInfo(path).Length == 0)
                     return false;
 
-                using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                byte[] bytes = File.ReadAllBytes(path);
+                int offset = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+                using (MemoryStream stream = new MemoryStream(bytes, offset, bytes.Length - offset))
                 {
                     DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T));
                     value = (T)serializer.ReadObject(stream);

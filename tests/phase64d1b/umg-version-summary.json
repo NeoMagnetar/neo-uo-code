@@ -1,0 +1,31 @@
+﻿{
+    "type":  "System.Object[]",
+    "count":  10,
+    "byTarget":  [
+                     {
+                         "target":  "dardalion",
+                         "count":  1
+                     },
+                     {
+                         "target":  "druss",
+                         "count":  8
+                     },
+                     {
+                         "target":  "miriel",
+                         "count":  1
+                     }
+                 ],
+    "drussLatest":  [
+                        {
+                            "TargetId":  "druss",
+                            "VersionNumber":  6,
+                            "Summary":  "Approved PreviewOnly",
+                            "VersionId":  "ver.druss.6.b1da7924",
+                            "State":  1,
+                            "ExecutionMode":  0,
+                            "PreviewParticipation":  1,
+                            "RuntimeSerial":  "0x00000304"
+                        }
+                    ]
+}
+

@@ -268,8 +268,8 @@ namespace Server.Custom.AIGM.UMG
     [DataContract]
     public sealed class AIGMUMGSleeve
     {
-        public const int CurrentSchemaVersion = 1;
-        public const string CurrentSchemaName = "AIGM_UMG_RUNTIME_SCHEMA_V1";
+        public const int CurrentSchemaVersion = 2;
+        public const string CurrentSchemaName = "AIGM_UMG_RUNTIME_SCHEMA_V2";
 
         [DataMember(Order = 0)] public string SleeveId { get; set; }
         [DataMember(Order = 1)] public string ActorId { get; set; }

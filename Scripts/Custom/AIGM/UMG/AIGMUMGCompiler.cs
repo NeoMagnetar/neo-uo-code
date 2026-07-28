@@ -181,8 +181,8 @@ namespace Server.Custom.AIGM.UMG
             decision.IntentType = InferIntent(block);
             decision.Target = InferTarget(block);
             decision.Destination = InferDestination(block);
-            decision.Result = "dry_run_not_dispatched";
-            decision.ExecutionReceipt = "typed_intent_compiled_only";
+            decision.Result = AIGMUMGPhase64C2Invariant.ExecutionStatus;
+            decision.ExecutionReceipt = "typed_intent_compiled_only:" + AIGMUMGPhase64C2Invariant.ExecutionStatus;
             return decision;
         }
 
@@ -195,8 +195,8 @@ namespace Server.Custom.AIGM.UMG
                 IntentType = AIGMUMGIntentType.Report,
                 Priority = 0,
                 DeterministicAdapter = "AIGMUMGReportAdapter",
-                ExecutionReceipt = "no_active_valid_behavior_block",
-                Result = "dry_run_not_dispatched"
+                ExecutionReceipt = "no_active_valid_behavior_block:" + AIGMUMGPhase64C2Invariant.ExecutionStatus,
+                Result = AIGMUMGPhase64C2Invariant.ExecutionStatus
             };
             return decision;
         }

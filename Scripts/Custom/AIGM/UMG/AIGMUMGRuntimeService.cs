@@ -32,16 +32,18 @@ namespace Server.Custom.AIGM.UMG
             List<AIGMUMGBlock> blocks = AIGMUMGCompiler.FlattenOrderedBlocks(sleeve);
             AIGMCapabilityValidationResult aggregate = ValidateActiveBlocks(actor, sleeve);
             return String.Format(
-                "{0}: sleeve={1} v{2}; schema={3}; autonomy={4}; stacks={5}; activeBlocks={6}; capability={7}; validation={8}",
+                "{0}: sleeve={1} v{2}; schema={3}; autonomy={4}; stacks={5}; activeBlocks={6}; assignments={7}; capability={8}; validation={9}; tacticalDispatch={10}",
                 snapshot.ActorName,
                 sleeve.SleeveId,
                 sleeve.Version,
-                sleeve.SchemaVersion,
+                AIGMUMGSleeve.CurrentSchemaVersion,
                 sleeve.AutonomyMode,
                 sleeve.NeoStacks.Count,
                 blocks.Count,
+                AIGMUMGRepository.GetAssignmentsForTarget(snapshot.ActorId).Count,
                 AIGMCapabilityRegistry.BuildCompactSummary(snapshot),
-                aggregate.BuildSummary());
+                aggregate.BuildSummary(),
+                AIGMUMGPhase64C2Invariant.TacticalDispatchEnabled ? "true" : "false");
         }
 
         public static AIGMCapabilityValidationResult ValidateActiveBlocks(Mobile actor, AIGMUMGSleeve sleeve)
@@ -130,31 +132,27 @@ namespace Server.Custom.AIGM.UMG
             if (actor == null)
                 return "UMG actor not found.";
 
-            AIGMUMGTemplate template = AIGMUMGRepository.GetTemplate(templateName);
-            if (template == null)
-                return "UMG template not found.";
+            AIGMUMGLibraryDefinition definition = AIGMUMGRepository.GetLibraryDefinition(templateName);
+            if (definition == null)
+                return "UMG library definition not found.";
 
-            AIGMCapabilitySnapshot snapshot = AIGMCapabilityRegistry.CreateSnapshot(actor);
-            List<string> results = new List<string>();
-            for (int i = 0; i < template.Blocks.Count; i++)
-            {
-                AIGMCapabilityValidationResult validation = AIGMCapabilityRegistry.Validate(snapshot, template.Blocks[i].CapabilityRequirements);
-                results.Add(template.Blocks[i].Name + "=" + validation.BuildSummary());
-            }
-
-            return String.Format("Template preview for {0}: {1}; targetStack={2}; activation requires explicit approve/apply command in later gate.",
+            AIGMUMGCompatibilityResult result = AIGMUMGLibraryService.CheckCompatibility(actor, definition);
+            return String.Format("Template preview for {0}: {1}; definition={2}; targetStack={3}; compatibility={4}; execution={5}.",
                 actor.Name,
-                String.Join(" | ", results.ToArray()),
-                template.TargetNeoStack);
+                definition.Name,
+                definition.DefinitionId,
+                definition.IntendedNeoStack,
+                result.BuildSummary(),
+                AIGMUMGPhase64C2Invariant.ExecutionStatus);
         }
 
         public static string BuildTemplateList()
         {
-            List<AIGMUMGTemplate> templates = AIGMUMGRepository.GetTemplates();
+            List<AIGMUMGLibraryDefinition> templates = AIGMUMGRepository.GetLibraryDefinitions();
             List<string> names = new List<string>();
             for (int i = 0; i < templates.Count; i++)
-                names.Add(templates[i].TemplateId);
-            return "UMG templates: " + String.Join(", ", names.ToArray());
+                names.Add(templates[i].Name);
+            return "UMG library definitions: " + String.Join(", ", names.ToArray());
         }
 
         public static string CreateAgentProposal(string actorId, string proposalKind)

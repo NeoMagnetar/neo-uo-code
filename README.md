@@ -95,3 +95,28 @@ This repo is intentionally scaffold-only at initial setup.
 
 The directory structure should exist, but substantive code population should happen only when explicitly directed.
 Do not auto-populate the repo beyond the root README and `.gitkeep` placeholders unless instructed.
+
+## Current Publication State
+
+This publication branch began at Phase64C1E and is now cumulative through the accepted Phase64D1B baseline.
+
+Included implementation surface:
+- Phase64C2 UMG Composer authoring preview, version rollback, and JSON encoding repair.
+- Phase64D1A server-side companion Sleeve access service, context-menu entry, and read-only Sleeve Selector Gump.
+- Phase64D1B normalized AIGM companion backpacks, inventory registry/service, marker contract, inventory commands, and lifecycle protections.
+
+Runtime authority remains server-side. The companion backpack marker is a client discovery hint only:
+- Layer: `Layer.Backpack`
+- ItemID: `0x0E75`
+- Hue: `1175`
+- MarkerVersion: `1`
+- Server class: `Server.Custom.AIGM.Inventory.AIGMCompanionBackpack`
+
+Current accepted hashes:
+- `Scripts.dll`: `4AC823D6532C723FC4ADD0A128E2FBE35A1A4C8F3E09DE0101832090AA7F3FF0`
+- `versions_v2.json`: `0EB27E13320CDC327597662334D8220F87DD47C94F5011DB2867E93A8D1D6C2F`
+
+Publication controls:
+- No saves, accounts, live world state, private UMG sidecars, audit ZIPs, build binaries, logs, credentials, tokens, or temporary build output are tracked.
+- Tactical dispatch remains disabled.
+- Autonomous item use is not implemented.

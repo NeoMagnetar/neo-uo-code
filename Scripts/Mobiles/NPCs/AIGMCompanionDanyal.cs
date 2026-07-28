@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Server.Custom.AIGM;
 using Server.Custom.AIGM.Characters.Waylander;
+using Server.Custom.AIGM.Inventory;
 using Server.Custom.AIGM.Tasks;
 using Server.Items;
 
@@ -184,6 +185,14 @@ namespace Server.Mobiles
         public override bool ClickTitle
         {
             get { return false; }
+        }
+
+        public override DeathMoveResult GetInventoryMoveResultFor(Item item)
+        {
+            if (AIGMCompanionInventoryService.ShouldRetainBackpackContentOnDeath(this, item))
+                return DeathMoveResult.MoveToBackpack;
+
+            return base.GetInventoryMoveResultFor(item);
         }
 
         public override bool AddHire(Mobile m)

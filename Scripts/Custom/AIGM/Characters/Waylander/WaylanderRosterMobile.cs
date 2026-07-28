@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
+using Server.Custom.AIGM.Inventory;
+using Server.Custom.AIGM.Tasks;
 using Server.Items;
 using Server.Network;
 using Server.Mobiles;
-using Server.Custom.AIGM.Tasks;
 
 namespace Server.Custom.AIGM.Characters.Waylander
 {
@@ -440,6 +441,14 @@ namespace Server.Custom.AIGM.Characters.Waylander
             item.Movable = false;
             item.LootType = LootType.Blessed;
             PackItem(item);
+        }
+
+        public override DeathMoveResult GetInventoryMoveResultFor(Item item)
+        {
+            if (AIGMCompanionInventoryService.ShouldRetainBackpackContentOnDeath(this, item))
+                return DeathMoveResult.MoveToBackpack;
+
+            return base.GetInventoryMoveResultFor(item);
         }
 
         protected void ApplyHair(WaylanderCharacterDefinition definition)

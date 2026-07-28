@@ -20,9 +20,15 @@ namespace Server.Custom.AIGM.UMG
                 return false;
             }
 
+            if (execute || !AIGMUMGPhase64C2Invariant.TacticalDispatchEnabled)
+            {
+                receipt = AIGMUMGPhase64C2Invariant.ExecutionStatus + ":" + AIGMUMGPhase64C2Invariant.DisabledReason;
+                return !execute;
+            }
+
             if (!execute)
             {
-                receipt = "dry_run_only:" + decision.DeterministicAdapter;
+                receipt = AIGMUMGPhase64C2Invariant.ExecutionStatus + ":" + decision.DeterministicAdapter;
                 return true;
             }
 
