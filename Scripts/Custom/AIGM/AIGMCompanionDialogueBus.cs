@@ -10,47 +10,65 @@ namespace Server.Custom.AIGM
     {
         private static readonly ConcurrentDictionary<string, DateTime> RecentDialogue = new ConcurrentDictionary<string, DateTime>();
         private static readonly TimeSpan RecentDialogueTtl = TimeSpan.FromSeconds(8.0);
+        private const int MaxHopCount = 1;
 
         public static void PublishDialogue(BaseHire sourceCompanion, string speech)
         {
+            PublishDialogue(sourceCompanion, speech, null);
+        }
+
+        public static void PublishDialogue(BaseHire sourceCompanion, string speech, string preferredTargetCompanionId)
+        {
             if (sourceCompanion == null || sourceCompanion.Deleted || sourceCompanion.Map == null || String.IsNullOrWhiteSpace(speech))
-            {
-                AIGMExecutionLog.Write("DIALOGUE_PUBLISH_SKIP reason=invalid_source_or_text");
                 return;
-            }
 
             Mobile owner = sourceCompanion.GetOwner();
             if (owner == null)
-            {
-                AIGMExecutionLog.Write("DIALOGUE_PUBLISH_SKIP source={0} reason=no_owner", sourceCompanion.Serial.Value);
                 return;
-            }
 
             List<BaseHire> linkedCompanions = GetLinkedCompanions(sourceCompanion, owner);
-            AIGMExecutionLog.Write("DIALOGUE_PUBLISH source={0} sourceName={1} linked={2} text=\"{3}\"", sourceCompanion.Serial.Value, sourceCompanion.Name ?? sourceCompanion.GetType().Name, linkedCompanions.Count, SafeLog(speech));
+            RecordDialogueForParty(sourceCompanion, linkedCompanions, speech);
+
             for (int i = 0; i < linkedCompanions.Count; i++)
             {
                 BaseHire target = linkedCompanions[i];
-                AIGMCompanionDialogueEvent dialogueEvent = new AIGMCompanionDialogueEvent(sourceCompanion.Serial, target.Serial, sourceCompanion.Name ?? sourceCompanion.GetType().Name, target.Name ?? target.GetType().Name, speech, 0);
-                if (!TryMarkRecent(dialogueEvent))
-                {
-                    AIGMExecutionLog.Write("DIALOGUE_DEDUPE source={0} target={1} text=\"{2}\"", sourceCompanion.Serial.Value, target.Serial.Value, SafeLog(speech));
+                IAIGMCompanionActor targetActor = target as IAIGMCompanionActor;
+                if (!String.IsNullOrWhiteSpace(preferredTargetCompanionId) && (targetActor == null || !String.Equals(targetActor.CompanionId, preferredTargetCompanionId, StringComparison.OrdinalIgnoreCase)))
                     continue;
-                }
+
+                AIGMCompanionDialogueEvent dialogueEvent = new AIGMCompanionDialogueEvent(sourceCompanion.Serial, target.Serial, sourceCompanion.Name ?? sourceCompanion.GetType().Name, target.Name ?? target.GetType().Name, preferredTargetCompanionId, speech, 0);
+                if (!TryMarkRecent(dialogueEvent))
+                    continue;
 
                 Deliver(target, sourceCompanion, dialogueEvent);
+            }
+        }
+
+        private static void RecordDialogueForParty(BaseHire sourceCompanion, List<BaseHire> linkedCompanions, string speech)
+        {
+            IAIGMCompanionActor sourceActor = sourceCompanion as IAIGMCompanionActor;
+            if (sourceActor != null)
+                AIGMCompanionPerceptionBuffer.Record(sourceActor, "companion_dialogue", sourceCompanion, speech);
+
+            if (linkedCompanions == null)
+                return;
+
+            for (int i = 0; i < linkedCompanions.Count; i++)
+            {
+                IAIGMCompanionActor actor = linkedCompanions[i] as IAIGMCompanionActor;
+                if (actor != null)
+                    AIGMCompanionPerceptionBuffer.Record(actor, "companion_dialogue", sourceCompanion, speech);
             }
         }
 
         private static void Deliver(BaseHire target, BaseHire sourceCompanion, AIGMCompanionDialogueEvent dialogueEvent)
         {
             if (target == null || target.Deleted || sourceCompanion == null || sourceCompanion.Deleted || dialogueEvent == null)
-            {
-                AIGMExecutionLog.Write("DIALOGUE_DELIVER_SKIP reason=invalid_delivery_state");
                 return;
-            }
 
-            AIGMExecutionLog.Write("DIALOGUE_DELIVER eventId={0} source={1} target={2} hop={3} text=\"{4}\"", dialogueEvent.EventId, sourceCompanion.Serial.Value, target.Serial.Value, dialogueEvent.HopCount, SafeLog(dialogueEvent.Text));
+            if (dialogueEvent.HopCount > MaxHopCount)
+                return;
+
             if (target is AIGMCompanionDakeyras)
                 ((AIGMCompanionDakeyras)target).ReceiveCompanionDialogue(sourceCompanion, dialogueEvent);
             else if (target is AIGMCompanionDanyal)
@@ -88,18 +106,6 @@ namespace Server.Custom.AIGM
         private static string MakeKey(Serial targetSerial, Serial sourceSerial, string text)
         {
             return targetSerial.Value + ":" + sourceSerial.Value + ":" + (text ?? String.Empty).Trim().ToLowerInvariant();
-        }
-
-        private static string SafeLog(string value)
-        {
-            if (String.IsNullOrEmpty(value))
-                return String.Empty;
-
-            value = value.Replace("\r", " ").Replace("\n", " ");
-            if (value.Length > 240)
-                value = value.Substring(0, 240) + "...";
-
-            return value;
         }
 
         private static List<BaseHire> GetLinkedCompanions(BaseHire sourceCompanion, Mobile owner)

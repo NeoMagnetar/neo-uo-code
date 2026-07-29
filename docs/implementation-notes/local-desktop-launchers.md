@@ -27,17 +27,17 @@ The active `settings.json` is replaced at launch time by the selected environmen
 ### Main
 - server path: `C:\UO\Server\ServUO`
 - port: `2593`
-- launcher script: `C:\Users\Magne\Desktop\neo-uo-code\tools\NeoUO-Main-Launcher.ps1`
+- launcher script: `tools\NeoUO-Main-Launcher.ps1`
 
 ### Dev
 - server path: `C:\UO\Server\Neo Ultima Online\NeoUO-Dev`
 - port: `2594`
-- launcher script: `C:\Users\Magne\Desktop\neo-uo-code\tools\NeoUO-Dev-Launcher.ps1`
+- launcher script: `tools\NeoUO-Dev-Launcher.ps1`
 
 ### Staging
 - server path: `C:\UO\Server\Neo Ultima Online\NeoUO-Staging`
 - port: `2595`
-- launcher script: `C:\Users\Magne\Desktop\neo-uo-code\tools\NeoUO-Staging-Launcher.ps1`
+- launcher script: `tools\NeoUO-Staging-Launcher.ps1`
 
 ## Backup note
 

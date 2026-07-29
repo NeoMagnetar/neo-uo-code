@@ -1,0 +1,405 @@
+using System;
+using System.Collections.Generic;
+using Server;
+using Server.Mobiles;
+
+namespace Server.Custom.AIGM
+{
+    public static class AIGMCompanionExecutionSpine
+    {
+        private static readonly Dictionary<int, AIGMCompanionExecutionState> States = new Dictionary<int, AIGMCompanionExecutionState>();
+
+        public static string StartMonsterHunt(BaseHire companion, Mobile speaker)
+        {
+            if (!IsValidCompanion(companion))
+                return "I cannot begin the hunt right now.";
+
+            AIGMCompanionExecutionState state = GetOrCreateState(companion);
+            state.OwnerSerial = speaker != null ? speaker.Serial.Value : 0;
+            state.HuntActive = true;
+            state.StartedUtc = DateTime.UtcNow;
+            state.UpdatedUtc = DateTime.UtcNow;
+            state.ReacquireCount = 0;
+            SetPhase(state, AIGMCompanionExecutionPhase.TrackingMonsters, "hunt_started");
+            Trace(state, "hunt_started");
+            return TickMonsterHunt(companion);
+        }
+
+        public static string StopMonsterHunt(BaseHire companion, string reason)
+        {
+            if (!IsValidCompanion(companion))
+                return "I cannot stop the hunt right now.";
+
+            AIGMCompanionExecutionState state = GetOrCreateState(companion);
+            state.HuntActive = false;
+            state.CurrentTargetSerial = 0;
+            state.CurrentTargetName = String.Empty;
+            state.CurrentTargetPoint = Point3D.Zero;
+            SetPhase(state, AIGMCompanionExecutionPhase.Stopped, String.IsNullOrWhiteSpace(reason) ? "hunt_stopped" : reason);
+            AIGMCompanionCombatController.StopCombat(companion);
+            Trace(state, "hunt_stopped");
+            return companion.Name + ": I stop the monster hunt.";
+        }
+
+        public static string GetStatus(BaseHire companion)
+        {
+            if (!IsValidCompanion(companion))
+                return "I cannot report hunt status right now.";
+
+            AIGMCompanionExecutionState state = GetOrCreateState(companion);
+            string target = String.IsNullOrWhiteSpace(state.CurrentTargetName) ? "none" : state.CurrentTargetName;
+            return String.Format("{0}: huntActive={1}, phase={2}, target={3}, accepted={4}, rejected={5}, lastMove={6}, lastDoor={7}, lastCombat={8}, lastReject={9}, trace={10}",
+                companion.Name,
+                state.HuntActive,
+                state.Phase,
+                target,
+                String.IsNullOrWhiteSpace(state.LastCandidateSummary) ? "none" : state.LastCandidateSummary,
+                String.IsNullOrWhiteSpace(state.LastRejectedCandidates) ? "none" : state.LastRejectedCandidates,
+                String.IsNullOrWhiteSpace(state.LastMovementResult) ? "none" : state.LastMovementResult,
+                String.IsNullOrWhiteSpace(state.LastDoor) ? "none" : state.LastDoor,
+                String.IsNullOrWhiteSpace(state.LastCombatResult) ? "none" : state.LastCombatResult,
+                String.IsNullOrWhiteSpace(state.LastTargetRejectionReason) ? "none" : state.LastTargetRejectionReason,
+                String.IsNullOrWhiteSpace(state.LastTrace) ? "none" : state.LastTrace);
+        }
+
+        public static AIGMCompanionExecutionState GetState(BaseHire companion)
+        {
+            return companion == null ? null : GetOrCreateState(companion);
+        }
+
+        public static string TickMonsterHunt(BaseHire companion)
+        {
+            if (!IsValidCompanion(companion))
+                return "I cannot continue the hunt right now.";
+
+            AIGMCompanionExecutionState state = GetOrCreateState(companion);
+            state.LastTickUtc = DateTime.UtcNow;
+
+            if (!state.HuntActive)
+            {
+                SetPhase(state, AIGMCompanionExecutionPhase.Stopped, "hunt_inactive");
+                return companion.Name + ": no monster hunt is active.";
+            }
+
+            Mobile target = ResolveCurrentTarget(companion, state);
+            CapturePreSustainSnapshot(companion, state, target);
+
+            string sustainResponse;
+            state.LastBandageAttempted = false;
+            state.LastBandageStarted = false;
+            if (AIGMCompanionSelfSustainService.TryBandageSelf(companion, out sustainResponse))
+            {
+                state.LastBandageAttempted = true;
+                state.LastBandageStarted = true;
+                state.SustainPreemptedAction = true;
+                SetPhase(state, AIGMCompanionExecutionPhase.SelfBandaging, sustainResponse);
+                Trace(state, sustainResponse);
+                return companion.Name + ": I begin bandaging my wounds.";
+            }
+
+            state.LastCureAttempted = false;
+            state.LastCureSucceeded = false;
+            if (companion.Poisoned && AIGMCompanionSelfSustainService.TryUseCurePotion(companion, out sustainResponse))
+            {
+                state.LastCureAttempted = true;
+                state.LastCureSucceeded = true;
+                state.SustainPreemptedAction = true;
+                SetPhase(state, AIGMCompanionExecutionPhase.SelfCuring, sustainResponse);
+                Trace(state, sustainResponse);
+                return companion.Name + ": I use a cure potion on myself.";
+            }
+
+            state.SustainPreemptedAction = false;
+            if (target == null)
+            {
+                SetPhase(state, AIGMCompanionExecutionPhase.SelectingMonsterTarget, "selecting_target");
+                target = AcquireNearestMonsterTarget(companion, state);
+                if (target == null)
+                {
+                    state.HuntActive = false;
+                    SetPhase(state, AIGMCompanionExecutionPhase.Stopped, "no_valid_monsters");
+                    Trace(state, "no_valid_monsters");
+                    return companion.Name + ": no valid monsters remain nearby.";
+                }
+            }
+
+            state.CurrentTargetSerial = target.Serial.Value;
+            state.CurrentTargetName = target.Name ?? target.GetType().Name;
+            state.CurrentTargetPoint = target.Location;
+
+            if (!companion.InRange(target, 1))
+            {
+                AIGMCompanionTargetValidationResult preMoveValidation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, state.ScanRange);
+                if (!preMoveValidation.Allowed)
+                {
+                    state.LastTargetRejectionReason = preMoveValidation.Reason;
+                    state.CurrentTargetSerial = 0;
+                    state.CurrentTargetName = String.Empty;
+                    state.CurrentTargetPoint = Point3D.Zero;
+                    SetPhase(state, AIGMCompanionExecutionPhase.Reacquiring, preMoveValidation.Reason);
+                    Trace(state, preMoveValidation.Reason);
+                    return companion.Name + ": I will not pursue an invalid target.";
+                }
+
+                Point3D before = companion.Location;
+                int distanceBefore = (int)companion.GetDistanceToSqrt(target);
+                bool moved = TryStepTowardTarget(companion, target, state);
+                Point3D after = companion.Location;
+                int distanceAfter = (int)companion.GetDistanceToSqrt(target);
+                state.LastMoveFrom = before;
+                state.LastMoveTo = after;
+                state.LastMoveDistanceBefore = distanceBefore;
+                state.LastMoveDistanceAfter = distanceAfter;
+
+                if (moved)
+                {
+                    SetPhase(state, AIGMCompanionExecutionPhase.PursuingMonster, "pursuing_target");
+                    state.LastMovementResult = "moved_one_step from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter;
+                    Trace(state, "step_toward_target_moved");
+
+                    if (companion.InRange(target, 1))
+                    {
+                        string postMoveCombatResult;
+                        if (AIGMCompanionCombatController.TryEngageMonster(companion, target, out postMoveCombatResult))
+                        {
+                            state.LastCombatResult = postMoveCombatResult;
+                            SetPhase(state, AIGMCompanionExecutionPhase.EngagingMonster, postMoveCombatResult);
+                            Trace(state, "post_move_combat_engaged");
+                            return companion.Name + ": I move into range and engage " + state.CurrentTargetName + ".";
+                        }
+
+                        state.LastCombatResult = postMoveCombatResult;
+                    }
+
+                    return companion.Name + ": I move toward " + state.CurrentTargetName + ".";
+                }
+
+                SetPhase(state, AIGMCompanionExecutionPhase.Blocked, "movement_blocked");
+                state.LastMovementResult = "movement_blocked from=" + FormatPoint(before) + " to=" + FormatPoint(after) + " distBefore=" + distanceBefore + " distAfter=" + distanceAfter;
+                Trace(state, "movement_blocked");
+                return companion.Name + ": I could not close the distance to " + state.CurrentTargetName + ".";
+            }
+
+            string combatResult;
+            if (AIGMCompanionCombatController.TryEngageMonster(companion, target, out combatResult))
+            {
+                state.LastCombatResult = combatResult;
+                SetPhase(state, AIGMCompanionExecutionPhase.EngagingMonster, combatResult);
+                Trace(state, combatResult);
+                return companion.Name + ": I engage " + state.CurrentTargetName + ".";
+            }
+
+            state.LastCombatResult = combatResult;
+            state.ReacquireCount++;
+            state.CurrentTargetSerial = 0;
+            state.CurrentTargetName = String.Empty;
+            state.CurrentTargetPoint = Point3D.Zero;
+            SetPhase(state, AIGMCompanionExecutionPhase.Reacquiring, combatResult);
+            Trace(state, combatResult);
+            return companion.Name + ": I lost my mark and will reacquire.";
+        }
+
+        private static bool TryStepTowardTarget(BaseHire companion, Mobile target, AIGMCompanionExecutionState state)
+        {
+            if (companion == null || target == null || state == null || companion.Map == null || target.Map != companion.Map)
+                return false;
+
+            Point3D[] candidates = BuildStepCandidates(companion, target.Location);
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                Point3D candidate = candidates[i];
+                Direction direction = companion.GetDirectionTo(candidate);
+                state.LastMoveDirection = (direction & Direction.Mask).ToString();
+
+                if (candidate == companion.Location)
+                    continue;
+
+                if (TryMove(companion, direction))
+                {
+                    state.LastDoorOpenAttempted = false;
+                    state.LastDoorOpenSucceeded = false;
+                    state.LastDoor = "none";
+                    state.LastDoorTarget = String.Empty;
+                    return true;
+                }
+
+                AIGMCompanionDoorResult door = AIGMCompanionDoorService.TryOpenNearbyDoorDetailed(companion);
+                state.LastDoorOpenAttempted = door.Attempted;
+                state.LastDoorOpenSucceeded = door.Opened;
+                state.LastDoor = door.Status;
+                state.LastDoorTarget = door.Target;
+
+                if (door.Opened)
+                {
+                    SetPhase(state, AIGMCompanionExecutionPhase.OpeningDoor, "door_opened_for_pursuit");
+                    Trace(state, "door_opened_for_pursuit");
+                    if (TryMove(companion, direction))
+                        return true;
+                }
+            }
+
+            if (String.IsNullOrWhiteSpace(state.LastDoor))
+                state.LastDoor = "blocked";
+
+            return false;
+        }
+
+        private static Point3D[] BuildStepCandidates(BaseHire companion, Point3D destination)
+        {
+            int dx = Math.Sign(destination.X - companion.X);
+            int dy = Math.Sign(destination.Y - companion.Y);
+
+            return new Point3D[]
+            {
+                new Point3D(companion.X + dx, companion.Y + dy, companion.Z),
+                new Point3D(companion.X + dx, companion.Y, companion.Z),
+                new Point3D(companion.X, companion.Y + dy, companion.Z),
+                new Point3D(companion.X + dx, companion.Y - dy, companion.Z),
+                new Point3D(companion.X - dx, companion.Y + dy, companion.Z)
+            };
+        }
+
+        private static bool TryMove(BaseHire companion, Direction direction)
+        {
+            if (companion == null)
+                return false;
+
+            Direction masked = direction & Direction.Mask;
+            if ((companion.Direction & Direction.Mask) != masked)
+                companion.Direction = masked;
+
+            return companion.Move(masked);
+        }
+
+        private static Mobile ResolveCurrentTarget(BaseHire companion, AIGMCompanionExecutionState state)
+        {
+            if (companion == null || state == null || state.CurrentTargetSerial == 0)
+                return null;
+
+            Mobile target = World.FindMobile(state.CurrentTargetSerial);
+            if (target == null)
+                return null;
+
+            AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, state.ScanRange);
+            if (!validation.Allowed)
+            {
+                state.LastTargetRejectionReason = validation.Reason;
+                return null;
+            }
+
+            return target;
+        }
+
+        private static Mobile AcquireNearestMonsterTarget(BaseHire companion, AIGMCompanionExecutionState state)
+        {
+            string acceptedSummary;
+            string rejectedSummary;
+            Mobile target = AIGMCompanionTrackingService.FindClosestHostileMonster(companion, out acceptedSummary, out rejectedSummary);
+            state.LastCandidateSummary = acceptedSummary;
+            state.LastRejectedCandidates = rejectedSummary;
+
+            if (target == null)
+            {
+                state.LastTargetRejectionReason = rejectedSummary == "none" ? "no_trackable_monsters" : rejectedSummary;
+                return null;
+            }
+
+            AIGMCompanionTargetValidationResult validation = AIGMCompanionTargetValidator.ValidateMonsterTarget(companion, target, state.ScanRange);
+            if (!validation.Allowed)
+            {
+                state.LastTargetRejectionReason = validation.Reason;
+                return null;
+            }
+
+            AIGMCompanionTrackingState trackingState = AIGMCompanionTrackingService.GetState(companion);
+            if (trackingState != null)
+            {
+                trackingState.LastCandidateSummary = acceptedSummary;
+                trackingState.LastRejectedCandidates = rejectedSummary;
+                trackingState.LastKnownTargetDescription = String.IsNullOrWhiteSpace(target.Name) ? target.GetType().Name : target.Name;
+                trackingState.LastKnownDirectionText = companion.GetDirectionTo(target).ToString();
+                trackingState.LastKnownDistanceText = ((int)Math.Round(companion.GetDistanceToSqrt(target))) + " tiles";
+                trackingState.LastKnownTileText = String.Format("{0},{1},{2}", target.X, target.Y, target.Z);
+                trackingState.LastScanUtc = DateTime.UtcNow;
+            }
+
+            state.LastTargetRejectionReason = String.Empty;
+            return target;
+        }
+
+        private static void CapturePreSustainSnapshot(BaseHire companion, AIGMCompanionExecutionState state, Mobile existingTarget)
+        {
+            if (companion == null || state == null)
+                return;
+
+            state.PreSustainMode = "Monsters";
+
+            string acceptedSummary = "accepted=none";
+            string rejectedSummary = "none";
+            Mobile snapshotTarget;
+
+            if (existingTarget != null)
+            {
+                snapshotTarget = existingTarget;
+                acceptedSummary = String.IsNullOrWhiteSpace(state.LastCandidateSummary)
+                    ? "accepted=" + (String.IsNullOrWhiteSpace(existingTarget.Name) ? existingTarget.GetType().Name : existingTarget.Name) + "@" + (int)Math.Round(companion.GetDistanceToSqrt(existingTarget))
+                    : state.LastCandidateSummary;
+                rejectedSummary = String.IsNullOrWhiteSpace(state.LastRejectedCandidates) ? "none" : state.LastRejectedCandidates;
+            }
+            else
+            {
+                snapshotTarget = AIGMCompanionTrackingService.FindClosestHostileMonster(companion, out acceptedSummary, out rejectedSummary);
+            }
+
+            state.PreSustainAcceptedCandidates = acceptedSummary;
+            state.PreSustainRejectedCandidates = rejectedSummary;
+            state.PreSustainTarget = snapshotTarget != null ? (String.IsNullOrWhiteSpace(snapshotTarget.Name) ? snapshotTarget.GetType().Name : snapshotTarget.Name) : "none";
+            state.PreSustainNearestCandidate = state.PreSustainTarget;
+            state.PreSustainAcquisitionReason = snapshotTarget != null ? "target_available" : "no_valid_monsters";
+
+            if (snapshotTarget == null && String.IsNullOrWhiteSpace(state.LastTargetRejectionReason) && rejectedSummary != "none")
+                state.LastTargetRejectionReason = rejectedSummary;
+        }
+
+        private static bool IsValidCompanion(BaseHire companion)
+        {
+            return companion != null && !companion.Deleted && companion.Alive && companion.Map != null;
+        }
+
+        private static AIGMCompanionExecutionState GetOrCreateState(BaseHire companion)
+        {
+            AIGMCompanionExecutionState state;
+            if (!States.TryGetValue(companion.Serial.Value, out state))
+            {
+                state = new AIGMCompanionExecutionState();
+                state.CompanionSerial = companion.Serial.Value;
+                States[companion.Serial.Value] = state;
+            }
+
+            return state;
+        }
+
+        private static void SetPhase(AIGMCompanionExecutionState state, AIGMCompanionExecutionPhase phase, string reason)
+        {
+            if (state == null)
+                return;
+
+            state.Phase = phase;
+            state.PhaseReason = reason ?? String.Empty;
+            state.UpdatedUtc = DateTime.UtcNow;
+        }
+
+        private static void Trace(AIGMCompanionExecutionState state, string trace)
+        {
+            if (state == null)
+                return;
+
+            state.LastTrace = trace ?? String.Empty;
+        }
+
+        private static string FormatPoint(Point3D point)
+        {
+            return String.Format("({0},{1},{2})", point.X, point.Y, point.Z);
+        }
+    }
+}

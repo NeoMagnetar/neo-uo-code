@@ -1,0 +1,188 @@
+﻿diff --git a/src/ClassicUO.Client/Game/UI/Gumps/PaperdollGump.cs b/src/ClassicUO.Client/Game/UI/Gumps/PaperdollGump.cs
+index dff3b7402..18d4b197f 100644
+--- a/src/ClassicUO.Client/Game/UI/Gumps/PaperdollGump.cs
++++ b/src/ClassicUO.Client/Game/UI/Gumps/PaperdollGump.cs
+@@ -20,6 +20,12 @@ namespace ClassicUO.Game.UI.Gumps
+     {
+         private static readonly ushort[] PeaceModeBtnGumps = { 0x07e5, 0x07e6, 0x07e7 };
+         private static readonly ushort[] WarModeBtnGumps = { 0x07e8, 0x07e9, 0x07ea };
++        private const ushort AIGMCompanionBackpackGraphic = 0x0E75;
++        private const ushort AIGMCompanionBackpackHue = 1175;
++        private const ushort UMGScrollGraphic = 0x07D2;
++        private const int PaperdollScrollSpacing = 14;
++        private const int NonPlayerProfileScrollX = 25;
++        private const int PaperdollScrollY = 196;
+         private GumpPic _combatBook,
+             _racialAbilitiesBook;
+         private HitBox _hitBox;
+@@ -31,6 +37,7 @@ namespace ClassicUO.Game.UI.Gumps
+ 
+         private GumpPic _picBase;
+         private GumpPic _profilePic;
++        private GumpPic _umgSleevePic;
+         private readonly List<EquipmentSlot> _slots = new List<EquipmentSlot>();
+         private Label _titleLabel;
+         private GumpPic _virtueMenuPic;
+@@ -94,6 +101,8 @@ namespace ClassicUO.Game.UI.Gumps
+                 }
+             }
+ 
++            RemoveUmgSleevePic();
++
+             Clear();
+             base.Dispose();
+         }
+@@ -216,20 +225,19 @@ namespace ClassicUO.Game.UI.Gumps
+                     }
+                 );
+ 
+-                int profileX = 25;
+-                const int SCROLLS_STEP = 14;
++                int profileX = NonPlayerProfileScrollX;
+ 
+                 if (showRacialAbilitiesBook)
+                 {
+-                    profileX += SCROLLS_STEP;
++                    profileX += PaperdollScrollSpacing;
+                 }
+ 
+-                Add(_profilePic = new GumpPic(profileX, 196, 0x07D2, 0));
++                Add(_profilePic = new GumpPic(profileX, PaperdollScrollY, UMGScrollGraphic, 0));
+                 _profilePic.MouseDoubleClick += Profile_MouseDoubleClickEvent;
+ 
+-                profileX += SCROLLS_STEP;
++                profileX += PaperdollScrollSpacing;
+ 
+-                Add(_partyManifestPic = new GumpPic(profileX, 196, 0x07D2, 0));
++                Add(_partyManifestPic = new GumpPic(profileX, PaperdollScrollY, UMGScrollGraphic, 0));
+                 _partyManifestPic.MouseDoubleClick += PartyManifest_MouseDoubleClickEvent;
+ 
+                 _hitBox = new HitBox(228, 260, 16, 16);
+@@ -240,8 +248,9 @@ namespace ClassicUO.Game.UI.Gumps
+             else
+             {
+                 Add(_picBase = new GumpPic(0, 0, 0x07d1, 0));
+-                Add(_profilePic = new GumpPic(25, 196, 0x07D2, 0));
++                Add(_profilePic = new GumpPic(NonPlayerProfileScrollX, PaperdollScrollY, UMGScrollGraphic, 0));
+                 _profilePic.MouseDoubleClick += Profile_MouseDoubleClickEvent;
++                RefreshUmgSleevePic();
+             }
+ 
+             // STATUS BUTTON
+@@ -376,6 +385,107 @@ namespace ClassicUO.Game.UI.Gumps
+             }
+         }
+ 
++        private void UmgSleeve_MouseDoubleClickEvent(
++            object sender,
++            MouseDoubleClickEventArgs args
++        )
++        {
++            if (args.Button != MouseButtonType.Left)
++            {
++                return;
++            }
++
++            if (!HasAIGMCompanionBackpackMarker())
++            {
++                RefreshUmgSleevePic();
++
++                return;
++            }
++
++            GameActions.Say($"[umgsleeve 0x{LocalSerial:X8}");
++            args.Result = true;
++        }
++
++        private void RefreshUmgSleevePic()
++        {
++            if (!HasAIGMCompanionBackpackMarker())
++            {
++                RemoveUmgSleevePic();
++
++                return;
++            }
++
++            if (_umgSleevePic != null && !_umgSleevePic.IsDisposed)
++            {
++                _umgSleevePic.IsVisible = !IsMinimized;
++
++                return;
++            }
++
++            RemoveUmgSleevePic();
++
++            _umgSleevePic = new GumpPic(
++                NonPlayerProfileScrollX + PaperdollScrollSpacing,
++                PaperdollScrollY,
++                UMGScrollGraphic,
++                0
++            )
++            {
++                IsVisible = !IsMinimized
++            };
++
++            _umgSleevePic.SetTooltip("UMG Sleeve");
++            _umgSleevePic.MouseDoubleClick += UmgSleeve_MouseDoubleClickEvent;
++
++            Add(_umgSleevePic);
++        }
++
++        private void RemoveUmgSleevePic()
++        {
++            if (_umgSleevePic == null)
++            {
++                return;
++            }
++
++            _umgSleevePic.MouseDoubleClick -= UmgSleeve_MouseDoubleClickEvent;
++            Remove(_umgSleevePic);
++            _umgSleevePic.Dispose();
++            _umgSleevePic = null;
++        }
++
++        private bool HasAIGMCompanionBackpackMarker()
++        {
++            if (World.Player != null && LocalSerial == World.Player.Serial)
++            {
++                return false;
++            }
++
++            Mobile mobile = World.Mobiles.Get(LocalSerial);
++
++            if (mobile == null || mobile.IsDestroyed)
++            {
++                return false;
++            }
++
++            Item backpack = mobile.FindItemByLayer(Layer.Backpack);
++
++            return backpack != null
++                && !backpack.IsDestroyed
++                && IsAIGMCompanionBackpackGraphic(backpack)
++                && NormalizeHue(backpack.Hue) == AIGMCompanionBackpackHue;
++        }
++
++        private static bool IsAIGMCompanionBackpackGraphic(Item item)
++        {
++            return item.Graphic == AIGMCompanionBackpackGraphic
++                || item.DisplayedGraphic == AIGMCompanionBackpackGraphic;
++        }
++
++        private static ushort NormalizeHue(ushort hue)
++        {
++            return (ushort)(hue & 0x3FFF);
++        }
++
+         public override void Update()
+         {
+             if (IsDisposed)
+@@ -567,6 +677,8 @@ namespace ClassicUO.Game.UI.Gumps
+                     _slots[i].LocalSerial = mobile.FindItemByLayer((Layer)idx)?.Serial ?? 0;
+                 }
+             }
++
++            RefreshUmgSleevePic();
+         }
+ 
+         public override void OnButtonClick(int buttonID)

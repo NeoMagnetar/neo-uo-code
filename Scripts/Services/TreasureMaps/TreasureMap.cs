@@ -474,8 +474,21 @@ namespace Server.Items
 
         public static bool ValidateLocation(int x, int y, Map map)
         {
+            // Some wrapped treasure rectangles can overshoot facet bounds; reject them before tile lookup.
+            if (map == null || map == Map.Internal || x < 0 || y < 0 || x >= map.Width || y >= map.Height)
+            {
+                return false;
+            }
+
             var lt = map.Tiles.GetLandTile(x, y);
-            var ld = TileData.LandTable[lt.ID];
+            int landId = lt.ID;
+
+            if (landId < 0 || landId >= TileData.LandTable.Length)
+            {
+                return false;
+            }
+
+            var ld = TileData.LandTable[landId];
 
             //Checks for impassable flag..cant walk, cant have a chest
             if (lt.Ignored || (ld.Flags & TileFlag.Impassable) > 0)
@@ -484,7 +497,7 @@ namespace Server.Items
             }
 
             //Checks for roads
-            for (var i = 0; i < HousePlacement.RoadIDs.Length; i += 2)
+            for (var i = 0; i + 1 < HousePlacement.RoadIDs.Length; i += 2)
             {
                 if (lt.ID >= HousePlacement.RoadIDs[i] && lt.ID <= HousePlacement.RoadIDs[i + 1])
                 {
@@ -514,7 +527,14 @@ namespace Server.Items
             //Rare occrunces where a static tile needs to be checked
             foreach (var tile in map.Tiles.GetStaticTiles(x, y, true))
             {
-                var td = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
+                int staticTileId = tile.ID & TileData.MaxItemValue;
+
+                if (staticTileId < 0 || staticTileId >= TileData.ItemTable.Length)
+                {
+                    return false;
+                }
+
+                var td = TileData.ItemTable[staticTileId];
 
                 if ((td.Flags & TileFlag.Impassable) > 0)
                 {
@@ -974,12 +994,34 @@ namespace Server.Items
         {
             if (!m_Completed)
             {
-                ClearPins();
-                LootType = LootType.Regular;
-                m_Decoder = null;
-                GetRandomLocation(Facet, TreasureMapInfo.NewSystem ? TreasureFacet == TreasureFacet.Eodon : false);
-                InvalidateProperties();
-                NextReset = DateTime.UtcNow + ResetTime;
+                try
+                {
+                    bool eodon = TreasureMapInfo.NewSystem && TreasureFacet == TreasureFacet.Eodon;
+                    Point2D nextLocation = GetRandomLocation(Facet, eodon);
+
+                    ClearPins();
+                    LootType = LootType.Regular;
+                    m_Decoder = null;
+                    ChestLocation = nextLocation;
+                    InvalidateProperties();
+                    NextReset = DateTime.UtcNow + ResetTime;
+                }
+                catch (Exception ex)
+                {
+                    NextReset = DateTime.UtcNow + ResetTime;
+
+                    Utility.PushColor(ConsoleColor.Red);
+                    Console.WriteLine(
+                        "TreasureMap.ResetLocation exception: serial={0}, level={1}, facet={2}, chest=({3},{4}), nextReset={5:o}",
+                        Serial,
+                        m_Level,
+                        Facet,
+                        ChestLocation.X,
+                        ChestLocation.Y,
+                        NextReset);
+                    Console.WriteLine(ex);
+                    Utility.PopColor();
+                }
             }
         }
 

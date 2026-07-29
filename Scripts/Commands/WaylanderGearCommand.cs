@@ -1,112 +1,83 @@
-using System;
-using Server.Commands;
 using Server.Items;
-using Server.Mobiles;
-using Server.Targeting;
 
 namespace Server.Commands
 {
-    public static class WaylanderGearCommand
+    public class WaylanderGearCommand
     {
         public static void Initialize()
         {
-            CommandSystem.Register("WaylanderGear", AccessLevel.GameMaster, new CommandEventHandler(OnWaylanderGear));
+            CommandSystem.Register("WaylanderGear", AccessLevel.GameMaster, OnCommand);
         }
 
         [Usage("WaylanderGear")]
-        [Description("Places a blessed chest containing the full Waylander gear collection at the targeted location.")]
-        private static void OnWaylanderGear(CommandEventArgs e)
+        [Description("Creates a chest containing the full Waylander gear collection.")]
+        private static void OnCommand(CommandEventArgs e)
         {
-            e.Mobile.SendMessage("Target where you want to place the Waylander gear chest.");
-            e.Mobile.Target = new WaylanderGearTarget();
-        }
+            Mobile from = e.Mobile;
 
-        private sealed class WaylanderGearTarget : Target
-        {
-            public WaylanderGearTarget() : base(-1, true, TargetFlags.None)
+            if (from == null)
             {
+                return;
             }
 
-            protected override void OnTarget(Mobile from, object targeted)
+            MetalGoldenChest chest = new MetalGoldenChest
             {
-                IPoint3D p = targeted as IPoint3D;
-                if (p == null)
-                {
-                    from.SendMessage("That is not a valid placement target.");
-                    return;
-                }
+                Name = "Waylander Gear Chest",
+                LootType = LootType.Blessed
+            };
 
-                if (p is Item)
-                    p = ((Item)p).GetWorldTop();
-                else if (p is Mobile)
-                    p = ((Mobile)p).Location;
+            PackWaylanderGear(chest);
 
-                Point3D loc = new Point3D(p);
-                Map map = from.Map;
-
-                MetalGoldenChest chest = new MetalGoldenChest();
-                chest.Name = "Waylander Gear Chest";
-                chest.Hue = 1109;
-                chest.LootType = LootType.Blessed;
-                chest.Movable = true;
-
-                PackFullSet(chest);
-                chest.MoveToWorld(loc, map);
-                from.SendMessage("The Waylander gear chest has been placed.");
+            if (from.Backpack != null && from.Backpack.TryDropItem(from, chest, false))
+            {
+                from.SendMessage("A Waylander Gear Chest has been placed in your backpack.");
+                return;
             }
+
+            chest.MoveToWorld(from.Location, from.Map);
+            from.SendMessage("A Waylander Gear Chest has been placed at your feet.");
         }
 
-        private static void PackFullSet(Container chest)
+        private static void PackWaylanderGear(Container chest)
         {
-            if (chest == null)
-                return;
+            chest.DropItem(new WaylanderCrossbow());
+            chest.DropItem(new WaylanderFightingKnife());
+            chest.DropItem(new WaylanderFightingKnife());
+            chest.DropItem(new WaylanderThrowingKnife());
+            chest.DropItem(new WaylanderThrowingKnife());
+            chest.DropItem(new WaylanderThrowingKnife());
+            chest.DropItem(new WaylanderBootKnife());
+            chest.DropItem(new WaylanderHuntingKnife());
+            chest.DropItem(new WaylanderCloak());
 
-            AddBlessed(chest, new WaylanderCrossbow());
-            AddBlessed(chest, new WaylanderFightingKnife());
-            AddBlessed(chest, new WaylanderFightingKnife());
-            AddBlessed(chest, new WaylanderThrowingKnife());
-            AddBlessed(chest, new WaylanderThrowingKnife());
-            AddBlessed(chest, new WaylanderThrowingKnife());
-            AddBlessed(chest, new WaylanderBootKnife());
-            AddBlessed(chest, new WaylanderHuntingKnife());
-            AddBlessed(chest, new WaylanderCloak());
+            chest.DropItem(new ArmourOfBronze_Chest());
+            chest.DropItem(new ArmourOfBronze_Legs());
+            chest.DropItem(new ArmourOfBronze_Arms());
+            chest.DropItem(new ArmourOfBronze_Helm());
+            chest.DropItem(new ArmourOfBronze_Gloves());
 
-            AddBlessed(chest, new ArmourOfBronze_Chest());
-            AddBlessed(chest, new ArmourOfBronze_Legs());
-            AddBlessed(chest, new ArmourOfBronze_Arms());
-            AddBlessed(chest, new ArmourOfBronze_Helm());
-            AddBlessed(chest, new ArmourOfBronze_Gloves());
+            chest.DropItem(new KarnakSilverAxe());
+            chest.DropItem(new CadorasStalkerBow());
+            chest.DropItem(new DurmastWarAxe());
 
-            AddBlessed(chest, new KarnakSilverAxe());
-            AddBlessed(chest, new CadorasStalkerBow());
-            AddBlessed(chest, new DurmastWarAxe());
+            chest.DropItem(new DarkBrotherhood_Chest());
+            chest.DropItem(new DarkBrotherhood_Legs());
+            chest.DropItem(new DarkBrotherhood_Arms());
+            chest.DropItem(new DarkBrotherhood_Helm());
+            chest.DropItem(new DarkBrotherhood_Gloves());
 
-            AddBlessed(chest, new DarkBrotherhood_Chest());
-            AddBlessed(chest, new DarkBrotherhood_Legs());
-            AddBlessed(chest, new DarkBrotherhood_Arms());
-            AddBlessed(chest, new DarkBrotherhood_Helm());
-            AddBlessed(chest, new DarkBrotherhood_Gloves());
+            chest.DropItem(new TheThirty_Chest());
+            chest.DropItem(new TheThirty_Legs());
+            chest.DropItem(new TheThirty_Arms());
+            chest.DropItem(new TheThirty_Helm());
+            chest.DropItem(new TheThirty_Gloves());
+            chest.DropItem(new TheThirtySilverSword());
+            chest.DropItem(new TheThirtySilverShield());
 
-            AddBlessed(chest, new TheThirty_Chest());
-            AddBlessed(chest, new TheThirty_Legs());
-            AddBlessed(chest, new TheThirty_Arms());
-            AddBlessed(chest, new TheThirty_Helm());
-            AddBlessed(chest, new TheThirty_Gloves());
-            AddBlessed(chest, new TheThirtySilverSword());
-            AddBlessed(chest, new TheThirtySilverShield());
+            chest.DropItem(new KaiHuntingKnife());
+            chest.DropItem(new KaiHuntingKnife());
 
-            AddBlessed(chest, new KaiHuntingKnife());
-            AddBlessed(chest, new KaiHuntingKnife());
-            AddBlessed(chest, new OakenwoodSourceRobe());
-        }
-
-        private static void AddBlessed(Container chest, Item item)
-        {
-            if (chest == null || item == null)
-                return;
-
-            item.LootType = LootType.Blessed;
-            chest.DropItem(item);
+            chest.DropItem(new OakenwoodSourceRobe());
         }
     }
 }

@@ -1,0 +1,2476 @@
+{
+    "nodes":  [
+                  {
+                      "aliases":  [
+                                      "first bank of britain",
+                                      "brit bank",
+                                      "britain bank",
+                                      "bank of britain",
+                                      "first bank"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "britain_bank",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "First Bank of Britain",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "bank",
+                                   "town"
+                               ],
+                      "type":  "Bank",
+                      "x":  1425,
+                      "y":  1690,
+                      "z":  0,
+                      "zone":  "Central Britain"
+                  },
+                  {
+                      "aliases":  [
+                                      "to britain",
+                                      "britain road sign",
+                                      "road to britain"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "to_britain",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "To Britain",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "road",
+                                   "approach"
+                               ],
+                      "type":  "Connector",
+                      "x":  1392,
+                      "y":  1714,
+                      "z":  20,
+                      "zone":  "Britain Approach"
+                  },
+                  {
+                      "aliases":  [
+                                      "the moat",
+                                      "moat",
+                                      "brit moat"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "the_moat",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "The Moat",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "road",
+                                   "landmark"
+                               ],
+                      "type":  "Landmark",
+                      "x":  1401,
+                      "y":  1683,
+                      "z":  30,
+                      "zone":  "Britain Approach"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit guard house",
+                                      "britain guard house",
+                                      "guard house",
+                                      "guardhouse"
+                                  ],
+                      "arrivalRadius":  3,
+                      "enabled":  true,
+                      "id":  "brit_guard_house",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Brit Guard House",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "guard",
+                                   "building"
+                               ],
+                      "type":  "BuildingEntrance",
+                      "x":  1414,
+                      "y":  1716,
+                      "z":  20,
+                      "zone":  "Central Britain"
+                  },
+                  {
+                      "aliases":  [
+                                      "the moat2",
+                                      "moat2",
+                                      "the moat 2",
+                                      "moat 2",
+                                      "the moat two",
+                                      "moat two",
+                                      "second moat"
+                                  ],
+                      "arrivalRadius":  5,
+                      "enabled":  true,
+                      "id":  "the_moat2",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "The Moat2",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "road",
+                                   "landmark"
+                               ],
+                      "type":  "Landmark",
+                      "x":  1397,
+                      "y":  1655,
+                      "z":  30,
+                      "zone":  "Britain Approach"
+                  },
+                  {
+                      "aliases":  [
+                                      "great northern road",
+                                      "the great northern road",
+                                      "northern road",
+                                      "britain northern road"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "the_great_northern_road",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "The Great Northern Road",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "road",
+                                   "north"
+                               ],
+                      "type":  "Road",
+                      "x":  1371,
+                      "y":  1482,
+                      "z":  0,
+                      "zone":  "North Britain"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit cemetary",
+                                      "brit cemetery",
+                                      "brit graveyard",
+                                      "britain graveyard",
+                                      "graveyard"
+                                  ],
+                      "arrivalRadius":  5,
+                      "enabled":  true,
+                      "id":  "brit_graveyard",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "graveyard",
+                                   "road"
+                               ],
+                      "type":  "Landmark",
+                      "x":  1371,
+                      "y":  1482,
+                      "z":  10,
+                      "zone":  "North Britain"
+                  },
+                  {
+                      "aliases":  [
+                                      "despise canyon"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "despise_canyon",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Despise Canyon",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "despise",
+                                   "road"
+                               ],
+                      "type":  "Road",
+                      "x":  1371,
+                      "y":  1350,
+                      "z":  0,
+                      "zone":  "Despise Road"
+                  },
+                  {
+                      "aliases":  [
+                                      "despise canyon1",
+                                      "despise canyon 1"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "despise_canyon1",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Despise Canyon1",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "despise",
+                                   "road"
+                               ],
+                      "type":  "Road",
+                      "x":  1374,
+                      "y":  1230,
+                      "z":  0,
+                      "zone":  "Despise Road"
+                  },
+                  {
+                      "aliases":  [
+                                      "despise canyon2",
+                                      "despise canyon 2"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "despise_canyon2",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Despise Canyon2",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "despise",
+                                   "road"
+                               ],
+                      "type":  "Road",
+                      "x":  1368,
+                      "y":  1145,
+                      "z":  0,
+                      "zone":  "Despise Road"
+                  },
+                  {
+                      "aliases":  [
+                                      "despise",
+                                      "despise entrance",
+                                      "entrance to despise"
+                                  ],
+                      "arrivalRadius":  3,
+                      "enabled":  true,
+                      "id":  "despise_entrance",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Despise Entrance",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "despise",
+                                   "dungeon",
+                                   "entrance"
+                               ],
+                      "type":  "DungeonEntrance",
+                      "x":  1361,
+                      "y":  1071,
+                      "z":  0,
+                      "zone":  "Despise"
+                  },
+                  {
+                      "aliases":  [
+                                      "xroad house",
+                                      "crossroad house",
+                                      "crossroads house"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "xroad_house",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Xroad House",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "road",
+                                   "west"
+                               ],
+                      "type":  "Landmark",
+                      "x":  1194,
+                      "y":  1689,
+                      "z":  0,
+                      "zone":  "West Britain Road"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit canyon",
+                                      "britain canyon"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "brit_canyon",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Brit Canyon",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "britain",
+                                   "road",
+                                   "west"
+                               ],
+                      "type":  "Road",
+                      "x":  1165,
+                      "y":  1608,
+                      "z":  0,
+                      "zone":  "West Britain Road"
+                  },
+                  {
+                      "aliases":  [
+                                      "yew road",
+                                      "road to yew"
+                                  ],
+                      "arrivalRadius":  4,
+                      "enabled":  true,
+                      "id":  "yew_road",
+                      "linkRadius":  14,
+                      "map":  "Felucca",
+                      "name":  "Yew Road",
+                      "region":  "Yew",
+                      "tags":  [
+                                   "yew",
+                                   "road"
+                               ],
+                      "type":  "Road",
+                      "x":  1034,
+                      "y":  1524,
+                      "z":  0,
+                      "zone":  "Yew Road"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_001_1419_1672_10",
+                                      "brit graveyard walked route 001"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_001_1419_1672_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 001",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1672,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_002_1419_1668_10",
+                                      "brit graveyard walked route 002"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_002_1419_1668_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 002",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1668,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_003_1419_1664_10",
+                                      "brit graveyard walked route 003"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_003_1419_1664_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 003",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1664,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_004_1419_1660_10",
+                                      "brit graveyard walked route 004"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_004_1419_1660_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 004",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1660,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_005_1419_1656_10",
+                                      "brit graveyard walked route 005"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_005_1419_1656_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 005",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1656,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_006_1419_1652_10",
+                                      "brit graveyard walked route 006"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_006_1419_1652_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 006",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1652,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_007_1419_1650_11",
+                                      "brit graveyard walked route 007"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_007_1419_1650_11",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 007",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1650,
+                      "z":  11,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_008_1419_1649_13",
+                                      "brit graveyard walked route 008"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_008_1419_1649_13",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 008",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1649,
+                      "z":  13,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_009_1419_1648_14",
+                                      "brit graveyard walked route 009"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_009_1419_1648_14",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 009",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1648,
+                      "z":  14,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_010_1419_1647_15",
+                                      "brit graveyard walked route 010"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_010_1419_1647_15",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 010",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1647,
+                      "z":  15,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_011_1419_1646_16",
+                                      "brit graveyard walked route 011"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_011_1419_1646_16",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 011",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1646,
+                      "z":  16,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_012_1419_1645_17",
+                                      "brit graveyard walked route 012"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_012_1419_1645_17",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 012",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1645,
+                      "z":  17,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_013_1419_1644_18",
+                                      "brit graveyard walked route 013"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_013_1419_1644_18",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 013",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1644,
+                      "z":  18,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_014_1419_1643_19",
+                                      "brit graveyard walked route 014"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_014_1419_1643_19",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 014",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1643,
+                      "z":  19,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_015_1419_1642_20",
+                                      "brit graveyard walked route 015"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_015_1419_1642_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 015",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1642,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_016_1420_1638_20",
+                                      "brit graveyard walked route 016"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_016_1420_1638_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 016",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1420,
+                      "y":  1638,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_017_1420_1636_20",
+                                      "brit graveyard walked route 017"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_017_1420_1636_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 017",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1420,
+                      "y":  1636,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_018_1420_1632_20",
+                                      "brit graveyard walked route 018"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_018_1420_1632_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 018",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1420,
+                      "y":  1632,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_019_1420_1628_20",
+                                      "brit graveyard walked route 019"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_019_1420_1628_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 019",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1420,
+                      "y":  1628,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_020_1422_1626_20",
+                                      "brit graveyard walked route 020"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_020_1422_1626_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 020",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1422,
+                      "y":  1626,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_021_1424_1623_20",
+                                      "brit graveyard walked route 021"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_021_1424_1623_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 021",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1623,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_022_1424_1621_20",
+                                      "brit graveyard walked route 022"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_022_1424_1621_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 022",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1621,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_023_1424_1617_20",
+                                      "brit graveyard walked route 023"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_023_1424_1617_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 023",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1617,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_024_1424_1613_20",
+                                      "brit graveyard walked route 024"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_024_1424_1613_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 024",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1613,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_025_1424_1609_20",
+                                      "brit graveyard walked route 025"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_025_1424_1609_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 025",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1609,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_026_1424_1605_20",
+                                      "brit graveyard walked route 026"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_026_1424_1605_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 026",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1605,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_027_1424_1601_20",
+                                      "brit graveyard walked route 027"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_027_1424_1601_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 027",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1601,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_028_1424_1597_20",
+                                      "brit graveyard walked route 028"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_028_1424_1597_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 028",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1597,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_029_1424_1593_20",
+                                      "brit graveyard walked route 029"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_029_1424_1593_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 029",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1424,
+                      "y":  1593,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_030_1425_1590_20",
+                                      "brit graveyard walked route 030"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_030_1425_1590_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 030",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1425,
+                      "y":  1590,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_031_1430_1589_20",
+                                      "brit graveyard walked route 031"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_031_1430_1589_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 031",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1430,
+                      "y":  1589,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_032_1432_1589_20",
+                                      "brit graveyard walked route 032"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_032_1432_1589_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 032",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1432,
+                      "y":  1589,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_033_1434_1587_20",
+                                      "brit graveyard walked route 033"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_033_1434_1587_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 033",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1434,
+                      "y":  1587,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_034_1436_1584_20",
+                                      "brit graveyard walked route 034"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_034_1436_1584_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 034",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1584,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_035_1436_1583_21",
+                                      "brit graveyard walked route 035"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_035_1436_1583_21",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 035",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1583,
+                      "z":  21,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_036_1436_1582_22",
+                                      "brit graveyard walked route 036"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_036_1436_1582_22",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 036",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1582,
+                      "z":  22,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_037_1436_1580_24",
+                                      "brit graveyard walked route 037"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_037_1436_1580_24",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 037",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1580,
+                      "z":  24,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_038_1436_1578_26",
+                                      "brit graveyard walked route 038"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_038_1436_1578_26",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 038",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1578,
+                      "z":  26,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_039_1436_1577_27",
+                                      "brit graveyard walked route 039"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_039_1436_1577_27",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 039",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1577,
+                      "z":  27,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_040_1436_1576_28",
+                                      "brit graveyard walked route 040"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_040_1436_1576_28",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 040",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1576,
+                      "z":  28,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_041_1436_1575_29",
+                                      "brit graveyard walked route 041"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_041_1436_1575_29",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 041",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1436,
+                      "y":  1575,
+                      "z":  29,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_042_1435_1574_30",
+                                      "brit graveyard walked route 042"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_042_1435_1574_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 042",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1435,
+                      "y":  1574,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_043_1432_1571_30",
+                                      "brit graveyard walked route 043"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_043_1432_1571_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 043",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1432,
+                      "y":  1571,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_044_1428_1567_30",
+                                      "brit graveyard walked route 044"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_044_1428_1567_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 044",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1428,
+                      "y":  1567,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_045_1428_1565_30",
+                                      "brit graveyard walked route 045"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_045_1428_1565_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 045",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1428,
+                      "y":  1565,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_046_1428_1561_30",
+                                      "brit graveyard walked route 046"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_046_1428_1561_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 046",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1428,
+                      "y":  1561,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_047_1428_1557_30",
+                                      "brit graveyard walked route 047"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_047_1428_1557_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 047",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1428,
+                      "y":  1557,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_048_1428_1553_30",
+                                      "brit graveyard walked route 048"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_048_1428_1553_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 048",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1428,
+                      "y":  1553,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_049_1428_1549_30",
+                                      "brit graveyard walked route 049"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_049_1428_1549_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 049",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1428,
+                      "y":  1549,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_050_1429_1547_30",
+                                      "brit graveyard walked route 050"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_050_1429_1547_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 050",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1429,
+                      "y":  1547,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_051_1429_1545_30",
+                                      "brit graveyard walked route 051"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_051_1429_1545_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 051",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1429,
+                      "y":  1545,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_052_1429_1541_30",
+                                      "brit graveyard walked route 052"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_052_1429_1541_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 052",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1429,
+                      "y":  1541,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_053_1431_1541_30",
+                                      "brit graveyard walked route 053"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_053_1431_1541_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 053",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1431,
+                      "y":  1541,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_054_1433_1539_30",
+                                      "brit graveyard walked route 054"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_054_1433_1539_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 054",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1433,
+                      "y":  1539,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_055_1434_1536_33",
+                                      "brit graveyard walked route 055"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_055_1434_1536_33",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 055",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1434,
+                      "y":  1536,
+                      "z":  33,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_056_1434_1535_34",
+                                      "brit graveyard walked route 056"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_056_1434_1535_34",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 056",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1434,
+                      "y":  1535,
+                      "z":  34,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_057_1432_1534_35",
+                                      "brit graveyard walked route 057"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_057_1432_1534_35",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 057",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1432,
+                      "y":  1534,
+                      "z":  35,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_058_1429_1531_34",
+                                      "brit graveyard walked route 058"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_058_1429_1531_34",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 058",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1429,
+                      "y":  1531,
+                      "z":  34,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_059_1428_1530_33",
+                                      "brit graveyard walked route 059"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_059_1428_1530_33",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 059",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1428,
+                      "y":  1530,
+                      "z":  33,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_060_1427_1529_32",
+                                      "brit graveyard walked route 060"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_060_1427_1529_32",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 060",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1427,
+                      "y":  1529,
+                      "z":  32,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_061_1426_1528_31",
+                                      "brit graveyard walked route 061"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_061_1426_1528_31",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 061",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1426,
+                      "y":  1528,
+                      "z":  31,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_062_1425_1527_30",
+                                      "brit graveyard walked route 062"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_062_1425_1527_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 062",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1425,
+                      "y":  1527,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_063_1423_1527_30",
+                                      "brit graveyard walked route 063"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_063_1423_1527_30",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 063",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1423,
+                      "y":  1527,
+                      "z":  30,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_064_1422_1526_29",
+                                      "brit graveyard walked route 064"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_064_1422_1526_29",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 064",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1422,
+                      "y":  1526,
+                      "z":  29,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_065_1421_1525_27",
+                                      "brit graveyard walked route 065"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_065_1421_1525_27",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 065",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1421,
+                      "y":  1525,
+                      "z":  27,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_066_1420_1524_25",
+                                      "brit graveyard walked route 066"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_066_1420_1524_25",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 066",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1420,
+                      "y":  1524,
+                      "z":  25,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_067_1419_1523_21",
+                                      "brit graveyard walked route 067"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_067_1419_1523_21",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 067",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1419,
+                      "y":  1523,
+                      "z":  21,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_068_1417_1523_20",
+                                      "brit graveyard walked route 068"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_068_1417_1523_20",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 068",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1417,
+                      "y":  1523,
+                      "z":  20,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_069_1415_1523_19",
+                                      "brit graveyard walked route 069"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_069_1415_1523_19",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 069",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1415,
+                      "y":  1523,
+                      "z":  19,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_070_1414_1523_18",
+                                      "brit graveyard walked route 070"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_070_1414_1523_18",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 070",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1414,
+                      "y":  1523,
+                      "z":  18,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_071_1413_1522_16",
+                                      "brit graveyard walked route 071"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_071_1413_1522_16",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 071",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1413,
+                      "y":  1522,
+                      "z":  16,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_072_1412_1521_13",
+                                      "brit graveyard walked route 072"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_072_1412_1521_13",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 072",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1412,
+                      "y":  1521,
+                      "z":  13,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_073_1411_1521_11",
+                                      "brit graveyard walked route 073"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_073_1411_1521_11",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 073",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1411,
+                      "y":  1521,
+                      "z":  11,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_074_1410_1521_8",
+                                      "brit graveyard walked route 074"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_074_1410_1521_8",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 074",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1410,
+                      "y":  1521,
+                      "z":  8,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_075_1408_1521_5",
+                                      "brit graveyard walked route 075"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_075_1408_1521_5",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 075",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1408,
+                      "y":  1521,
+                      "z":  5,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_076_1407_1520_3",
+                                      "brit graveyard walked route 076"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_076_1407_1520_3",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 076",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1407,
+                      "y":  1520,
+                      "z":  3,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_077_1405_1518_4",
+                                      "brit graveyard walked route 077"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_077_1405_1518_4",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 077",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1405,
+                      "y":  1518,
+                      "z":  4,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_078_1403_1518_3",
+                                      "brit graveyard walked route 078"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_078_1403_1518_3",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 078",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1403,
+                      "y":  1518,
+                      "z":  3,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_079_1402_1518_5",
+                                      "brit graveyard walked route 079"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_079_1402_1518_5",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 079",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1402,
+                      "y":  1518,
+                      "z":  5,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_080_1401_1517_6",
+                                      "brit graveyard walked route 080"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_080_1401_1517_6",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 080",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1401,
+                      "y":  1517,
+                      "z":  6,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_081_1400_1516_8",
+                                      "brit graveyard walked route 081"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_081_1400_1516_8",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 081",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1400,
+                      "y":  1516,
+                      "z":  8,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_082_1399_1515_9",
+                                      "brit graveyard walked route 082"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_082_1399_1515_9",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 082",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1399,
+                      "y":  1515,
+                      "z":  9,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_083_1398_1514_10",
+                                      "brit graveyard walked route 083"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_083_1398_1514_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 083",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1398,
+                      "y":  1514,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_084_1395_1511_10",
+                                      "brit graveyard walked route 084"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_084_1395_1511_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 084",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1395,
+                      "y":  1511,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_085_1391_1509_10",
+                                      "brit graveyard walked route 085"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_085_1391_1509_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 085",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1391,
+                      "y":  1509,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_086_1387_1505_10",
+                                      "brit graveyard walked route 086"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_086_1387_1505_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 086",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1387,
+                      "y":  1505,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_087_1385_1502_10",
+                                      "brit graveyard walked route 087"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_087_1385_1502_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 087",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1385,
+                      "y":  1502,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_088_1385_1500_10",
+                                      "brit graveyard walked route 088"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_088_1385_1500_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 088",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1385,
+                      "y":  1500,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  },
+                  {
+                      "aliases":  [
+                                      "brit_graveyard_route_089_1385_1499_10",
+                                      "brit graveyard walked route 089"
+                                  ],
+                      "arrivalRadius":  2,
+                      "enabled":  true,
+                      "id":  "brit_graveyard_route_089_1385_1499_10",
+                      "linkRadius":  8,
+                      "map":  "Felucca",
+                      "name":  "Brit Graveyard walked route 089",
+                      "region":  "Britain",
+                      "tags":  [
+                                   "brit_graveyard",
+                                   "graveyard_route",
+                                   "legacy_route",
+                                   "walked_route"
+                               ],
+                      "type":  "Connector",
+                      "x":  1385,
+                      "y":  1499,
+                      "z":  10,
+                      "zone":  "Brit Graveyard Walked Route"
+                  }
+              ]
+}

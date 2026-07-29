@@ -1,16 +1,70 @@
 using System;
+using System.Collections.Generic;
 using Server.Custom.AIGM;
+using Server.Custom.AIGM.Characters.Waylander;
+using Server.Custom.AIGM.Inventory;
+using Server.Custom.AIGM.Tasks;
 using Server.Items;
 
 namespace Server.Mobiles
 {
-    public class AIGMCompanionDanyal : BaseHire
+    public class AIGMCompanionDanyal : BaseHire, IAIGMCompanionActor, IAIGMRosterTaskAgent
     {
-        public const string RuntimeStamp = "DANYAL_RUNTIME_BINDING_PROOF_20260531_V1";
-
         private bool _guardOwnerMode;
         private DateTime _nextSupportActionUtc;
-        private AIGMExecutionMode _executionMode;
+        private bool _boundRosterCompanion;
+        private Serial _trustedCommanderSerial;
+        private AIGMRosterTaskState _rosterTaskState;
+
+        public Mobile Shell
+        {
+            get { return this; }
+        }
+
+        public string ActorId
+        {
+            get { return CompanionId; }
+        }
+
+        public string DisplayName
+        {
+            get { return CompanionDisplayName; }
+        }
+
+        public IAIGMInventoryCapability Inventory
+        {
+            get { return null; }
+        }
+
+        public string CompanionId
+        {
+            get { return "danyal"; }
+        }
+
+        public string CompanionDisplayName
+        {
+            get { return "Danyal"; }
+        }
+
+        public string CompanionRole
+        {
+            get { return "wayfarer-companion"; }
+        }
+
+        public string CompanionProfileKey
+        {
+            get { return "danyal"; }
+        }
+
+        public bool IsAIGMCompanion
+        {
+            get { return true; }
+        }
+
+        public bool CanUseAIGMSkills
+        {
+            get { return false; }
+        }
 
         public bool GuardOwnerMode
         {
@@ -24,16 +78,51 @@ namespace Server.Mobiles
             set { _nextSupportActionUtc = value; }
         }
 
-        public AIGMExecutionMode ExecutionMode
+        public string ExecutionModeKey
         {
-            get { return _executionMode; }
-            set { _executionMode = value; }
+            get { return "shell-disabled"; }
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string DanyalRuntimeStamp
+        public string RosterCharacterId
         {
-            get { return RuntimeStamp; }
+            get { return CompanionId; }
+        }
+
+        public bool RosterPassiveTestMode
+        {
+            get { return false; }
+        }
+
+        public bool RosterBoundCompanion
+        {
+            get { return Controlled || _boundRosterCompanion; }
+            set { _boundRosterCompanion = value; }
+        }
+
+        public Serial RosterTrustedCommanderSerial
+        {
+            get { return Controlled && ControlMaster != null ? ControlMaster.Serial : _trustedCommanderSerial; }
+            set { _trustedCommanderSerial = value; }
+        }
+
+        public AIGMRosterTaskState RosterTaskState
+        {
+            get { return _rosterTaskState; }
+            set { _rosterTaskState = value; }
+        }
+
+        public WaylanderRosterDisposition RosterDisposition
+        {
+            get
+            {
+                WaylanderCharacterDefinition definition = RosterDefinition;
+                return definition != null ? definition.Disposition : WaylanderRosterDisposition.InnocentAllied;
+            }
+        }
+
+        public WaylanderCharacterDefinition RosterDefinition
+        {
+            get { return WaylanderRosterCatalog.GetDefinition(CompanionId); }
         }
 
         public override bool UsesHirelingPayroll
@@ -45,8 +134,6 @@ namespace Server.Mobiles
         public AIGMCompanionDanyal()
             : base(AIType.AI_Archer)
         {
-            LogRuntimeStamp("CTOR");
-
             Name = "Danyal";
             Title = "the wayfarer companion";
             Female = true;
@@ -74,7 +161,7 @@ namespace Server.Mobiles
             Karma = 500;
 
             VirtualArmor = 20;
-            ControlSlots = 2;
+            ControlSlots = 0;
             Tamable = false;
 
             AddItem(new Boots(Utility.RandomNeutralHue()));
@@ -88,7 +175,6 @@ namespace Server.Mobiles
             PackItem(new Arrow(50));
             PackItem(new Bandage(25));
             PackGold(25, 75);
-            _executionMode = AIGMExecutionMode.TrustedCompanionDirect;
         }
 
         public AIGMCompanionDanyal(Serial serial)
@@ -99,6 +185,14 @@ namespace Server.Mobiles
         public override bool ClickTitle
         {
             get { return false; }
+        }
+
+        public override DeathMoveResult GetInventoryMoveResultFor(Item item)
+        {
+            if (AIGMCompanionInventoryService.ShouldRetainBackpackContentOnDeath(this, item))
+                return DeathMoveResult.MoveToBackpack;
+
+            return base.GetInventoryMoveResultFor(item);
         }
 
         public override bool AddHire(Mobile m)
@@ -116,6 +210,8 @@ namespace Server.Mobiles
             if (SetControlMaster(m))
             {
                 IsHired = true;
+                _boundRosterCompanion = true;
+                _trustedCommanderSerial = m.Serial;
                 SayTo(m, "I am with you.");
                 return true;
             }
@@ -139,154 +235,841 @@ namespace Server.Mobiles
             return base.OnDragDrop(from, item);
         }
 
+        public override bool HandlesOnSpeech(Mobile from)
+        {
+            if (from != null && from.Alive && from.InRange(this, 8))
+                return true;
+
+            return base.HandlesOnSpeech(from);
+        }
+
         public override void OnSpeech(SpeechEventArgs e)
         {
-            LogRuntimeStamp("ONSPEECH");
-
-            if (e == null || e.Mobile == null)
+            if (e == null || e.Mobile == null || !e.Mobile.Alive || !e.Mobile.InRange(this, 8))
             {
-                LogSpeech("DANYAL_SPEECH_NULL");
                 base.OnSpeech(e);
                 return;
             }
 
-            string speech = e.Speech == null ? String.Empty : e.Speech.Trim();
-            LogSpeech("DANYAL_SPEECH_START from=" + SafeName(e.Mobile) + " controlled=" + Controlled + " range=" + e.Mobile.GetDistanceToSqrt(this) + " text=" + speech);
+            AIGMCompanionCommandRouteDecision decision = AIGMCompanionCommandBoundary.Classify(e.Speech);
+            if (e.Handled && !ShouldContinueHandledGroupDialogue(decision))
+            {
+                base.OnSpeech(e);
+                return;
+            }
+
+            if (!e.Handled && TryHandleExplicitGroupTrackingCommand(e))
+                return;
 
             Mobile owner = GetOwner();
-            bool allowSharedOwnerSpeech = e.Mobile == owner;
+            bool trustedSpeaker = e.Mobile == owner || (!Controlled && e.Mobile.AccessLevel >= AccessLevel.GameMaster);
 
-            if ((!e.Handled || allowSharedOwnerSpeech) && e.Mobile.InRange(this, 8))
+            List<string> addressedIds = AIGMCompanionCommandBoundary.GetAddressedCompanionIds(e.Speech);
+            bool isMultiAddress = addressedIds != null && addressedIds.Count > 1;
+            if (decision == null || decision.RouteKind == AIGMCompanionCommandRouteKind.EmptySpeech)
             {
-                string normalizedSpeech = speech.ToLowerInvariant();
-                bool trustedCompanion = IsTrustedCompanionSpeaker(e.Mobile, owner);
-                bool trusted = e.Mobile == owner || trustedCompanion || (!Controlled && e.Mobile.AccessLevel >= AccessLevel.GameMaster);
-                LogSpeech("DANYAL_TRUST_RESULT trusted=" + trusted + " trustedCompanion=" + trustedCompanion + " owner=" + SafeName(owner));
+                base.OnSpeech(e);
+                return;
+            }
 
-                if (trusted)
+            bool shouldSpeak = false;
+            bool allowTrustedOwnerFallback = false;
+
+            if (decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
+            {
+                if (!String.Equals(decision.CompanionKey, CompanionId, StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, e.Mobile, e.Speech);
+            }
+            else if (isMultiAddress)
+            {
+                allowTrustedOwnerFallback = true;
+                shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, e.Mobile, e.Speech);
+            }
+            else if (decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion)
+            {
+                if (owner != e.Mobile)
+                    return;
+
+                shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, e.Mobile, e.Speech);
+            }
+            else if (decision.RouteKind == AIGMCompanionCommandRouteKind.NonCompanion && trustedSpeaker)
+            {
+                allowTrustedOwnerFallback = true;
+                shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, e.Mobile, e.Speech);
+            }
+            else
+            {
+                base.OnSpeech(e);
+                return;
+            }
+
+            AIGMCompanionIntent intent;
+            bool parsedIntent = AIGMCompanionIntentParser.TryParse(this, e.Mobile, e.Speech, out intent);
+
+            string spellResponse;
+            if (AIGMCompanionSpellService.TryHandleExplicitSpellCommand(this, e.Mobile, e.Speech, out spellResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(spellResponse))
+                    SayTo(e.Mobile, spellResponse);
+
+                e.Handled = true;
+                return;
+            }
+
+            string healingRouteReason;
+            if (AIGMCompanionHealingService.ShouldRouteHealingCommand(this, e.Mobile, e.Speech, out healingRouteReason))
+            {
+                AIGMCompanionHealingService.LogCommandRoute(this, e.Mobile, e.Speech, healingRouteReason);
+
+                string healingResponse;
+                if (AIGMCompanionHealingService.TryHandleExplicitHealingCommand(this, e.Mobile, e.Speech, out healingResponse))
                 {
-                    bool clearlyAddressedToDifferentCompanion = AIGMCompanionIntentParser.IsClearlyAddressedToDifferentCompanion(this, e.Speech);
-                    if (clearlyAddressedToDifferentCompanion)
-                        LogSpeech("DANYAL_AWARE_OTHER_ADDRESSED_EARLY rawSpeech=" + (e.Speech ?? String.Empty));
+                    if (shouldSpeak && !String.IsNullOrWhiteSpace(healingResponse))
+                        SayTo(e.Mobile, healingResponse);
 
-                    if (normalizedSpeech == "runtime stamp" || normalizedSpeech == "version")
-                    {
-                        SayTo(e.Mobile, RuntimeStamp);
-                        e.Handled = true;
-                        return;
-                    }
-
-                    AIGMCompanionIntent intent;
-                    LogSpeech("DANYAL_PARSE_START rawSpeech=" + (e.Speech ?? String.Empty));
-                    bool parsed = AIGMCompanionIntentParser.TryParse(this, e.Mobile, e.Speech, out intent);
-                    LogSpeech("DANYAL_PARSE_RESULT parsed=" + parsed + " kind=" + (intent != null ? intent.Kind : "null") + " rawSpeech=" + (e.Speech ?? String.Empty));
-
-                    if (parsed)
-                    {
-                        if (intent != null && intent.AddressedToDifferentCompanion)
-                        {
-                            LogSpeech("DANYAL_AWARE_OTHER_ADDRESSED rawSpeech=" + (e.Speech ?? String.Empty));
-                        }
-                        else
-                        {
-                            AIGMCompanionActionPolicyResult decision = AIGMCompanionDirectActionPolicy.Decide(this, e.Mobile, intent);
-                        LogSpeech("DANYAL_POLICY_RESULT kind=" + (intent != null ? intent.Kind : "null") + " decision=" + (decision != null ? decision.Decision.ToString() : "null") + " reason=" + (decision != null ? decision.Reason ?? String.Empty : String.Empty));
-
-                        if (decision != null && decision.Decision == AIGMCompanionActionDecision.DirectExecute)
-                        {
-                            string response;
-                            LogSpeech("DANYAL_DIRECT_EXECUTE_START kind=" + (intent != null ? intent.Kind : "null"));
-                            bool executed = AIGMCompanionActionExecutor.TryExecuteIntent(this, e.Mobile, intent, out response);
-                            LogSpeech("DANYAL_DIRECT_EXECUTE_RESULT kind=" + (intent != null ? intent.Kind : "null") + " executed=" + executed + " response=" + (response ?? String.Empty));
-
-                            if (e.Mobile == owner && (intent == null || !intent.ExplicitlyAddressed))
-                                AIGMCompanionSpeechBus.PublishOwnerSpeech(this, e.Mobile, e.Speech);
-
-                            if (!String.IsNullOrWhiteSpace(response))
-                                SayTo(e.Mobile, response);
-
-                            e.Handled = true;
-                        }
-                        else if (decision != null && decision.Decision == AIGMCompanionActionDecision.Reject)
-                        {
-                            if (!String.IsNullOrWhiteSpace(decision.Reason))
-                                SayTo(e.Mobile, decision.Reason);
-
-                            e.Handled = true;
-                        }
-                        else if (IsStrictDirectCommand(intent))
-                        {
-                            LogSpeech("DANYAL_DIRECT_EXECUTE_RESULT kind=" + (intent != null ? intent.Kind : "null") + " executed=False response=Recognized direct command blocked from async fallback.");
-                            e.Handled = true;
-                        }
-                        }
-                    }
-
-                    if (!e.Handled)
-                    {
-                        string rejection;
-                        bool enqueued = AIGMCompanionSpeechQueue.TryEnqueue(this, e.Mobile, e.Speech, out rejection);
-                        LogSpeech("DANYAL_QUEUE_FALLBACK enqueued=" + enqueued + " rejection=" + (rejection ?? String.Empty));
-                        if (enqueued)
-                        {
-                            e.Handled = true;
-                        }
-                        else if (!String.IsNullOrWhiteSpace(rejection))
-                        {
-                            Say(rejection);
-                            e.Handled = true;
-                        }
-                    }
+                    e.Handled = true;
+                    return;
                 }
             }
 
-            if (!e.Handled)
-                base.OnSpeech(e);
-        }
-
-        private void LogSpeech(string message)
-        {
-            try
+            string stopResponse;
+            if (AIGMCompanionControlStopService.TryHandleSpeech(this, e.Mobile, e.Speech, decision, shouldSpeak, out stopResponse))
             {
-                string path = System.IO.Path.Combine(Core.BaseDirectory, "Logs", "AIGMCompanionDanyal.log");
-                System.IO.File.AppendAllText(path, DateTime.UtcNow.ToString("o") + " " + (message ?? String.Empty) + Environment.NewLine);
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(stopResponse))
+                    SayTo(e.Mobile, stopResponse);
+
+                e.Handled = true;
+                return;
             }
-            catch
+
+            string groupReceiptResponse;
+            if (AIGMCompanionGroupReceiptService.TryHandle(this, e.Mobile, e.Speech, out groupReceiptResponse))
             {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(groupReceiptResponse))
+                    SayTo(e.Mobile, groupReceiptResponse);
+
+                e.Handled = true;
+                return;
             }
+
+            string rosterTaskResponse;
+            if (AIGMRosterCommandService.TryHandleSpeech(this, e.Mobile, e.Speech, out rosterTaskResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(rosterTaskResponse))
+                    SayTo(e.Mobile, rosterTaskResponse);
+
+                e.Handled = true;
+                return;
+            }
+
+            string trackingCommandResponse;
+            if (AIGMCompanionTrackingCommandService.TryHandleSpeech(this, e.Mobile, e.Speech, decision, shouldSpeak, out trackingCommandResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(trackingCommandResponse))
+                    SayTo(e.Mobile, trackingCommandResponse);
+
+                e.Handled = true;
+                return;
+            }
+
+            string locateResponse;
+            if (AIGMCompanionLocateService.TryHandleSpeech(this, e.Mobile, e.Speech, decision, shouldSpeak, out locateResponse))
+            {
+                AIGMCompanionDialogueThreadService.StopForCommand(owner, decision);
+
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(locateResponse))
+                    SayTo(e.Mobile, locateResponse);
+
+                e.Handled = true;
+                return;
+            }
+
+            string dialogueControlResponse;
+            if (AIGMCompanionDialogueControlService.TryHandleSpeechControl(this, e.Mobile, e.Speech, decision, out dialogueControlResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(dialogueControlResponse))
+                    SayTo(e.Mobile, dialogueControlResponse);
+
+                e.Handled = true;
+                return;
+            }
+
+            string navigationResponse;
+            if (AIGMNavigationIntentParser.TryHandle(this, e.Mobile, e.Speech, decision, shouldSpeak, out navigationResponse))
+            {
+                AIGMCompanionDialogueThreadService.StopForCommand(owner, decision);
+
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(navigationResponse))
+                    SayTo(e.Mobile, navigationResponse);
+
+                e.Handled = true;
+                return;
+            }
+
+            if (AIGMCompanionDialogueControlService.ShouldSuppressCasualDialogue(this, e.Mobile, e.Speech, decision))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            if (allowTrustedOwnerFallback || ShouldUseCompanionChat(e.Mobile, e.Speech, decision, intent, parsedIntent))
+            {
+                if (e.Mobile == owner && (allowTrustedOwnerFallback || decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion || decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion))
+                    AIGMCompanionSpeechBus.PublishOwnerSpeech(this, e.Mobile, e.Speech);
+
+                string rejection;
+                if (AIGMCompanionSpeechQueue.TryEnqueue(this, e.Mobile, e.Speech, shouldSpeak, out rejection))
+                {
+                    AIGMCompanionDialogueThreadService.TryStart(this, owner, e.Speech, decision);
+                    e.Handled = true;
+                    return;
+                }
+
+                string visibleRejection;
+                if (shouldSpeak && AIGMCompanionSpeechQueue.TryGetVisibleRejection(rejection, out visibleRejection))
+                    SayTo(e.Mobile, visibleRejection);
+
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Mobile == owner && decision.RouteKind == AIGMCompanionCommandRouteKind.NamedCompanion)
+                AIGMCompanionSpeechBus.PublishOwnerSpeech(this, e.Mobile, e.Speech);
+
+            if (!parsedIntent)
+            {
+                AIGMCompanionDialogueThreadService.StopForCommand(owner, decision);
+                if (!TryExecuteCompanionCommand(e.Mobile, decision, null, shouldSpeak))
+                    return;
+
+                return;
+            }
+
+            AIGMCompanionDialogueThreadService.StopForCommand(owner, decision);
+            if (!TryExecuteCompanionCommand(e.Mobile, decision, intent, shouldSpeak))
+                return;
         }
 
-        private void LogRuntimeStamp(string phase)
+        private bool ShouldContinueHandledGroupDialogue(AIGMCompanionCommandRouteDecision decision)
         {
-            LogSpeech(
-                "DANYAL_RUNTIME_STAMP"
-                + " phase=" + (phase ?? String.Empty)
-                + " stamp=" + RuntimeStamp
-                + " type=" + GetType().FullName
-                + " baseType=" + (GetType().BaseType != null ? GetType().BaseType.FullName : String.Empty)
-                + " assembly=" + GetType().Assembly.FullName
-                + " serial=0x" + Serial.Value.ToString("X8")
-                + " utc=" + DateTime.UtcNow.ToString("o"));
+            return decision != null
+                && !decision.IsCompanionCommand
+                && decision.RouteKind == AIGMCompanionCommandRouteKind.SharedCompanion;
         }
 
-        private bool IsTrustedCompanionSpeaker(Mobile speaker, Mobile owner)
+        private bool TryHandleExplicitGroupTrackingCommand(SpeechEventArgs e)
         {
-            if (speaker == null || owner == null)
+            if (e == null || e.Handled || e.Mobile == null)
                 return false;
 
-            BaseHire ally = speaker as BaseHire;
-            if (ally == null || ally == this || ally.Deleted)
+            if (!AIGMCompanionTrackingService.IsExplicitGroupTrackingCommand(e.Speech))
                 return false;
 
-            return ally.GetOwner() == owner;
+            Mobile owner = GetOwner();
+            if (owner != e.Mobile)
+                return false;
+
+            string speech = e.Speech ?? String.Empty;
+            string normalized = speech.Trim().ToLowerInvariant();
+            if (normalized == "all tracking status")
+            {
+                SayTo(e.Mobile, AIGMCompanionTrackingService.GetTrackingStatus(this, e.Mobile));
+                e.Handled = true;
+                return true;
+            }
+
+            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromSpeech(speech);
+            if (normalized.Contains("start tracking"))
+                SayTo(e.Mobile, AIGMCompanionTrackingService.StartTrackingAction(this, e.Mobile, mode, AIGMCompanionTrackingActionMode.TrackHunt));
+            else
+                SayTo(e.Mobile, AIGMCompanionTrackingService.BuildTrackingSweepReport(this, e.Mobile, mode));
+
+            e.Handled = true;
+            return true;
         }
 
-        private string SafeName(Mobile mob)
+        private bool TryExecuteCompanionCommand(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool shouldSpeak)
         {
-            if (mob == null)
-                return "(null)";
+            if (speaker == null || decision == null)
+                return false;
 
-            return (mob.Name ?? mob.GetType().Name) + "[0x" + mob.Serial.Value.ToString("X8") + "]";
+            if (TryHandleReadOnlyCapability(speaker, decision, intent, shouldSpeak))
+                return true;
+
+            string spellResponse;
+            if (AIGMCompanionSpellService.TryHandleExplicitSpellCommand(this, speaker, decision != null ? decision.OriginalSpeech : null, out spellResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(spellResponse))
+                    SayTo(speaker, spellResponse);
+                return true;
+            }
+
+            string healingResponse;
+            if (AIGMCompanionHealingService.TryHandleExplicitHealingCommand(this, speaker, decision != null ? decision.OriginalSpeech : null, out healingResponse))
+            {
+                if (shouldSpeak && !String.IsNullOrWhiteSpace(healingResponse))
+                    SayTo(speaker, healingResponse);
+                return true;
+            }
+
+            Mobile owner = GetOwner();
+            if (owner == null)
+            {
+                if (!SetControlMaster(speaker))
+                {
+                    SayTo(speaker, "I could not bind to you.");
+                    return false;
+                }
+
+                IsHired = true;
+                owner = speaker;
+            }
+            else if (owner != speaker)
+            {
+                return false;
+            }
+
+            string text;
+            string intentKind = intent != null ? intent.Kind : null;
+
+            if (intentKind == AIGMCompanionIntentKind.FollowOwner || intentKind == AIGMCompanionIntentKind.Come)
+            {
+                AIGMCompanionControlStateService.RestoreFollowOwner(this, speaker, "follow_me_command");
+                text = "I am with you. Keep your breathing steady.";
+            }
+            else if (intentKind == AIGMCompanionIntentKind.Stay)
+            {
+                ControlTarget = null;
+                ControlOrder = OrderType.Stay;
+                AIGMCompanionModeService.ClearMode(this, "command_stay");
+                text = "I will hold here and keep bandages ready.";
+            }
+            else if (intentKind == AIGMCompanionIntentKind.GuardOwner)
+            {
+                ControlTarget = speaker;
+                ControlOrder = OrderType.Guard;
+                AIGMCompanionModeService.SetMode(this, AIGMCompanionMode.GuardOwner, "command_guard");
+                text = "I will stay close and keep you covered.";
+            }
+            else if (intentKind == AIGMCompanionIntentKind.GreetCompanion)
+            {
+                return TryExecuteGreetCompanion(speaker, intent, shouldSpeak);
+            }
+            else if (IsTrackingIntentKind(intentKind))
+            {
+                text = BuildTrackingIntentReport(intent, speaker);
+            }
+            else if (!String.IsNullOrWhiteSpace(intentKind) && IsExplicitDeferredActionIntent(intentKind))
+            {
+                text = "Not that way, not yet. I can still help keep us steady.";
+            }
+            else if (!String.IsNullOrWhiteSpace(intentKind))
+            {
+                return false;
+            }
+            else
+            {
+                switch (decision.VerbKind)
+                {
+                    case AIGMCompanionCommandVerbKind.Follow:
+                    case AIGMCompanionCommandVerbKind.Come:
+                        AIGMCompanionControlStateService.RestoreFollowOwner(this, speaker, "follow_me_command");
+                        text = "I am with you. Keep your breathing steady.";
+                        break;
+                    case AIGMCompanionCommandVerbKind.Stop:
+                    case AIGMCompanionCommandVerbKind.Stay:
+                    case AIGMCompanionCommandVerbKind.Hold:
+                    case AIGMCompanionCommandVerbKind.Wait:
+                        ControlTarget = null;
+                        ControlOrder = OrderType.Stay;
+                        AIGMCompanionModeService.ClearMode(this, "command_stay");
+                        text = "I will hold here and keep bandages ready.";
+                        break;
+                    case AIGMCompanionCommandVerbKind.Guard:
+                        ControlTarget = speaker;
+                        ControlOrder = OrderType.Guard;
+                        AIGMCompanionModeService.SetMode(this, AIGMCompanionMode.GuardOwner, "command_guard");
+                        text = "I will stay close and keep you covered.";
+                        break;
+                    default:
+                        text = "Give me a clearer order, commander. I will not guess with lives in hand.";
+                        break;
+                }
+            }
+
+            if (shouldSpeak)
+                SayTo(speaker, text);
+
+            return true;
+        }
+
+        private bool ShouldUseCompanionChat(Mobile speaker, string speech, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool parsedIntent)
+        {
+            if (speaker == null || String.IsNullOrWhiteSpace(speech) || decision == null)
+                return false;
+
+            if (decision.RouteKind != AIGMCompanionCommandRouteKind.NamedCompanion && decision.RouteKind != AIGMCompanionCommandRouteKind.SharedCompanion)
+                return false;
+
+            if (!decision.IsCompanionCommand)
+                return true;
+
+            if (parsedIntent)
+            {
+                string kind = intent != null ? intent.Kind : null;
+                if (kind == AIGMCompanionIntentKind.GreetCompanion)
+                    return true;
+
+                if (kind == AIGMCompanionIntentKind.FollowOwner || kind == AIGMCompanionIntentKind.Come || kind == AIGMCompanionIntentKind.Stay || kind == AIGMCompanionIntentKind.GuardOwner)
+                    return false;
+
+                if (IsReadOnlyIntentKind(kind))
+                    return false;
+
+                if (!String.IsNullOrWhiteSpace(kind))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool TryExecuteGreetCompanion(Mobile speaker, AIGMCompanionIntent intent, bool shouldSpeak)
+        {
+            BaseHire target = FindLinkedCompanionByName(intent != null ? intent.DestinationName : null);
+            if (target == null)
+                return false;
+
+            string greeting = BuildCompanionGreeting(target);
+            Say(greeting);
+            IAIGMCompanionActor targetActor = target as IAIGMCompanionActor;
+            AIGMCompanionDialogueBus.PublishDialogue(this, greeting, targetActor != null ? targetActor.CompanionId : null);
+
+            return true;
+        }
+
+        private string BuildCompanionGreeting(BaseHire target)
+        {
+            string targetName = target != null && !String.IsNullOrWhiteSpace(target.Name) ? target.Name : "friend";
+            string normalized = targetName.ToLowerInvariant();
+
+            if (normalized.Contains("dakeyras"))
+                return "Dakeyras, keep your eyes sharp. I want to know what you see before the woods know we are here.";
+
+            if (normalized.Contains("dardalion"))
+                return "Dardalion, stand close. If danger comes, we meet it together.";
+
+            return targetName + ", stay near. I trust caution more than luck.";
+        }
+
+        private bool IsGreetToLinkedCompanion(AIGMCompanionIntent intent)
+        {
+            return FindLinkedCompanionByName(intent != null ? intent.DestinationName : null) != null;
+        }
+
+        private BaseHire FindLinkedCompanionByName(string companionName)
+        {
+            if (String.IsNullOrWhiteSpace(companionName) || Map == null)
+                return null;
+
+            Mobile owner = GetOwner();
+            if (owner == null)
+                return null;
+
+            string normalized = companionName.Trim().ToLowerInvariant();
+            foreach (Mobile mobile in World.Mobiles.Values)
+            {
+                BaseHire ally = mobile as BaseHire;
+                if (ally == null || ally == this || ally.Deleted || ally.Map != Map || ally.GetOwner() != owner)
+                    continue;
+
+                IAIGMCompanionActor actor = ally as IAIGMCompanionActor;
+                string allyName = ally.Name != null ? ally.Name.ToLowerInvariant() : String.Empty;
+                string actorId = actor != null && actor.CompanionId != null ? actor.CompanionId.ToLowerInvariant() : String.Empty;
+                if (allyName == normalized || actorId == normalized)
+                    return ally;
+            }
+
+            return null;
+        }
+
+        private bool TryHandleReadOnlyCapability(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent, bool shouldSpeak)
+        {
+            AIGMCompanionCapabilityRequest request = BuildCapabilityRequest(speaker, decision, intent);
+            AIGMCompanionCapabilityDecision gateDecision = AIGMCompanionCapabilityGate.Decide(request);
+            if (gateDecision == null || !gateDecision.Allowed)
+                return false;
+
+            string text = null;
+            switch (gateDecision.Capability)
+            {
+                case AIGMCompanionCapabilityKind.MonsterHunt:
+                    text = AIGMCompanionExecutionSpine.StartMonsterHunt(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.MonsterHuntStop:
+                    text = AIGMCompanionExecutionSpine.StopMonsterHunt(this, "stop_command");
+                    break;
+                case AIGMCompanionCapabilityKind.MonsterHuntStatus:
+                    text = AIGMCompanionExecutionSpine.GetStatus(this);
+                    break;
+                case AIGMCompanionCapabilityKind.LootNearby:
+                    text = AIGMCompanionLootService.BuildVisibleResponse(this, AIGMCompanionLootService.StartLootNearby(this, speaker, AIGMCompanionLootProfile.FromText(intent != null ? intent.DestinationName : decision.OriginalSpeech)));
+                    break;
+                case AIGMCompanionCapabilityKind.LootStop:
+                    AIGMCompanionLootService.StopLooting(this);
+                    text = AIGMCompanionAutoLootService.SetAutoLoot(this, false, null);
+                    break;
+                case AIGMCompanionCapabilityKind.LootStatus:
+                    text = AIGMCompanionLootService.GetLootStatus(this);
+                    break;
+                case AIGMCompanionCapabilityKind.AutoLoot:
+                    text = AIGMCompanionAutoLootService.SetAutoLoot(this, true, AIGMCompanionLootProfile.FromText(intent != null ? intent.DestinationName : decision.OriginalSpeech));
+                    break;
+                case AIGMCompanionCapabilityKind.AutoLootStop:
+                    AIGMCompanionLootService.StopLooting(this);
+                    text = AIGMCompanionAutoLootService.SetAutoLoot(this, false, null);
+                    break;
+                case AIGMCompanionCapabilityKind.AutoLootStatus:
+                    text = AIGMCompanionAutoLootService.GetAutoLootStatus(this);
+                    break;
+                case AIGMCompanionCapabilityKind.InventoryBurden:
+                    text = AIGMCompanionInventoryPolicy.BuildStatusLine(this);
+                    break;
+                case AIGMCompanionCapabilityKind.UnloadJunk:
+                    text = BuildUnloadJunkLine(AIGMCompanionInventoryPolicy.RunBurdenManagement(this, true));
+                    break;
+                case AIGMCompanionCapabilityKind.PotionSupport:
+                    text = AIGMCompanionPotionService.SetPotionSupportEnabled(this, true);
+                    break;
+                case AIGMCompanionCapabilityKind.PotionSupportStop:
+                    text = AIGMCompanionPotionService.SetPotionSupportEnabled(this, false);
+                    break;
+                case AIGMCompanionCapabilityKind.PotionSupportStatus:
+                    text = AIGMCompanionPotionService.GetPotionStatus(this);
+                    break;
+                case AIGMCompanionCapabilityKind.PotionUse:
+                    string potionResult;
+                    AIGMCompanionPotionService.TryUseBestPotion(this, true, out potionResult);
+                    text = AIGMCompanionPotionService.BuildVisibleResponse(this, potionResult);
+                    break;
+                case AIGMCompanionCapabilityKind.SpellSupport:
+                    text = AIGMCompanionSpellService.SetSpellSupportEnabled(this, true, AIGMCompanionSpellProfile.SupportOnly());
+                    break;
+                case AIGMCompanionCapabilityKind.SpellSupportStop:
+                    text = AIGMCompanionSpellService.SetSpellSupportEnabled(this, false, null);
+                    break;
+                case AIGMCompanionCapabilityKind.SpellSupportStatus:
+                    text = AIGMCompanionSpellService.GetSpellStatus(this);
+                    break;
+                case AIGMCompanionCapabilityKind.SpellUse:
+                    string spellResult;
+                    AIGMCompanionSpellService.TryCastBestSupportSpell(this, true, out spellResult);
+                    text = AIGMCompanionSpellService.BuildVisibleResponse(this, spellResult);
+                    break;
+                case AIGMCompanionCapabilityKind.ScanReadOnly:
+                    AIGMCompanionModeService.SetMode(this, AIGMCompanionMode.AssessmentExplicit, "scan_read_only");
+                    text = AIGMCompanionReadOnlyAwareness.BuildScanAreaReport(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.ReportThreatsReadOnly:
+                    AIGMCompanionModeService.SetMode(this, AIGMCompanionMode.AssessmentExplicit, "report_threats_read_only");
+                    text = AIGMCompanionReadOnlyAwareness.BuildThreatReport(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.ShareAwarenessReadOnly:
+                    AIGMCompanionModeService.SetMode(this, AIGMCompanionMode.AssessmentExplicit, "share_awareness_read_only");
+                    text = AIGMCompanionReadOnlyAwareness.BuildShareAwarenessReport(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TrackReadOnly:
+                    text = BuildTrackReadOnlyReport(intent, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TrackingAnimals:
+                case AIGMCompanionCapabilityKind.TrackingMonsters:
+                case AIGMCompanionCapabilityKind.TrackingNPCs:
+                case AIGMCompanionCapabilityKind.TrackingHumanNPCs:
+                case AIGMCompanionCapabilityKind.TrackingPlayers:
+                case AIGMCompanionCapabilityKind.TrackingAll:
+                    text = BuildCategoryTrackingReport(intent, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TrackingStop:
+                    text = AIGMCompanionTrackingService.StopTracking(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TrackingStatus:
+                case AIGMCompanionCapabilityKind.ReportTrackingStatus:
+                    text = AIGMCompanionTrackingService.GetTrackingStatus(this, speaker);
+                    break;
+                case AIGMCompanionCapabilityKind.TravelReadOnly:
+                    text = AIGMCompanionReadOnlyAwareness.BuildTravelStatusReport(this, speaker);
+                    break;
+            }
+
+            if (String.IsNullOrWhiteSpace(text))
+                text = gateDecision.VisibleResponse;
+
+            if (String.IsNullOrWhiteSpace(text))
+                return false;
+
+            if (shouldSpeak)
+                SayTo(speaker, text);
+
+            return true;
+        }
+
+        private string BuildUnloadJunkLine(AIGMCompanionInventoryPolicyResult result)
+        {
+            if (result != null && result.DroppedItems > 0)
+                return "We are carrying too much. I dropped the dead weight.";
+
+            return "Nothing useless enough to drop.";
+        }
+
+        private AIGMCompanionCapabilityRequest BuildCapabilityRequest(Mobile speaker, AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent)
+        {
+            AIGMCompanionCapabilityRequest request = new AIGMCompanionCapabilityRequest();
+            request.CompanionId = CompanionId;
+            request.Speaker = speaker;
+            request.RawSpeech = decision != null ? decision.OriginalSpeech : String.Empty;
+            request.IntentKind = intent != null ? intent.Kind : String.Empty;
+            request.Capability = ResolveCapability(decision, intent);
+            request.TargetText = intent != null ? intent.DestinationName : String.Empty;
+            request.DestinationText = intent != null ? intent.DestinationName : String.Empty;
+            request.IsExplicitlyAddressed = intent != null && intent.ExplicitlyAddressed;
+            request.DialogueMode = "owner_or_world_speech";
+            return request;
+        }
+
+        private string BuildTrackReadOnlyReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            if (intent != null && intent.Kind == AIGMCompanionIntentKind.RefusePlayerHunt)
+            {
+                AIGMCompanionModeService.SetMode(this, AIGMCompanionMode.RefusalPlayerHunt, "refuse_player_hunt");
+                return "I can track a player's sign, but I will not make it a hunt.";
+            }
+
+            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(intent != null ? intent.Kind : String.Empty);
+            AIGMCompanionModeService.SetMode(this, AIGMCompanionMode.AssessmentExplicit, "tracking_read_only");
+            return AIGMCompanionTrackingService.BuildTrackingSweepReport(this, speaker, mode);
+        }
+
+        private string BuildTrackingCycleReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            return AIGMCompanionTrackingService.StartTrackingActionFromIntent(this, speaker, intent);
+        }
+
+        private string BuildCategoryTrackingReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            AIGMCompanionTrackingMode mode = AIGMCompanionTrackingService.GetModeFromIntentKind(intent != null ? intent.Kind : String.Empty);
+            return AIGMCompanionTrackingService.BuildTrackingSweepReport(this, speaker, mode);
+        }
+
+        private string BuildTrackingIntentReport(AIGMCompanionIntent intent, Mobile speaker)
+        {
+            string kind = intent != null ? intent.Kind : String.Empty;
+            switch (kind)
+            {
+                case AIGMCompanionIntentKind.TrackAnimals:
+                case AIGMCompanionIntentKind.TrackMonsters:
+                case AIGMCompanionIntentKind.TrackNPCs:
+                case AIGMCompanionIntentKind.TrackHumanNPCs:
+                case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.TrackAll:
+                case AIGMCompanionIntentKind.HuntAnimals:
+                case AIGMCompanionIntentKind.StartMonsterHunt:
+                case AIGMCompanionIntentKind.StopMonsterHunt:
+                case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
+                    return AIGMCompanionTrackingService.StartTrackingActionFromIntent(this, speaker, intent);
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                    return AIGMCompanionTrackingService.GetTrackingStatus(this, speaker);
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingAnimals:
+                case AIGMCompanionIntentKind.StartTrackingMonsters:
+                case AIGMCompanionIntentKind.StartTrackingNPCs:
+                case AIGMCompanionIntentKind.StartTrackingHumanNPCs:
+                case AIGMCompanionIntentKind.StartTrackingPlayers:
+                case AIGMCompanionIntentKind.StartTrackingAll:
+                    return BuildTrackingCycleReport(intent, speaker);
+                default:
+                    return String.Empty;
+            }
+        }
+
+        private bool IsTrackingIntentKind(string intentKind)
+        {
+            switch (intentKind)
+            {
+                case AIGMCompanionIntentKind.TrackAnimals:
+                case AIGMCompanionIntentKind.TrackMonsters:
+                case AIGMCompanionIntentKind.TrackNPCs:
+                case AIGMCompanionIntentKind.TrackHumanNPCs:
+                case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.TrackAll:
+                case AIGMCompanionIntentKind.HuntAnimals:
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingAnimals:
+                case AIGMCompanionIntentKind.StartTrackingMonsters:
+                case AIGMCompanionIntentKind.StartTrackingNPCs:
+                case AIGMCompanionIntentKind.StartTrackingHumanNPCs:
+                case AIGMCompanionIntentKind.StartTrackingPlayers:
+                case AIGMCompanionIntentKind.StartTrackingAll:
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                case AIGMCompanionIntentKind.StartMonsterHunt:
+                case AIGMCompanionIntentKind.StopMonsterHunt:
+                case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private AIGMCompanionCapabilityKind ResolveCapability(AIGMCompanionCommandRouteDecision decision, AIGMCompanionIntent intent)
+        {
+            string kind = intent != null ? intent.Kind : String.Empty;
+            switch (kind)
+            {
+                case AIGMCompanionIntentKind.StartMonsterHunt:
+                    return AIGMCompanionCapabilityKind.MonsterHunt;
+                case AIGMCompanionIntentKind.StopMonsterHunt:
+                    return AIGMCompanionCapabilityKind.MonsterHuntStop;
+                case AIGMCompanionIntentKind.ReportMonsterHuntStatus:
+                    return AIGMCompanionCapabilityKind.MonsterHuntStatus;
+                case AIGMCompanionIntentKind.LootNearby:
+                    return AIGMCompanionCapabilityKind.LootNearby;
+                case AIGMCompanionIntentKind.StopLooting:
+                    return AIGMCompanionCapabilityKind.LootStop;
+                case AIGMCompanionIntentKind.ReportLootStatus:
+                    return AIGMCompanionCapabilityKind.LootStatus;
+                case AIGMCompanionIntentKind.AutoLoot:
+                    return AIGMCompanionCapabilityKind.AutoLoot;
+                case AIGMCompanionIntentKind.StopAutoLoot:
+                    return AIGMCompanionCapabilityKind.AutoLootStop;
+                case AIGMCompanionIntentKind.ReportAutoLootStatus:
+                    return AIGMCompanionCapabilityKind.AutoLootStatus;
+                case AIGMCompanionIntentKind.ReportBurden:
+                    return AIGMCompanionCapabilityKind.InventoryBurden;
+                case AIGMCompanionIntentKind.UnloadJunk:
+                    return AIGMCompanionCapabilityKind.UnloadJunk;
+                case AIGMCompanionIntentKind.PotionSupport:
+                    return AIGMCompanionCapabilityKind.PotionSupport;
+                case AIGMCompanionIntentKind.StopPotionSupport:
+                    return AIGMCompanionCapabilityKind.PotionSupportStop;
+                case AIGMCompanionIntentKind.ReportPotionStatus:
+                    return AIGMCompanionCapabilityKind.PotionSupportStatus;
+                case AIGMCompanionIntentKind.UsePotion:
+                    return AIGMCompanionCapabilityKind.PotionUse;
+                case AIGMCompanionIntentKind.SpellSupport:
+                    return AIGMCompanionCapabilityKind.SpellSupport;
+                case AIGMCompanionIntentKind.StopSpellSupport:
+                    return AIGMCompanionCapabilityKind.SpellSupportStop;
+                case AIGMCompanionIntentKind.ReportSpellStatus:
+                    return AIGMCompanionCapabilityKind.SpellSupportStatus;
+                case AIGMCompanionIntentKind.UseSpell:
+                    return AIGMCompanionCapabilityKind.SpellUse;
+                case AIGMCompanionIntentKind.TrackAnimals:
+                case AIGMCompanionIntentKind.TrackMonsters:
+                case AIGMCompanionIntentKind.TrackNPCs:
+                case AIGMCompanionIntentKind.TrackHumanNPCs:
+                case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.RefusePlayerHunt:
+                case AIGMCompanionIntentKind.TrackAll:
+                    return AIGMCompanionCapabilityKind.TrackReadOnly;
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StartTrackingAnimals:
+                case AIGMCompanionIntentKind.StartTrackingMonsters:
+                case AIGMCompanionIntentKind.StartTrackingNPCs:
+                case AIGMCompanionIntentKind.StartTrackingHumanNPCs:
+                case AIGMCompanionIntentKind.StartTrackingPlayers:
+                case AIGMCompanionIntentKind.StartTrackingAll:
+                    return AIGMCompanionCapabilityKind.TrackingCycle;
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                    return AIGMCompanionCapabilityKind.TrackingStatus;
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                    return AIGMCompanionCapabilityKind.TrackingStop;
+                case AIGMCompanionIntentKind.HuntAnimals:
+                    return AIGMCompanionCapabilityKind.HuntAnimals;
+                default:
+                    return decision != null ? decision.Capability : AIGMCompanionCapabilityKind.None;
+            }
+        }
+
+        private bool IsReadOnlyIntentKind(string intentKind)
+        {
+            switch (intentKind)
+            {
+                case AIGMCompanionIntentKind.ScanArea:
+                case AIGMCompanionIntentKind.ReportThreats:
+                case AIGMCompanionIntentKind.ShareAwareness:
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                case AIGMCompanionIntentKind.ReportTravelStatus:
+                case "healing_status":
+                case "support_status":
+                case AIGMCompanionIntentKind.ReportLootStatus:
+                case AIGMCompanionIntentKind.ReportAutoLootStatus:
+                case AIGMCompanionIntentKind.ReportBurden:
+                case AIGMCompanionIntentKind.ReportPotionStatus:
+                case AIGMCompanionIntentKind.ReportSpellStatus:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private bool IsExplicitDeferredActionIntent(string intentKind)
+        {
+            if (String.IsNullOrWhiteSpace(intentKind))
+                return false;
+
+            switch (intentKind)
+            {
+                case AIGMCompanionIntentKind.ScanArea:
+                case AIGMCompanionIntentKind.ReportLocation:
+                case AIGMCompanionIntentKind.ReportThreats:
+                case AIGMCompanionIntentKind.ShareAwareness:
+                case AIGMCompanionIntentKind.TrackAnimals:
+                case AIGMCompanionIntentKind.TrackMonsters:
+                case AIGMCompanionIntentKind.TrackHumanNPCs:
+                case AIGMCompanionIntentKind.TrackPlayers:
+                case AIGMCompanionIntentKind.RefusePlayerHunt:
+                case AIGMCompanionIntentKind.StartTrackingCycle:
+                case AIGMCompanionIntentKind.StopTrackingCycle:
+                case AIGMCompanionIntentKind.ReportTrackingStatus:
+                case AIGMCompanionIntentKind.LootNearby:
+                case AIGMCompanionIntentKind.StopLooting:
+                case AIGMCompanionIntentKind.ReportLootStatus:
+                case AIGMCompanionIntentKind.AutoLoot:
+                case AIGMCompanionIntentKind.StopAutoLoot:
+                case AIGMCompanionIntentKind.ReportAutoLootStatus:
+                case AIGMCompanionIntentKind.ReportBurden:
+                case AIGMCompanionIntentKind.UnloadJunk:
+                case AIGMCompanionIntentKind.PotionSupport:
+                case AIGMCompanionIntentKind.StopPotionSupport:
+                case AIGMCompanionIntentKind.ReportPotionStatus:
+                case AIGMCompanionIntentKind.UsePotion:
+                case AIGMCompanionIntentKind.SpellSupport:
+                case AIGMCompanionIntentKind.StopSpellSupport:
+                case AIGMCompanionIntentKind.ReportSpellStatus:
+                case AIGMCompanionIntentKind.UseSpell:
+                case AIGMCompanionIntentKind.BandageSelf:
+                case AIGMCompanionIntentKind.BandageOwner:
+                case AIGMCompanionIntentKind.HealSelf:
+                case AIGMCompanionIntentKind.HealOwner:
+                case AIGMCompanionIntentKind.CureSelf:
+                case AIGMCompanionIntentKind.CureOwner:
+                case AIGMCompanionIntentKind.UseHealingSkill:
+                case AIGMCompanionIntentKind.UseBandages:
+                case AIGMCompanionIntentKind.CastHeal:
+                case AIGMCompanionIntentKind.CastCure:
+                case AIGMCompanionIntentKind.AttackTarget:
+                case AIGMCompanionIntentKind.StopCombat:
+                case AIGMCompanionIntentKind.TravelToDestination:
+                case AIGMCompanionIntentKind.StopTravel:
+                case AIGMCompanionIntentKind.ReportTravelStatus:
+                case AIGMCompanionIntentKind.ReturnHome:
+                case AIGMCompanionIntentKind.FollowCompanion:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         public void ReceiveSpeechBusEvent(BaseHire sourceCompanion, Mobile eventSpeaker, string speech, bool companionOrigin)
@@ -294,59 +1077,21 @@ namespace Server.Mobiles
             if (sourceCompanion == null || sourceCompanion.Deleted || String.IsNullOrWhiteSpace(speech))
                 return;
 
-            LogSpeech("DANYAL_SPEECH_BUS source=" + SafeName(sourceCompanion) + " speaker=" + SafeName(eventSpeaker) + " companionOrigin=" + companionOrigin + " text=" + speech);
+            Mobile effectiveSpeaker = eventSpeaker ?? sourceCompanion;
+            AIGMCompanionIntent relayIntent;
+            bool parsed = AIGMCompanionIntentParser.TryParse(this, effectiveSpeaker, speech, out relayIntent);
+            bool allowRemoteRelay = parsed && relayIntent != null;
+            if (allowRemoteRelay)
+                relayIntent.AllowRemoteRelay = true;
 
-            Mobile effectiveSpeaker = eventSpeaker;
-            if (effectiveSpeaker == null)
-                effectiveSpeaker = sourceCompanion;
-
-            bool ownerRelayAwarenessOnly = !companionOrigin && eventSpeaker == GetOwner();
-
-            if (companionOrigin)
-            {
-                string rejection;
-                bool enqueuedCompanionDialogue = AIGMCompanionSpeechQueue.TryEnqueue(this, effectiveSpeaker, speech, "companion_dialogue", out rejection);
-                LogSpeech("DANYAL_SPEECH_BUS_DIALOGUE enqueued=" + enqueuedCompanionDialogue + " rejection=" + (rejection ?? String.Empty));
-                return;
-            }
-
-            if (!ownerRelayAwarenessOnly)
-            {
-                AIGMCompanionIntent intent;
-                bool parsed = AIGMCompanionIntentParser.TryParse(this, effectiveSpeaker, speech, out intent);
-                if (parsed && intent != null)
-                    intent.AllowRemoteRelay = true;
-
-                if (parsed)
-                {
-                    if (intent != null && intent.AddressedToDifferentCompanion)
-                    {
-                        LogSpeech("DANYAL_SPEECH_BUS_IGNORE_OTHER_ADDRESSED rawSpeech=" + (speech ?? String.Empty));
-                    }
-                    else
-                    {
-                        AIGMCompanionActionPolicyResult decision = AIGMCompanionDirectActionPolicy.Decide(this, effectiveSpeaker, intent);
-                        LogSpeech("DANYAL_SPEECH_BUS_POLICY kind=" + (intent != null ? intent.Kind : "null") + " decision=" + (decision != null ? decision.Decision.ToString() : "null") + " reason=" + (decision != null ? decision.Reason ?? String.Empty : String.Empty));
-                        if (decision != null && decision.Decision == AIGMCompanionActionDecision.DirectExecute)
-                        {
-                            string response;
-                            bool executed = AIGMCompanionActionExecutor.TryExecuteIntent(this, effectiveSpeaker, intent, out response);
-                            LogSpeech("DANYAL_SPEECH_BUS_EXECUTE kind=" + (intent != null ? intent.Kind : "null") + " executed=" + executed + " response=" + (response ?? String.Empty));
-                            if (!String.IsNullOrWhiteSpace(response))
-                                Say(response);
-                            return;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                LogSpeech("DANYAL_SPEECH_BUS_AWARENESS_ONLY rawSpeech=" + (speech ?? String.Empty));
-            }
-
-            string rejectionFallback;
-            bool enqueued = AIGMCompanionSpeechQueue.TryEnqueue(this, effectiveSpeaker, speech, ownerRelayAwarenessOnly ? "owner_relay_awareness" : "owner_relay_dialogue", out rejectionFallback);
-            LogSpeech("DANYAL_SPEECH_BUS_QUEUE enqueued=" + enqueued + " rejection=" + (rejectionFallback ?? String.Empty));
+            string originCompanionId = sourceCompanion is IAIGMCompanionActor ? ((IAIGMCompanionActor)sourceCompanion).CompanionId : null;
+            string dialogueTargetCompanionId = AIGMCompanionTurnCoordinator.ResolveOwnerDirectedDialogueTarget(speech);
+            allowRemoteRelay = allowRemoteRelay || AIGMCompanionTurnCoordinator.ShouldRelayOwnerSpeechAsCompanionDialogue(speech);
+            string mode = companionOrigin ? "companion_dialogue" : "owner_relay_dialogue";
+            bool shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, effectiveSpeaker, speech, mode, originCompanionId, 0, dialogueTargetCompanionId);
+            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(this, effectiveSpeaker, speech, mode, null, originCompanionId, 0, allowRemoteRelay, shouldSpeak, !shouldSpeak, dialogueTargetCompanionId);
+            string rejection;
+            AIGMCompanionSpeechQueue.TryEnqueue(request, shouldSpeak, out rejection);
         }
 
         public void ReceiveCompanionDialogue(BaseHire sourceCompanion, AIGMCompanionDialogueEvent dialogueEvent)
@@ -354,64 +1099,55 @@ namespace Server.Mobiles
             if (sourceCompanion == null || sourceCompanion.Deleted || dialogueEvent == null || String.IsNullOrWhiteSpace(dialogueEvent.Text))
                 return;
 
-            LogSpeech("DANYAL_DIALOGUE source=" + SafeName(sourceCompanion) + " eventId=" + dialogueEvent.EventId + " hop=" + dialogueEvent.HopCount + " text=" + dialogueEvent.Text);
-
+            string originCompanionId = sourceCompanion is IAIGMCompanionActor ? ((IAIGMCompanionActor)sourceCompanion).CompanionId : null;
+            bool shouldSpeak = AIGMCompanionTurnCoordinator.ShouldCompanionTakeVisibleTurn(this, sourceCompanion, dialogueEvent.Text, "companion_dialogue", originCompanionId, dialogueEvent.HopCount, dialogueEvent.TargetCompanionId);
+            AIGMCompanionSpeechRequest request = new AIGMCompanionSpeechRequest(this, sourceCompanion, dialogueEvent.Text, "companion_dialogue", dialogueEvent.EventId, originCompanionId, dialogueEvent.HopCount, true, shouldSpeak, !shouldSpeak, dialogueEvent.TargetCompanionId);
             string rejection;
-            bool enqueued = AIGMCompanionSpeechQueue.TryEnqueue(this, sourceCompanion, dialogueEvent.Text, "companion_dialogue", out rejection);
-            LogSpeech("DANYAL_DIALOGUE_QUEUE enqueued=" + enqueued + " rejection=" + (rejection ?? String.Empty));
-        }
-
-        private bool IsStrictDirectCommand(AIGMCompanionIntent intent)
-        {
-            if (intent == null)
-                return false;
-
-            string kind = intent.Kind;
-            return kind == AIGMCompanionIntentKind.FollowOwner
-                || kind == AIGMCompanionIntentKind.Stay
-                || kind == AIGMCompanionIntentKind.Come
-                || kind == AIGMCompanionIntentKind.TravelToDestination
-                || kind == AIGMCompanionIntentKind.StopTravel
-                || kind == AIGMCompanionIntentKind.ReportTravelStatus
-                || kind == AIGMCompanionIntentKind.FollowCompanion
-                || kind == AIGMCompanionIntentKind.GreetCompanion
-                || kind == AIGMCompanionIntentKind.StartTrackingCycle
-                || kind == AIGMCompanionIntentKind.StopTrackingCycle;
+            AIGMCompanionSpeechQueue.TryEnqueue(request, shouldSpeak, out rejection);
         }
 
         public override void OnThink()
         {
             base.OnThink();
-            AIGMCompanionActionExecutor.TryReactiveSupport(this);
-            AIGMCompanionTrackingCycle.Pulse(this);
-            AIGMCompanionTravelController.PulseTravel(this);
+            AIGMCompanionHealingService.Pulse(this);
+            AIGMCompanionPotionService.Pulse(this);
+            AIGMCompanionSpellService.PulseSpellSupport(this);
+            AIGMCompanionTrackingService.Pulse(this);
+            AIGMRosterTaskService.Pulse(this);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write((int)2);
             writer.Write(_guardOwnerMode);
             writer.Write(_nextSupportActionUtc);
-            writer.Write((int)_executionMode);
+            writer.Write(_boundRosterCompanion);
+            writer.Write(_trustedCommanderSerial);
+            writer.Write(_rosterTaskState != null);
+            if (_rosterTaskState != null)
+                _rosterTaskState.Serialize(writer);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            LogRuntimeStamp("DESERIALIZE");
             int version = reader.ReadInt();
 
             if (version >= 1)
             {
                 _guardOwnerMode = reader.ReadBool();
                 _nextSupportActionUtc = reader.ReadDateTime();
-                _executionMode = (AIGMExecutionMode)reader.ReadInt();
             }
-            else
+
+            if (version >= 2)
             {
-                _executionMode = AIGMExecutionMode.TrustedCompanionDirect;
+                _boundRosterCompanion = reader.ReadBool();
+                _trustedCommanderSerial = reader.ReadInt();
+                if (reader.ReadBool())
+                    _rosterTaskState = AIGMRosterTaskState.Deserialize(reader);
             }
         }
     }
 }
+

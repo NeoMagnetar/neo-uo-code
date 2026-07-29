@@ -26,6 +26,18 @@ namespace Server.Custom.AIGM
         [DataMember(Name = "confidence")]
         public string Confidence { get; set; }
 
+        [DataMember(Name = "responseSource")]
+        public string ResponseSource { get; set; }
+
+        [DataMember(Name = "source")]
+        public string Source { get; set; }
+
+        [DataMember(Name = "fallbackUsed")]
+        public bool FallbackUsed { get; set; }
+
+        [DataMember(Name = "degraded")]
+        public bool Degraded { get; set; }
+
         [DataMember(Name = "errorMessage")]
         public string ErrorMessage { get; set; }
 
@@ -72,67 +84,67 @@ namespace Server.Custom.AIGM
             try
             {
                 StringBuilder sb = new StringBuilder();
-            sb.Append("<BASEFONT COLOR=#101010>");
-            sb.Append("<CENTER><BIG>AI GM Counselor</BIG></CENTER><BR>");
+                sb.Append("<BASEFONT COLOR=#101010>");
+                sb.Append("<CENTER><BIG>AI GM Counselor</BIG></CENTER><BR>");
 
-            if (!String.IsNullOrWhiteSpace(ReplyText))
-            {
-                sb.Append("<BASEFONT COLOR=#9C5A00>Answer</BASEFONT><BR>");
-                sb.Append(ReplyText);
-                sb.Append("<BR><BR>");
-            }
+                if (!String.IsNullOrWhiteSpace(ReplyText))
+                {
+                    sb.Append("<BASEFONT COLOR=#9C5A00>Answer</BASEFONT><BR>");
+                    sb.Append(ReplyText);
+                    sb.Append("<BR><BR>");
+                }
 
-            if (LikelyFiles.Count > 0)
-            {
-                sb.Append("<BASEFONT COLOR=#1E4FA3>Likely Files / Systems</BASEFONT><BR>");
-                for (int i = 0; i < LikelyFiles.Count; i++)
-                    sb.AppendFormat("- {0}<BR>", Utility.FixHtml(LikelyFiles[i]));
-                sb.Append("<BR>");
-            }
+                if (LikelyFiles.Count > 0)
+                {
+                    sb.Append("<BASEFONT COLOR=#1E4FA3>Likely Files / Systems</BASEFONT><BR>");
+                    for (int i = 0; i < LikelyFiles.Count; i++)
+                        sb.AppendFormat("- {0}<BR>", Utility.FixHtml(LikelyFiles[i]));
+                    sb.Append("<BR>");
+                }
 
-            if (SuggestedChecks.Count > 0)
-            {
-                sb.Append("<BASEFONT COLOR=#2E7D32>Suggested Next Checks</BASEFONT><BR>");
-                for (int i = 0; i < SuggestedChecks.Count; i++)
-                    sb.AppendFormat("- {0}<BR>", Utility.FixHtml(SuggestedChecks[i]));
-                sb.Append("<BR>");
-            }
+                if (SuggestedChecks.Count > 0)
+                {
+                    sb.Append("<BASEFONT COLOR=#2E7D32>Suggested Next Checks</BASEFONT><BR>");
+                    for (int i = 0; i < SuggestedChecks.Count; i++)
+                        sb.AppendFormat("- {0}<BR>", Utility.FixHtml(SuggestedChecks[i]));
+                    sb.Append("<BR>");
+                }
 
-            if (Warnings.Count > 0)
-            {
-                sb.Append("<BASEFONT COLOR=#B33939>Warnings</BASEFONT><BR>");
-                for (int i = 0; i < Warnings.Count; i++)
-                    sb.AppendFormat("- {0}<BR>", Utility.FixHtml(Warnings[i]));
-                sb.Append("<BR>");
-            }
+                if (Warnings.Count > 0)
+                {
+                    sb.Append("<BASEFONT COLOR=#B33939>Warnings</BASEFONT><BR>");
+                    for (int i = 0; i < Warnings.Count; i++)
+                        sb.AppendFormat("- {0}<BR>", Utility.FixHtml(Warnings[i]));
+                    sb.Append("<BR>");
+                }
 
-            if (Plan.Count > 0)
-            {
-                sb.Append("<BASEFONT COLOR=#8855CC>Plan</BASEFONT><BR>");
-                for (int i = 0; i < Plan.Count; i++)
-                    sb.AppendFormat("{0}. {1}<BR>", i + 1, Utility.FixHtml(Plan[i]));
-                sb.Append("<BR>");
-            }
+                if (Plan.Count > 0)
+                {
+                    sb.Append("<BASEFONT COLOR=#8855CC>Plan</BASEFONT><BR>");
+                    for (int i = 0; i < Plan.Count; i++)
+                        sb.AppendFormat("{0}. {1}<BR>", i + 1, Utility.FixHtml(Plan[i]));
+                    sb.Append("<BR>");
+                }
 
-            if (NextAction != null && !String.IsNullOrWhiteSpace(NextAction.Description))
-            {
-                sb.Append("<BASEFONT COLOR=#7A4B00>Suggested Next Action</BASEFONT><BR>");
-                sb.AppendFormat("- {0}<BR><BR>", Utility.FixHtml(NextAction.Description));
-            }
+                if (NextAction != null && !String.IsNullOrWhiteSpace(NextAction.Description))
+                {
+                    sb.Append("<BASEFONT COLOR=#7A4B00>Suggested Next Action</BASEFONT><BR>");
+                    sb.AppendFormat("- {0}<BR><BR>", Utility.FixHtml(NextAction.Description));
+                }
 
-            if (ProposedActions.Count > 0)
-            {
-                sb.Append("<BASEFONT COLOR=#6A3FB5>Proposed Actions</BASEFONT><BR>");
-                for (int i = 0; i < ProposedActions.Count; i++)
-                    sb.AppendFormat("- [{0}] {1}<BR>", Utility.FixHtml(FormatCategory(ProposedActions[i].Category)), Utility.FixHtml(ProposedActions[i].Description));
-                sb.Append("<BR>");
-            }
+                if (ProposedActions.Count > 0)
+                {
+                    sb.Append("<BASEFONT COLOR=#6A3FB5>Proposed Actions</BASEFONT><BR>");
+                    for (int i = 0; i < ProposedActions.Count; i++)
+                        sb.AppendFormat("- [{0}] {1}<BR>", Utility.FixHtml(FormatCategory(ProposedActions[i].Category)), Utility.FixHtml(ProposedActions[i].Description));
+                    sb.Append("<BR>");
+                }
 
-            if (!String.IsNullOrWhiteSpace(Confidence))
-                sb.AppendFormat("<BASEFONT COLOR=#555555>Confidence: {0}</BASEFONT><BR>", Utility.FixHtml(Confidence));
+                if (!String.IsNullOrWhiteSpace(Confidence))
+                    sb.AppendFormat("<BASEFONT COLOR=#555555>Confidence: {0}</BASEFONT><BR>", Utility.FixHtml(Confidence));
 
-            if (!String.IsNullOrWhiteSpace(ErrorMessage))
-                sb.AppendFormat("<BR><BASEFONT COLOR=#B00020>Error: {0}</BASEFONT>", Utility.FixHtml(ErrorMessage));
+                if (!String.IsNullOrWhiteSpace(ErrorMessage))
+                    sb.AppendFormat("<BR><BASEFONT COLOR=#B00020>Error: {0}</BASEFONT>", Utility.FixHtml(ErrorMessage));
 
                 sb.Append("</BASEFONT>");
                 string html = sb.ToString();

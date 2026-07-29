@@ -4505,6 +4505,10 @@ namespace Server.Mobiles
 
 			switch (version)
 			{
+                case 41:
+                    m_PaperdollJournal = reader.ReadString();
+                    Profile = m_PaperdollJournal;
+                    goto case 40;
                 case 40: // Version 40, moved gauntlet points, virtua artys and TOT turn ins to PointsSystem
                 case 39: // Version 39, removed ML quest save/load
                 case 38:
@@ -4944,6 +4948,9 @@ namespace Server.Mobiles
 				},
 				_BlessedItem);
 			}
+
+            if (String.IsNullOrEmpty(m_PaperdollJournal) && !String.IsNullOrEmpty(Profile))
+                m_PaperdollJournal = Profile;
 		}
 
 		public override void Serialize(GenericWriter writer)
@@ -4971,7 +4978,9 @@ namespace Server.Mobiles
 
 			base.Serialize(writer);
 
-			writer.Write(40); // version
+			writer.Write(41); // version
+
+            writer.Write(m_PaperdollJournal);
 
             writer.Write((DateTime)NextGemOfSalvationUse);
 
@@ -5687,6 +5696,7 @@ namespace Server.Mobiles
 
         #region Titles
         private string m_FameKarmaTitle;
+        private string m_PaperdollJournal;
         private string m_PaperdollSkillTitle;
         private string m_SubtitleSkillTitle;
         private string m_CurrentChampTitle;
@@ -5703,6 +5713,17 @@ namespace Server.Mobiles
         {
             get { return m_PaperdollSkillTitle; }
             set { m_PaperdollSkillTitle = value; InvalidateProperties(); }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string PaperdollJournal
+        {
+            get { return m_PaperdollJournal ?? String.Empty; }
+            set
+            {
+                m_PaperdollJournal = value ?? String.Empty;
+                Profile = m_PaperdollJournal;
+            }
         }
 
         public string SubtitleSkillTitle
