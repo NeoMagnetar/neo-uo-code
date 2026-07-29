@@ -1,0 +1,12 @@
+{
+  "phase": "Phase64D1D",
+  "runtime_sidecars_tracked": false,
+  "operational_layouts_v1_sha256": "00A113F76F95DEC2675D281D912C0F6CE884423E1057729521F5DDB75CEE3D89",
+  "operational_layout_versions_v1_sha256": "A000719DE10DA5723BA0691120EEBE61B3B7BB0283AA293449883ABF0CA0BF4B",
+  "pointers": 1,
+  "versions": 5,
+  "latest_dardalion_revision": 5,
+  "current_draft_version_id": "opver.dardalion_serial_00000193.5.b0af4dbd",
+  "current_approved_preview_version_id": "opver.dardalion_serial_00000193.2.0af52dac",
+  "versions_v2_sha256": "0EB27E13320CDC327597662334D8220F87DD47C94F5011DB2867E93A8D1D6C2F"
+}
