@@ -37,14 +37,19 @@ namespace Server.Gumps
 
             AddImageTiled(210, 86, 538, 420, 2624);
             AddAlphaRegion(210, 86, 538, 420);
-            AddHtml(222, 96, 510, 400, BodyHtml(target), true, true);
+            AddHtml(222, 96, 510, m_Tab == 5 ? 374 : 400, BodyHtml(target), true, true);
 
-            AddButton(150, 520, 4005, 4007, 5000, GumpButtonType.Reply, 0);
-            AddHtml(184, 520, 92, 20, "<BASEFONT COLOR=#FFFFFF>Add Draft</BASEFONT>", false, false);
-            AddButton(285, 520, 4005, 4007, 5001, GumpButtonType.Reply, 0);
-            AddHtml(319, 520, 74, 20, "<BASEFONT COLOR=#FFFFFF>Preview</BASEFONT>", false, false);
-            AddButton(410, 520, 4005, 4007, 5002, GumpButtonType.Reply, 0);
-            AddHtml(444, 520, 74, 20, "<BASEFONT COLOR=#FFFFFF>Submit</BASEFONT>", false, false);
+            if (m_Tab == 5)
+                AddRuntimeButtons();
+            else
+            {
+                AddButton(150, 520, 4005, 4007, 5000, GumpButtonType.Reply, 0);
+                AddHtml(184, 520, 92, 20, "<BASEFONT COLOR=#FFFFFF>Add Draft</BASEFONT>", false, false);
+                AddButton(285, 520, 4005, 4007, 5001, GumpButtonType.Reply, 0);
+                AddHtml(319, 520, 74, 20, "<BASEFONT COLOR=#FFFFFF>Preview</BASEFONT>", false, false);
+                AddButton(410, 520, 4005, 4007, 5002, GumpButtonType.Reply, 0);
+                AddHtml(444, 520, 74, 20, "<BASEFONT COLOR=#FFFFFF>Submit</BASEFONT>", false, false);
+            }
 
             AddButton(24, 520, 4005, 4007, 900, GumpButtonType.Reply, 0);
             AddHtml(58, 520, 70, 20, "<BASEFONT COLOR=#FFFFFF>Refresh</BASEFONT>", false, false);
@@ -73,6 +78,32 @@ namespace Server.Gumps
                 sender.Mobile.SendMessage(68, AIGMUMGComposerService.Preview(target, "Frontline Defender"));
             else if (info.ButtonID == 5002)
                 sender.Mobile.SendMessage(68, "Submit recorded as Draft review step. Use [umgapprove <actor> <assignment-id>] for explicit approval.");
+            else if (info.ButtonID == 5100)
+            {
+                AIGMUMGDescentReceipt receipt = AIGMUMGPreviewRuntimeService.PreviewCurrentWorld(target, sender.Mobile);
+                sender.Mobile.SendMessage(receipt.Errors.Count == 0 ? 68 : 38, AIGMUMGPreviewRuntimeService.BuildReceiptSummary(receipt));
+            }
+            else if (info.ButtonID == 5101)
+            {
+                AIGMUMGDescentReceipt receipt = AIGMUMGPreviewRuntimeService.PreviewScenario(target, sender.Mobile, "quiet");
+                sender.Mobile.SendMessage(receipt.Errors.Count == 0 ? 68 : 38, AIGMUMGPreviewRuntimeService.BuildReceiptSummary(receipt));
+            }
+            else if (info.ButtonID == 5102)
+                sender.Mobile.SendMessage(68, AIGMUMGDescentTraceService.BuildTraceSummary(AIGMUMGSleeveAccessService.FormatSerial(target)));
+            else if (info.ButtonID == 5103)
+            {
+                if (sender.Mobile.AccessLevel >= AccessLevel.GameMaster)
+                    sender.Mobile.SendMessage(68, AIGMUMGPreviewRuntimeService.ResetActorState(target));
+                else
+                    sender.Mobile.SendMessage(38, "D1E Preview state reset requires Game Master access.");
+            }
+            else if (info.ButtonID == 5104)
+            {
+                if (sender.Mobile.AccessLevel >= AccessLevel.GameMaster)
+                    sender.Mobile.SendMessage(68, AIGMUMGPreviewWatchService.SetWatch(target, !AIGMUMGPreviewWatchService.IsWatched(target)));
+                else
+                    sender.Mobile.SendMessage(38, "D1E passive Preview watch requires Game Master access.");
+            }
 
             int nextTab = info.ButtonID >= 100 && info.ButtonID < 200
                 ? info.ButtonID - 100
@@ -90,15 +121,30 @@ namespace Server.Gumps
                 "Architect",
                 "Why",
                 "Library",
-                "Versions"
+                "Versions",
+                "Descent"
             };
 
             for (int i = 0; i < tabs.Length; i++)
             {
-                int x = 16 + (i * 116);
+                int x = 16 + (i * 112);
                 AddButton(x, 58, i == m_Tab ? 4006 : 4005, 4007, 100 + i, GumpButtonType.Reply, 0);
-                AddHtml(x + 30, 58, 88, 20, String.Format("<BASEFONT COLOR=#FFFFFF>{0}</BASEFONT>", Utility.FixHtml(tabs[i])), false, false);
+                AddHtml(x + 30, 58, 84, 20, String.Format("<BASEFONT COLOR=#FFFFFF>{0}</BASEFONT>", Utility.FixHtml(tabs[i])), false, false);
             }
+        }
+
+        private void AddRuntimeButtons()
+        {
+            AddButton(150, 520, 4005, 4007, 5100, GumpButtonType.Reply, 0);
+            AddHtml(184, 520, 78, 20, "<BASEFONT COLOR=#FFFFFF>Preview</BASEFONT>", false, false);
+            AddButton(270, 520, 4005, 4007, 5101, GumpButtonType.Reply, 0);
+            AddHtml(304, 520, 54, 20, "<BASEFONT COLOR=#FFFFFF>Quiet</BASEFONT>", false, false);
+            AddButton(375, 520, 4005, 4007, 5102, GumpButtonType.Reply, 0);
+            AddHtml(409, 520, 50, 20, "<BASEFONT COLOR=#FFFFFF>Trace</BASEFONT>", false, false);
+            AddButton(475, 520, 4005, 4007, 5103, GumpButtonType.Reply, 0);
+            AddHtml(509, 520, 48, 20, "<BASEFONT COLOR=#FFFFFF>Reset</BASEFONT>", false, false);
+            AddButton(560, 520, 4005, 4007, 5104, GumpButtonType.Reply, 0);
+            AddHtml(594, 520, 54, 20, "<BASEFONT COLOR=#FFFFFF>Watch</BASEFONT>", false, false);
         }
 
         private static string HeaderHtml(Mobile target)
@@ -158,6 +204,8 @@ namespace Server.Gumps
                     return LibraryHtml(target);
                 case 4:
                     return VersionsHtml(target, sleeve);
+                case 5:
+                    return RuntimeDescentHtml(target);
                 default:
                     return OperatorHtml(target, sleeve, snapshot);
             }
@@ -274,6 +322,70 @@ namespace Server.Gumps
             return End(sb);
         }
 
+        private static string RuntimeDescentHtml(Mobile target)
+        {
+            StringBuilder sb = Begin();
+            string actorSerial = AIGMUMGSleeveAccessService.FormatSerial(target);
+            List<AIGMUMGDescentReceipt> recent = AIGMUMGDescentTraceService.GetRecent(actorSerial, 1);
+            AIGMUMGDescentReceipt receipt = recent.Count > 0 ? recent[0] : null;
+
+            sb.Append(ColorLine(AIGMUMGMoltType.Directive, "Runtime Preview", "PREVIEW ONLY"));
+            sb.Append(Line("Actor", DescribeTarget(target)));
+            sb.Append(Line("Status", AIGMUMGPreviewRuntimeService.BuildStatus(target)));
+            sb.Append(Line("Watch", AIGMUMGPreviewWatchService.IsWatched(target) ? "On" : "Off"));
+            sb.Append("<BR>");
+
+            if (receipt == null)
+            {
+                sb.Append(ColorLine(AIGMUMGMoltType.Instruction, "Receipt", "No D1E Preview receipt yet. Use Preview Current or Scenario."));
+                sb.Append(Line("Final Result", AIGMUMGPreviewRuntimeService.FinalPreviewResult));
+                sb.Append(Line("Controls", "Preview Current | Scenario Quiet | Recent Trace | Reset Preview State | Watch Off/On | Back | Close"));
+                return End(sb);
+            }
+
+            sb.Append(Line("Approved Layout Version", receipt.ApprovedLayoutVersionId));
+            sb.Append(Line("Graph Version", receipt.GraphVersion));
+            sb.Append(Line("Snapshot Source", receipt.SnapshotSource.ToString()));
+            sb.Append(Line("Scenario", String.IsNullOrWhiteSpace(receipt.SnapshotScenarioId) ? "none" : receipt.SnapshotScenarioId));
+            sb.Append(Line("Runtime State", receipt.RuntimeStateKind.ToString()));
+            sb.Append(Line("Final Result", receipt.FinalResult));
+            sb.Append("<BR>");
+
+            sb.Append(ColorLine(AIGMUMGMoltType.Instruction, "Always-On Spine", JoinList(receipt.AlwaysOnNodes, 10)));
+            sb.Append("<BR>");
+
+            sb.Append(ColorLine(AIGMUMGMoltType.Primary, "Selected Families", "ACTIVE PREVIEW - NOT DISPATCHED"));
+            AppendFamily(sb, receipt, AIGMUMGOperationalLayoutService.FamilyCombat);
+            AppendFamily(sb, receipt, AIGMUMGOperationalLayoutService.FamilyPositioning);
+            AppendFamily(sb, receipt, AIGMUMGOperationalLayoutService.FamilyResources);
+            AppendFamily(sb, receipt, AIGMUMGOperationalLayoutService.FamilyProtection);
+            sb.Append("<BR>");
+
+            sb.Append(Line("Other States", String.Format("suspended={0}; capabilityBlocked={1}; governanceBlocked={2}; coolingDown={3}; unconfigured={4}; invalid={5}",
+                receipt.SuspendedBranches.Count,
+                receipt.CapabilityBlockedBranches.Count,
+                receipt.GovernanceBlockedBranches.Count,
+                receipt.CoolingDownBranches.Count,
+                receipt.UnconfiguredTriggers.Count,
+                receipt.InvalidBranches.Count)));
+
+            sb.Append(Line("Cognition Budget", String.Format("families={0}; stacks={1}; refs={2}; triggers={3}; selected={4}; mappings={5}; attempts={6}; invocations={7}",
+                receipt.CognitionBudget.InstalledFamilies,
+                receipt.CognitionBudget.InstalledStacks,
+                receipt.CognitionBudget.InstalledReferences,
+                receipt.CognitionBudget.TriggerProfilesEvaluated,
+                receipt.CognitionBudget.SelectedBranches,
+                receipt.CognitionBudget.AdapterMappings,
+                receipt.CognitionBudget.AdapterInvocationAttempts,
+                receipt.CognitionBudget.AdapterInvocations)));
+
+            sb.Append(Line("Typed Intent", receipt.TypedIntent != null ? receipt.TypedIntent.Category.ToString() : "none"));
+            sb.Append(Line("Adapter Mapping", receipt.AdapterMapping != null ? receipt.AdapterMapping.AdapterName + " / " + receipt.AdapterMapping.MappingResult : "none"));
+            sb.Append(Line("Decision Fingerprint", Short(receipt.DecisionFingerprint)));
+            sb.Append(Line("Controls", "Preview Current | Scenario Quiet | Recent Trace | Reset Preview State | Watch Off/On | Back | Close"));
+            return End(sb);
+        }
+
         private static string TraceHtml(Mobile target)
         {
             StringBuilder sb = Begin();
@@ -313,6 +425,102 @@ namespace Server.Gumps
             sb.Append("<BR>");
             sb.Append(ColorLine(AIGMUMGMoltType.Subject, "Advanced", "Raw JSON is stored outside the world save; this view is a summary, not the primary editor."));
             return End(sb);
+        }
+
+        private static void AppendFamily(StringBuilder sb, AIGMUMGDescentReceipt receipt, string familyId)
+        {
+            AIGMUMGFamilySelection selection = FindFamilySelection(receipt, familyId);
+            if (selection == null || String.IsNullOrWhiteSpace(selection.SelectedStackId))
+            {
+                sb.Append(Line(FamilyLabel(familyId), "no branch selected"));
+                return;
+            }
+
+            AIGMUMGDescentCandidateBranch branch = FindCandidate(receipt, selection.SelectedStackId);
+            string trigger = branch != null && branch.MatchedTriggers.Count > 0 ? branch.MatchedTriggers[0].TriggerType.ToString() : "none";
+            string capability = branch != null && branch.Capability != null ? branch.Capability.State.ToString() : "none";
+            string governance = branch != null && branch.Governance != null ? branch.Governance.Result : "none";
+            string hysteresis = branch != null ? branch.HysteresisState : "none";
+
+            sb.Append(Line(FamilyLabel(familyId), String.Format("{0}; state={1}; trigger={2}; capability={3}; governance={4}; hysteresis={5}",
+                selection.SelectedStackName,
+                selection.State,
+                trigger,
+                capability,
+                governance,
+                hysteresis)));
+        }
+
+        private static AIGMUMGFamilySelection FindFamilySelection(AIGMUMGDescentReceipt receipt, string familyId)
+        {
+            if (receipt == null)
+                return null;
+
+            for (int i = 0; i < receipt.SelectedBranchByFamily.Count; i++)
+            {
+                AIGMUMGFamilySelection selection = receipt.SelectedBranchByFamily[i];
+                if (selection != null && String.Equals(selection.FamilyId, familyId, StringComparison.OrdinalIgnoreCase))
+                    return selection;
+            }
+
+            return null;
+        }
+
+        private static AIGMUMGDescentCandidateBranch FindCandidate(AIGMUMGDescentReceipt receipt, string stackId)
+        {
+            if (receipt == null)
+                return null;
+
+            for (int i = 0; i < receipt.CandidateBranches.Count; i++)
+            {
+                AIGMUMGDescentCandidateBranch candidate = receipt.CandidateBranches[i];
+                if (candidate != null && String.Equals(candidate.StackId, stackId, StringComparison.OrdinalIgnoreCase))
+                    return candidate;
+            }
+
+            return null;
+        }
+
+        private static string JoinList(List<string> values, int max)
+        {
+            if (values == null || values.Count == 0)
+                return "none";
+
+            int count = Math.Min(values.Count, Math.Max(1, max));
+            List<string> copy = new List<string>();
+            for (int i = 0; i < count; i++)
+                copy.Add(Short(values[i]));
+            if (values.Count > count)
+                copy.Add("+" + (values.Count - count));
+            return String.Join(", ", copy.ToArray());
+        }
+
+        private static string FamilyLabel(string familyId)
+        {
+            if (String.Equals(familyId, AIGMUMGOperationalLayoutService.FamilyCombat, StringComparison.OrdinalIgnoreCase))
+                return "Combat";
+            if (String.Equals(familyId, AIGMUMGOperationalLayoutService.FamilyPositioning, StringComparison.OrdinalIgnoreCase))
+                return "Positioning";
+            if (String.Equals(familyId, AIGMUMGOperationalLayoutService.FamilyResources, StringComparison.OrdinalIgnoreCase))
+                return "Resources";
+            if (String.Equals(familyId, AIGMUMGOperationalLayoutService.FamilyProtection, StringComparison.OrdinalIgnoreCase))
+                return "Protection";
+            return familyId ?? String.Empty;
+        }
+
+        private static string DescribeTarget(Mobile target)
+        {
+            if (target == null)
+                return "none";
+
+            return (String.IsNullOrWhiteSpace(target.Name) ? target.GetType().Name : target.Name) + "[" + AIGMUMGSleeveAccessService.FormatSerial(target) + "]";
+        }
+
+        private static string Short(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value))
+                return "none";
+            return value.Length <= 12 ? value : value.Substring(0, 12);
         }
 
         private static StringBuilder Begin()
