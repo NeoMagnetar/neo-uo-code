@@ -38,6 +38,7 @@ namespace Server.Commands
             CommandSystem.Register("umgsuspend", AccessLevel.GameMaster, OnSuspend);
             CommandSystem.Register("umgresume", AccessLevel.GameMaster, OnResume);
             CommandSystem.Register("umgsleeve", AccessLevel.Player, OnSleeve);
+            CommandSystem.Register("umglayout", AccessLevel.GameMaster, OnLayout);
         }
 
         private static void OnOpen(CommandEventArgs e)
@@ -76,6 +77,78 @@ namespace Server.Commands
                 return;
 
             AIGMUMGSleeveAccessService.OpenFromCommand(e.Mobile, Clean(e.ArgString));
+        }
+
+        private static void OnLayout(CommandEventArgs e)
+        {
+            if (e == null || e.Mobile == null)
+                return;
+
+            string verb;
+            string rest;
+            SplitFirst(Clean(e.ArgString), out verb, out rest);
+            if (String.IsNullOrWhiteSpace(verb))
+            {
+                e.Mobile.SendMessage(68, "Usage: [umglayout status|validate|versions <serial|name>] | [umglayout audit all] | [umglayout expire <session-id>]");
+                return;
+            }
+
+            if (String.Equals(verb, "audit", StringComparison.OrdinalIgnoreCase))
+            {
+                e.Mobile.SendMessage(68, AIGMUMGOperationalLayoutService.BuildAuditAll());
+                return;
+            }
+
+            if (String.Equals(verb, "expire", StringComparison.OrdinalIgnoreCase))
+            {
+                e.Mobile.SendMessage(68, AIGMUMGOperationalLayoutService.ExpireSessionForDiagnostics(rest) ? "Layout session expired for diagnostics. No layout data was written." : "Layout session not found.");
+                return;
+            }
+
+            Mobile actor;
+            string failureCode;
+            string failureMessage;
+            if (!AIGMUMGSleeveAccessService.TryResolveCompanionSelector(rest, out actor, out failureCode, out failureMessage))
+            {
+                e.Mobile.SendMessage(38, failureMessage);
+                return;
+            }
+
+            string actorKey = AIGMUMGOperationalLayoutService.ResolveOperationalActorKey(actor);
+            if (String.Equals(verb, "status", StringComparison.OrdinalIgnoreCase))
+            {
+                e.Mobile.SendMessage(68, AIGMUMGOperationalLayoutService.BuildStatus(actor));
+                return;
+            }
+
+            if (String.Equals(verb, "versions", StringComparison.OrdinalIgnoreCase))
+            {
+                e.Mobile.SendMessage(68, AIGMUMGOperationalLayoutService.BuildVersionsSummary(actorKey));
+                return;
+            }
+
+            if (String.Equals(verb, "validate", StringComparison.OrdinalIgnoreCase))
+            {
+                AIGMUMGOperationalLayoutActionResult sessionResult = AIGMUMGOperationalLayoutService.BeginSession(e.Mobile, actor);
+                if (!sessionResult.Accepted || sessionResult.Session == null)
+                {
+                    e.Mobile.SendMessage(38, sessionResult.Message);
+                    return;
+                }
+
+                try
+                {
+                    AIGMUMGOperationalLayoutValidationResult result = AIGMUMGOperationalLayoutService.ValidateLayout(actor, sessionResult.Session.WorkingLayout);
+                    e.Mobile.SendMessage(68, "Operational Layout validate {0}: {1}; final={2}", actorKey, result.BuildCompactSummary(), AIGMUMGOperationalLayoutService.PreviewResult);
+                }
+                finally
+                {
+                    AIGMUMGOperationalLayoutService.CancelSession(sessionResult.Session.SessionId);
+                }
+                return;
+            }
+
+            e.Mobile.SendMessage(68, "Unknown umglayout verb '{0}'.", verb);
         }
 
         private static void OnLibrary(CommandEventArgs e)

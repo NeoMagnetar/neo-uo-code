@@ -98,12 +98,14 @@ Do not auto-populate the repo beyond the root README and `.gitkeep` placeholders
 
 ## Current Publication State
 
-This publication branch began at Phase64C1E and is now cumulative through the accepted Phase64D1B baseline.
+This publication branch began at Phase64C1E and is now cumulative through the accepted Phase64D1D baseline.
 
 Included implementation surface:
 - Phase64C2 UMG Composer authoring preview, version rollback, and JSON encoding repair.
 - Phase64D1A server-side companion Sleeve access service, context-menu entry, and read-only Sleeve Selector Gump.
 - Phase64D1B normalized AIGM companion backpacks, inventory registry/service, marker contract, inventory commands, and lifecycle protections.
+- Phase64D1C ClassicUO paperdoll Sleeve launcher, implemented as a client launcher only with server authorization.
+- Phase64D1D server-side Skills-Gump Sleeve organizer, Operational Layout Schema v1, immutable Draft and Approved PreviewOnly versions, compare, rollback, cancel, stale-session rejection, and serial-specific layout identity.
 
 Runtime authority remains server-side. The companion backpack marker is a client discovery hint only:
 - Layer: `Layer.Backpack`
@@ -113,10 +115,13 @@ Runtime authority remains server-side. The companion backpack marker is a client
 - Server class: `Server.Custom.AIGM.Inventory.AIGMCompanionBackpack`
 
 Current accepted hashes:
-- `Scripts.dll`: `4AC823D6532C723FC4ADD0A128E2FBE35A1A4C8F3E09DE0101832090AA7F3FF0`
+- `Scripts.dll`: `EE6956036DDD769E052CD42FACC16751C4411B8EF0C32142A862F71AAE2BE8F2`
 - `versions_v2.json`: `0EB27E13320CDC327597662334D8220F87DD47C94F5011DB2867E93A8D1D6C2F`
+- `operational_layouts_v1.json`: `00A113F76F95DEC2675D281D912C0F6CE884423E1057729521F5DDB75CEE3D89`
+- `operational_layout_versions_v1.json`: `A000719DE10DA5723BA0691120EEBE61B3B7BB0283AA293449883ABF0CA0BF4B`
 
 Publication controls:
 - No saves, accounts, live world state, private UMG sidecars, audit ZIPs, build binaries, logs, credentials, tokens, or temporary build output are tracked.
+- Phase64D1D remains PreviewOnly. Draft doctrine and Approved PreviewOnly doctrine do not execute.
 - Tactical dispatch remains disabled.
 - Autonomous item use is not implemented.
